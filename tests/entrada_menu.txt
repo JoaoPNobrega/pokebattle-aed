@@ -1,0 +1,30 @@
+2
+1
+Charizard
+2
+150
+3
+4
+3
+1
+2
+3
+4
+4
+1
+6
+94
+143
+130
+68
+151
+TIME
+TROCAR 1 2
+PROX
+ANT
+REMOVER Charizard
+6
+PRONTO
+7
+s
+5
