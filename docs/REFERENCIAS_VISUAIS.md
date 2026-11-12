@@ -4,7 +4,17 @@ Pesquisa feita antes de redesenhar a janela. Nada aqui entra na regra do jogo: d
 
 Os sprites dos Pokémon estão em `assets/pokemon/`. Foram baixados da [PokéAPI](https://pokeapi.co), geração III FireRed/LeafGreen (`sprites.versions['generation-iii']['firered-leafgreen']`, frente e costas), com o sprite padrão da API se esse arquivo faltar, mais o ícone da geração VII. A arte é da Nintendo e da Game Freak. O uso aqui é acadêmico, o jogo não acessa a rede, e o crédito está no README. `dados.txt` guarda nome, tipos e stats base oficiais; a batalha segue os números afinados de `src/dados_pokemon.c`.
 
-O chão é o tileset **Roguelike Indoor** do Kenney, 16×16, CC0 (`assets/tiles/kenney_indoor.png`, licença em `LICENSE-kenney-indoor.txt`). O espelho usado no download foi o repositório [ETdoFresh/kenney.nl](https://github.com/ETdoFresh/kenney.nl), porque o site kenney.nl recusou o pedido automático. O detetive, o Giovanni e a Poké Bola em `assets/personagens/` foram desenhados para este projeto.
+O laboratório na tela é o do Professor Carvalho em FireRed. Os metatiles vêm de [pret/pokefirered](https://github.com/pret/pokefirered), `data/tilesets/primary/building` e `data/tilesets/secondary/lab`, montados por `tools/baixar_personagens.py` em `assets/tiles/frlg_lab.png`. O Kenney CC0 (`assets/tiles/kenney_indoor.png`) fica só como reserva se esse arquivo faltar.
+
+As pessoas também são sprites dos jogos, uso acadêmico:
+
+- Detetive no mapa: Gentleman de FireRed/LeafGreen, `graphics/object_events/pics/people/gentleman.png`. A folha original é uma fileira; o script separa em 4 direções e 3 quadros, na ordem que `sAnim_FaceSouth` / `sAnim_GoSouth` usam no decomp.
+- Giovanni no mapa: `graphics/object_events/pics/people/giovanni.png`, do mesmo jeito.
+- Costas na introdução da luta: `graphics/trainers/back_pics/red_back_pic.png` (o Red). Ele entra, faz o arremesso e sai; aí entra o Pokémon.
+- Giovanni na luta: [giovanni-gen3.png no Pokémon Showdown](https://play.pokemonshowdown.com/sprites/trainers/giovanni-gen3.png). Entra deslizando e sai para soltar o Pokémon.
+- Pikachu atrás do detetive: animações de seguidor de HeartGold/SoulSilver, GIFs `25-1` a `25-4` em [pokeamice.com/hgss-pokemon-walk](https://pokeamice.com/hgss-pokemon-walk/), quatro direções.
+
+A Poké Bola de 16×16 em `assets/personagens/pokebola.png` foi desenhada para este projeto.
 
 ## Batalha no estilo GBA/DS
 

@@ -91,9 +91,14 @@ Quem age primeiro continua sendo prioridade do golpe e velocidade (insertion sor
 | Arquivo | O que é | Licença |
 | --- | --- | --- |
 | `assets/fontes/PressStart2P-Regular.ttf` | Fonte pixel Press Start 2P, Cody Boisclair | SIL OFL 1.1 (`assets/fontes/OFL-PressStart2P.txt`). O nome é reservado. [Google Fonts](https://fonts.google.com/specimen/Press+Start+2P) |
-| `assets/pokemon/` | Sprites de frente, costas e ícone, mais `dados.txt` (nome, tipos e stats base) | Arte da Nintendo / Game Freak, obtida pela [PokéAPI](https://pokeapi.co) (`sprites.versions.generation-iii.firered-leafgreen`, com fallback para o sprite padrão). Uso acadêmico neste repositório. O jogo não baixa nada ao rodar |
-| `assets/tiles/kenney_indoor.png` | Tileset de interior 16×16 | CC0, Kenney (Roguelike Indoor). Texto em `assets/tiles/LICENSE-kenney-indoor.txt`. [kenney.nl](https://kenney.nl) |
-| `assets/personagens/` | Detetive, Giovanni e Poké Bola | Pixel art feita para este projeto. Não é sprite da Nintendo |
+| `assets/pokemon/` | Sprites de frente, costas e ícone, mais `dados.txt` (nome, tipos e stats base) | Arte da Nintendo / Game Freak, obtida pela [PokéAPI](https://pokeapi.co) (`sprites.versions.generation-iii.firered-leafgreen`, com fallback para o sprite padrão). Uso acadêmico. O jogo não baixa nada ao rodar |
+| `assets/tiles/frlg_lab.png` | Chão, parede, estante, máquina e porta do laboratório da FireRed | Nintendo / Game Freak, via a decompilação [pret/pokefirered](https://github.com/pret/pokefirered) (`data/tilesets/primary/building` e `data/tilesets/secondary/lab`, mapa do laboratório do Carvalho). Uso acadêmico |
+| `assets/tiles/kenney_indoor.png` | Tileset de interior 16×16, reserva se o da FireRed faltar | CC0, Kenney (Roguelike Indoor). Texto em `assets/tiles/LICENSE-kenney-indoor.txt`. [kenney.nl](https://kenney.nl) |
+| `assets/personagens/detetive.png` e `giovanni_overworld.png` | Gentleman e Giovanni no mapa, 4 direções e 3 passos | Nintendo / Game Freak, [pret/pokefirered](https://github.com/pret/pokefirered) `graphics/object_events/pics/people/`. Uso acadêmico |
+| `assets/personagens/detetive_costas.png` | Red de costas na introdução da luta | O mesmo repositório, `graphics/trainers/back_pics/red_back_pic.png` |
+| `assets/personagens/giovanni.png` | Giovanni treinador, geração III | [Pokémon Showdown](https://play.pokemonshowdown.com/sprites/trainers/giovanni-gen3.png). Uso acadêmico |
+| `assets/personagens/pikachu_overworld.png` | Pikachu seguidor, 4 direções | HeartGold/SoulSilver, GIFs em [pokeamice.com/hgss-pokemon-walk](https://pokeamice.com/hgss-pokemon-walk/). Uso acadêmico |
+| `assets/personagens/pokebola.png` | Poké Bola 16×16 | Pixel art deste projeto |
 | Cliques e acerto | Onda quadrada gerada na hora | Sem arquivo externo |
 
 Os stats oficiais estão em `assets/pokemon/dados.txt`. A batalha continua com os números de `src/dados_pokemon.c`, afinados para a luta durar mais de um golpe. A lista do que a tela aproveitou está em `docs/REFERENCIAS_VISUAIS.md`.

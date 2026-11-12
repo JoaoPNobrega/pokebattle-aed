@@ -39,7 +39,7 @@ Inspirado em *Pokémon: Mewtwo Contra-Ataca* e *Detetive Pikachu*, sem seguir ne
 - Todo arquivo de módulo explica no topo o que faz e por que a estrutura foi escolhida. Toda função pública diz o que faz, parâmetros, retorno e Big-O.
 - Sem vazamento. Quem aloca, libera. A lista circular do turno não é dona do Pokémon.
 - O dano tem um `/2` no fim de `calcularDano` para a luta durar mais de um golpe. A proporção entre os tipos não muda. Não apague esse divisor sem avisar no README.
-- Os sprites dos Pokémon vêm da PokéAPI e ficam em `assets/pokemon/`. O C não faz HTTP. Crédito à PokéAPI e à Nintendo/Game Freak no README. O detetive, o Giovanni e a Poké Bola são pixel art do projeto.
+- Os sprites dos Pokémon vêm da PokéAPI e ficam em `assets/pokemon/`. As pessoas e o laboratório vêm dos gráficos da FireRed (pret/pokefirered), o Giovanni da batalha do Pokémon Showdown e o Pikachu do mapa do HeartGold. O C não faz HTTP. Créditos no README. A Poké Bola é pixel art do projeto.
 - Não commitar executável, `bin/`, `build/` nem a raylib baixada (`third_party/`).
 
 ## Onde cada estrutura trabalha
@@ -116,7 +116,7 @@ Diálogos pontuais além da fala de uma linha, declaração de IA preenchida, zi
 
 A janela desenha em 240×160 e amplia com escala inteira (4) e `TEXTURE_FILTER_POINT`. A fonte é Press Start 2P, 8 px, também com filtro point. Sem isso o pixel borra.
 
-- `make assets` roda `tools/baixar_assets.py` e refaz `assets/pokemon/` (frente e costas da FireRed/LeafGreen, ícone, `dados.txt`). Os arquivos já estão no git. O binário só lê disco.
+- `make assets` roda `tools/baixar_assets.sh`, que chama `baixar_assets.py` (PokéAPI) e `baixar_personagens.py` (overworld, costas do Red, Giovanni e o tileset do laboratório). Os arquivos já estão no git. O binário só lê disco.
 - Mapa: tiles de 16×16 do Kenney (`assets/tiles/kenney_indoor.png`, CC0). O detetive anda célula a célula (setas ou WASD), com folha de 4 direções. O Pikachu segue atrás. Z age em painel, gelo, fogo, porta e encontro. A porta chama `casoAvancar`. O puzzle chama `casoUsarHabilidade`.
 - Batalha: sprite de costas embaixo à esquerda, de frente no alto à direita, plataformas ovais, caixas de HP, menu LUTAR/BOLSA/POKÉMON/FUGIR e grade de golpes com tipo e PP. BOLSA e FUGIR só mostram fala: não há item nem fuga na regra. A captura é animação em volta de `casoCapturar`.
 - Barra de HP: verde acima de 50%, amarela até 20%, vermelha abaixo. A cor segue o valor animado, não o HP final.

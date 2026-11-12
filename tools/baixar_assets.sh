@@ -4,4 +4,5 @@
 # Uso acadêmico. Créditos à PokéAPI e à Nintendo/Game Freak no README.
 set -eu
 cd "$(dirname "$0")/.."
-exec python3 tools/baixar_assets.py
+python3 tools/baixar_assets.py
+python3 tools/baixar_personagens.py

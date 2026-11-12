@@ -146,10 +146,16 @@ static Texture2D detetive_tex;
 static Texture2D giovanni_ow;
 static Texture2D giovanni_batalha;
 static Texture2D pokebola_tex;
+static Texture2D frlg_tex;
+static Texture2D pikachu_ow;
+static Texture2D costas_tex;
 static int detetive_ok = 0;
 static int giovanni_ow_ok = 0;
 static int giovanni_bat_ok = 0;
 static int pokebola_ok = 0;
+static int frlg_ok = 0;
+static int pikachu_ow_ok = 0;
+static int costas_ok = 0;
 static SpriteMon sprites[MAX_POKEMON];
 static char raiz_assets[256];
 static Caso caso_jogo;
@@ -297,6 +303,41 @@ static Mapa MAPA_CHEFE = {
     "#..................#",
     "#........D.........#",
     "####################"
+};
+
+/* Laboratório do Professor Carvalho, da FireRed. 13×14. */
+static const unsigned short LAB_META[14][13] = {
+    {669, 109, 109, 110, 105, 105, 653, 653, 152, 107, 108, 107, 108},
+    {685, 678, 117, 118, 133, 134, 661, 661, 160, 115, 116, 115, 116},
+    {693, 694, 645, 646, 645, 646, 641, 641, 641, 643, 644, 643, 644},
+    {671, 675, 676, 649, 649, 649, 649, 649, 649, 649, 649, 649, 649},
+    {671, 683, 684, 649, 649, 649, 649, 649, 680, 681, 682, 649, 649},
+    {648, 691, 692, 649, 649, 649, 649, 649, 688, 689, 690, 649, 649},
+    {648, 649, 649, 649, 649, 649, 649, 649, 649, 649, 649, 649, 649},
+    {698, 651, 652, 651, 652, 649, 649, 649, 651, 652, 651, 652, 652},
+    {115, 115, 116, 115, 116, 649, 649, 649, 115, 116, 115, 116, 116},
+    {647, 643, 644, 643, 644, 649, 649, 649, 643, 644, 643, 644, 644},
+    {648, 649, 649, 649, 649, 649, 649, 649, 649, 649, 649, 649, 649},
+    {659, 649, 649, 649, 649, 649, 649, 649, 649, 649, 649, 649, 660},
+    {667, 649, 649, 649, 649, 656, 657, 658, 649, 649, 649, 649, 668},
+    {8, 8, 8, 8, 8, 664, 665, 666, 8, 8, 8, 8, 8}
+};
+
+static const char *LAB_COL[14] = {
+    "#############",
+    "#############",
+    ".............",
+    "#............",
+    "#PP.....###..",
+    ".PP..........",
+    ".............",
+    ".............",
+    "#####...#####",
+    ".............",
+    ".............",
+    ".............",
+    "#...........#",
+    "#####DDD#####"
 };
 
 static void texto(const char *conteudo, float x, float y, float tamanho, Color cor);
@@ -457,6 +498,9 @@ static void carregarAssets(void) {
     giovanni_ow = carregarPng("personagens/giovanni_overworld.png", &giovanni_ow_ok);
     giovanni_batalha = carregarPng("personagens/giovanni.png", &giovanni_bat_ok);
     pokebola_tex = carregarPng("personagens/pokebola.png", &pokebola_ok);
+    pikachu_ow = carregarPng("personagens/pikachu_overworld.png", &pikachu_ow_ok);
+    costas_tex = carregarPng("personagens/detetive_costas.png", &costas_ok);
+    frlg_tex = carregarPng("tiles/frlg_lab.png", &frlg_ok);
     carregarSpritesPokemon();
     InitAudioDevice();
     if (IsAudioDeviceReady()) {
@@ -486,6 +530,9 @@ static void liberarAssets(void) {
     liberarTextura(&giovanni_ow, &giovanni_ow_ok);
     liberarTextura(&giovanni_batalha, &giovanni_bat_ok);
     liberarTextura(&pokebola_tex, &pokebola_ok);
+    liberarTextura(&pikachu_ow, &pikachu_ow_ok);
+    liberarTextura(&costas_tex, &costas_ok);
+    liberarTextura(&frlg_tex, &frlg_ok);
     if (fonte_ok) {
         UnloadFont(fonte);
         fonte_ok = 0;
@@ -807,6 +854,7 @@ static const char **mapaDa(const char *nome) {
     if (nome == NULL) {
         return MAPA_LAB;
     }
+    if (strcmp(nome, "Laboratório") == 0) return LAB_COL;
     if (strcmp(nome, "Pátio") == 0) return MAPA_PATIO;
     if (strcmp(nome, "Câmara fria") == 0) return MAPA_FRIA;
     if (strcmp(nome, "Tanque") == 0) return MAPA_TANQUE;
@@ -817,8 +865,22 @@ static const char **mapaDa(const char *nome) {
     return MAPA_LAB;
 }
 
+static int larguraMapa(const char **mapa) {
+    if (mapa == LAB_COL) {
+        return 13;
+    }
+    return MAPA_L;
+}
+
+static int alturaMapa(const char **mapa) {
+    if (mapa == LAB_COL) {
+        return 14;
+    }
+    return MAPA_A;
+}
+
 static char tileEm(const char **mapa, int x, int y) {
-    if (mapa == NULL || y < 0 || y >= MAPA_A || x < 0 || x >= MAPA_L) {
+    if (mapa == NULL || y < 0 || y >= alturaMapa(mapa) || x < 0 || x >= larguraMapa(mapa)) {
         return '#';
     }
     if (mapa[y] == NULL || (int)strlen(mapa[y]) <= x) {
@@ -1274,11 +1336,61 @@ static void desenharFolha(Texture2D folha, int ok, int dir, int quadro, float x,
     DrawTexturePro(folha, origem, destino, (Vector2){0.0f, 0.0f}, 0.0f, WHITE);
 }
 
+static void desenharPikachuOw(int dir, int quadro, float x, float y) {
+    Rectangle origem;
+    Rectangle destino;
+
+    if (dir < 0) dir = 0;
+    if (dir > 3) dir = 0;
+    if (quadro < 0) quadro = 0;
+    if (quadro > 2) quadro = 2;
+    if (!pikachu_ow_ok) {
+        desenharSpriteMon(25, 0, (Rectangle){x, y, 32.0f, 32.0f}, 0.0f);
+        return;
+    }
+    origem = (Rectangle){(float)quadro * 32.0f, (float)dir * 32.0f, 32.0f, 32.0f};
+    destino = (Rectangle){x, y, 32.0f, 32.0f};
+    DrawTexturePro(pikachu_ow, origem, destino, (Vector2){0.0f, 0.0f}, 0.0f, WHITE);
+}
+
+static void desenharCostas(int quadro, float x, float y) {
+    Rectangle origem;
+    Rectangle destino;
+
+    if (quadro < 0) quadro = 0;
+    if (quadro > 4) quadro = 4;
+    if (!costas_ok) {
+        return;
+    }
+    origem = (Rectangle){(float)quadro * 64.0f, 0.0f, 64.0f, 64.0f};
+    destino = (Rectangle){x, y, 64.0f, 64.0f};
+    DrawTexturePro(costas_tex, origem, destino, (Vector2){0.0f, 0.0f}, 0.0f, WHITE);
+}
+
+static void blitFrlg(int id, int x, int y) {
+    Rectangle origem;
+    Rectangle destino;
+    int coluna;
+    int linha;
+
+    if (!frlg_ok || id < 0) {
+        DrawRectangle(x, y, TILE, TILE, (Color){180, 180, 188, 255});
+        return;
+    }
+    coluna = id % 32;
+    linha = id / 32;
+    origem = (Rectangle){(float)coluna * 16.0f, (float)linha * 16.0f, 16.0f, 16.0f};
+    destino = (Rectangle){(float)x, (float)y, 16.0f, 16.0f};
+    DrawTexturePro(frlg_tex, origem, destino, (Vector2){0.0f, 0.0f}, 0.0f, WHITE);
+}
+
 static void desenharMapa(const NoSala *sala, int camx, int camy) {
     const char **mapa = mapaDa(sala == NULL ? "" : sala->nome);
     const char *nome = sala == NULL ? "" : sala->nome;
-    int x0 = camx / TILE;
-    int y0 = camy / TILE;
+    int limite_x = larguraMapa(mapa);
+    int limite_y = alturaMapa(mapa);
+    int x0 = camx / TILE - 1;
+    int y0 = camy / TILE - 1;
     int x1 = (camx + VIRT_L) / TILE + 2;
     int y1 = (camy + VIRT_A) / TILE + 2;
     int x;
@@ -1286,8 +1398,17 @@ static void desenharMapa(const NoSala *sala, int camx, int camy) {
 
     if (x0 < 0) x0 = 0;
     if (y0 < 0) y0 = 0;
-    if (x1 > MAPA_L) x1 = MAPA_L;
-    if (y1 > MAPA_A) y1 = MAPA_A;
+    if (x1 > limite_x) x1 = limite_x;
+    if (y1 > limite_y) y1 = limite_y;
+
+    if (mapa == LAB_COL && frlg_ok) {
+        for (y = y0; y < y1; y++) {
+            for (x = x0; x < x1; x++) {
+                blitFrlg(LAB_META[y][x], x * TILE - camx, y * TILE - camy);
+            }
+        }
+        return;
+    }
 
     for (y = y0; y < y1; y++) {
         for (x = x0; x < x1; x++) {
@@ -1296,24 +1417,37 @@ static void desenharMapa(const NoSala *sala, int camx, int camy) {
             int py = y * TILE - camy;
             int aberto = portaAberta(sala);
 
-            if (simbolo == ',') {
+            if (frlg_ok) {
+                blitFrlg(649, px, py);
+                if (simbolo == '#') {
+                    blitFrlg(109, px, py);
+                } else if (simbolo == 'M' || simbolo == 'B' || (simbolo == 'P' && strcmp(nome, "Arquivo") == 0)) {
+                    blitFrlg(107, px, py);
+                } else if (simbolo == 'C' || simbolo == 'R' || simbolo == 'S' || simbolo == 'P') {
+                    blitFrlg(117, px, py);
+                } else if (simbolo == 'V') {
+                    blitFrlg(667, px, py);
+                } else if (simbolo == 'D') {
+                    blitFrlg(aberto ? 665 : 664, px, py);
+                }
+            } else if (simbolo == ',') {
                 blitTile(24, 6, px, py);
             } else if (simbolo != '#') {
                 blitTile(24, 0, px, py);
             }
-            if (simbolo == '#') {
+            if (!frlg_ok && simbolo == '#') {
                 blitTile(0, 13, px, py);
-            } else if (simbolo == 'M') {
+            } else if (!frlg_ok && simbolo == 'M') {
                 blitTile(2, 13, px, py);
-            } else if (simbolo == 'C' || simbolo == 'R') {
+            } else if (!frlg_ok && (simbolo == 'C' || simbolo == 'R')) {
                 blitTile(22, 8, px, py);
-            } else if (simbolo == 'B' || (simbolo == 'P' && strcmp(nome, "Arquivo") == 0)) {
+            } else if (!frlg_ok && (simbolo == 'B' || (simbolo == 'P' && strcmp(nome, "Arquivo") == 0))) {
                 blitTile(5, 13, px, py);
-            } else if (simbolo == 'S' || simbolo == 'P') {
+            } else if (!frlg_ok && (simbolo == 'S' || simbolo == 'P')) {
                 blitTile(16, 14, px, py);
-            } else if (simbolo == 'V') {
+            } else if (!frlg_ok && simbolo == 'V') {
                 blitTile(16, 0, px, py);
-            } else if (simbolo == 'D') {
+            } else if (!frlg_ok && simbolo == 'D') {
                 blitTile(aberto ? 13 : 5, aberto ? 9 : 9, px, py);
             } else if (simbolo == 'H') {
                 DrawRectangle(px + 4, py, 3, TILE, (Color){48, 52, 64, 255});
@@ -1346,8 +1480,8 @@ static void desenharMundo(void) {
     float py;
     int camx;
     int camy;
-    int maxx = MAPA_L * TILE - VIRT_L;
-    int maxy = MAPA_A * TILE - VIRT_A;
+    int maxx = larguraMapa(mapa) * TILE - VIRT_L;
+    int maxy = alturaMapa(mapa) * TILE - VIRT_A;
     int quadro = 0;
     int x;
     int y;
@@ -1360,19 +1494,23 @@ static void desenharMundo(void) {
     piy = ((float)mundo.pika_de_y + (float)(mundo.pika_y - mundo.pika_de_y) * tp) * TILE;
     camx = (int)jx - VIRT_L / 2 + TILE / 2;
     camy = (int)jy - VIRT_A / 2 + TILE;
-    if (maxx < 0) maxx = 0;
-    if (maxy < 0) maxy = 0;
-    if (camx < 0) camx = 0;
-    if (camy < 0) camy = 0;
-    if (camx > maxx) camx = maxx;
-    if (camy > maxy) camy = maxy;
-
-    desenharMapa(sala, camx, camy);
-    if (sala != NULL && strcmp(sala->nome, "Laboratório") == 0 && !sala->resolvido) {
-        DrawRectangle(0, 0, VIRT_L, 28, (Color){0, 0, 16, 150});
-        DrawRectangle(0, 0, 18, VIRT_A, (Color){0, 0, 16, 120});
-        DrawRectangle(VIRT_L - 18, 0, 18, VIRT_A, (Color){0, 0, 16, 120});
+    if (maxx < 0) {
+        camx = maxx / 2;
+    } else {
+        if (camx < 0) camx = 0;
+        if (camx > maxx) camx = maxx;
     }
+    if (maxy < 0) {
+        camy = maxy / 2;
+    } else {
+        if (camy < 0) camy = 0;
+        if (camy > maxy) camy = maxy;
+    }
+
+    if (frlg_ok && larguraMapa(mapa) * TILE < VIRT_L) {
+        DrawRectangle(0, 0, VIRT_L, VIRT_A, (Color){214, 206, 176, 255});
+    }
+    desenharMapa(sala, camx, camy);
     if (sala != NULL && strcmp(sala->nome, "Câmara fria") == 0) {
         DrawRectangle(0, 0, VIRT_L, VIRT_A, (Color){140, 190, 220, 40});
     }
@@ -1387,22 +1525,26 @@ static void desenharMundo(void) {
     py = jy - (float)camy - 16.0f;
     {
         float fx = pix - (float)camx - 8.0f;
-        float fy = piy - (float)camy - 16.0f;
+        float fy = piy - (float)camy - 28.0f;
+        int quadro_pika = 0;
+        if (mundo.pika_anda < 1.0f) {
+            quadro_pika = mundo.pika_anda < 0.5f ? 1 : 2;
+        }
         if (piy <= jy) {
             DrawEllipse((int)fx + 16, (int)fy + 30, 8.0f, 3.0f, (Color){0, 0, 0, 70});
-            desenharSpriteMon(25, 0, (Rectangle){fx, fy, 32.0f, 32.0f}, 0.0f);
+            desenharPikachuOw(mundo.pika_dir, quadro_pika, fx, fy);
         }
         DrawEllipse((int)px + 8, (int)py + 30, 7.0f, 3.0f, (Color){0, 0, 0, 70});
         desenharFolha(detetive_tex, detetive_ok, mundo.dir, quadro, px, py);
         if (piy > jy) {
             DrawEllipse((int)fx + 16, (int)fy + 30, 8.0f, 3.0f, (Color){0, 0, 0, 70});
-            desenharSpriteMon(25, 0, (Rectangle){fx, fy, 32.0f, 32.0f}, 0.0f);
+            desenharPikachuOw(mundo.pika_dir, quadro_pika, fx, fy);
         }
     }
 
     numero = numeroEncontro(sala == NULL ? "" : sala->nome);
-    for (y = 0; y < MAPA_A; y++) {
-        for (x = 0; x < MAPA_L; x++) {
+    for (y = 0; y < alturaMapa(mapa); y++) {
+        for (x = 0; x < larguraMapa(mapa); x++) {
             char simbolo = tileEm(mapa, x, y);
             float ex = (float)(x * TILE - camx);
             float ey = (float)(y * TILE - camy) - 16.0f;
@@ -1660,10 +1802,12 @@ static void atualizarBatalha(float dt) {
     if (vis.tremor_opp > 0.0f) vis.tremor_opp -= dt;
     if (vis.flash_eu < 0.0f) vis.flash_eu = 0.0f;
     if (vis.flash_opp < 0.0f) vis.flash_opp = 0.0f;
-    if (vis.entrada < 1.0f) {
+    if (vis.fase == BAT_ENTRADA && vis.entrada < 1.0f) {
+        vis.entrada += dt / 1.35f;
+    } else if (vis.entrada < 1.0f) {
         vis.entrada += dt / 0.4f;
-        if (vis.entrada > 1.0f) vis.entrada = 1.0f;
     }
+    if (vis.entrada > 1.0f) vis.entrada = 1.0f;
 
     if (vis.fase == BAT_ENTRADA) {
         if (vis.entrada >= 1.0f || acaoPressionada()) {
@@ -1796,10 +1940,17 @@ static void desenharBatalha(void) {
     const Pokemon *op = NULL;
     int chefe = sala != NULL && sala->e_chefe;
     int numero_opp = 0;
-    float entrada = vis.entrada;
-    float deslize = (1.0f - entrada) * 56.0f;
+    int intro = vis.fase == BAT_ENTRADA;
+    float t_intro = intro ? vis.entrada : 1.0f;
+    float entra = t_intro / 0.40f;
+    float sai = 0.0f;
     float sx_eu = 0.0f;
     float sx_opp = 0.0f;
+    float x_costas;
+    float x_gio;
+    float x_poke;
+    float x_inimigo;
+    int quadro_costas = 0;
     Rectangle jogador;
     Rectangle inimigo;
     Color ceu;
@@ -1834,22 +1985,36 @@ static void desenharBatalha(void) {
     DrawRectangle(0, 100, VIRT_L, 12, chefe ? (Color){48, 16, 20, 255} : (Color){56, 128, 56, 255});
     desenharPlataforma(168, 58, 42.0f, 12.0f, plat_c, plat_e);
     desenharPlataforma(58, 100, 48.0f, 13.0f, plat_c, plat_e);
+    if (entra > 1.0f) entra = 1.0f;
+    if (t_intro > 0.58f) sai = (t_intro - 0.58f) / 0.42f;
+    if (sai > 1.0f) sai = 1.0f;
+    if (!intro) {
+        entra = 1.0f;
+        sai = 1.0f;
+    }
+    x_costas = (-56.0f * (1.0f - entra) + 8.0f * entra);
+    x_costas = x_costas + ((-96.0f) - x_costas) * sai;
+    x_poke = -48.0f * (1.0f - sai) + (8.0f + sx_eu) * sai;
+    x_gio = 210.0f * (1.0f - entra) + 148.0f * entra;
+    x_gio = x_gio + (250.0f - x_gio) * sai;
+    x_inimigo = chefe
+        ? (-20.0f * (1.0f - sai) + (136.0f + sx_opp) * sai)
+        : (210.0f * (1.0f - entra) + (148.0f + sx_opp) * entra);
+    if (sai > 0.2f && sai < 0.75f) quadro_costas = 3;
 
-    jogador = (Rectangle){6.0f - deslize + sx_eu, 40.0f, 64.0f, 64.0f};
-    if (eu != NULL) {
+    if (intro && sai < 0.98f) {
+        desenharCostas(quadro_costas, x_costas, 40.0f);
+        if (chefe && giovanni_bat_ok) {
+            DrawTexturePro(giovanni_batalha,
+                           (Rectangle){0, 0, (float)giovanni_batalha.width, (float)giovanni_batalha.height},
+                           (Rectangle){x_gio, -4.0f, 80.0f, 80.0f}, (Vector2){0, 0}, 0.0f, WHITE);
+        }
+    }
+    jogador = (Rectangle){x_poke, 40.0f, 64.0f, 64.0f};
+    if (eu != NULL && (!intro || sai > 0.02f)) {
         desenharSpriteMon(eu->numero, 1, jogador, vis.flash_eu);
     }
-    if (chefe && giovanni_bat_ok && vis.fase != BAT_CAPTURA) {
-        Rectangle g = {176.0f + deslize, 0.0f, 64.0f, 64.0f};
-        DrawTexturePro(giovanni_batalha,
-                       (Rectangle){0, 0, (float)giovanni_batalha.width, (float)giovanni_batalha.height},
-                       g, (Vector2){0, 0}, 0.0f, WHITE);
-    }
-    inimigo = (Rectangle){148.0f + deslize + sx_opp, 2.0f, 64.0f, 64.0f};
-    if (chefe) {
-        inimigo.x = 112.0f + deslize + sx_opp;
-        inimigo.y = 6.0f;
-    }
+    inimigo = (Rectangle){x_inimigo, chefe ? 6.0f : 2.0f, 64.0f, 64.0f};
     if (vis.fase == BAT_CAPTURA && vis.captura_t > 0.55f) {
         numero_opp = 0;
     } else if (vis.fase == BAT_CAPTURA && vis.captura_t > 0.4f) {
@@ -1860,7 +2025,7 @@ static void desenharBatalha(void) {
         inimigo.x += (64.0f - inimigo.width) * 0.5f;
         inimigo.y += 64.0f - inimigo.height;
     }
-    if (numero_opp > 0) {
+    if (numero_opp > 0 && (!intro || (chefe ? sai > 0.02f : entra > 0.08f))) {
         desenharSpriteMon(numero_opp, 0, inimigo, vis.flash_opp);
     }
 
@@ -2267,8 +2432,26 @@ int capturarTelasDemonstracao(void) {
     zerarVisual();
     entrarNaSala();
     tela = TELA_SALA;
+    mundo.tx = 6;
+    mundo.ty = 6;
+    mundo.de_x = 6;
+    mundo.de_y = 6;
+    mundo.para_x = 6;
+    mundo.para_y = 7;
+    mundo.anda = 0.4f;
+    mundo.movendo = 1;
+    mundo.dir = 0;
+    mundo.pika_x = 6;
+    mundo.pika_y = 4;
+    mundo.pika_de_x = 6;
+    mundo.pika_de_y = 4;
+    mundo.pika_anda = 0.4f;
+    mundo.pika_dir = 0;
     desenharTudo();
     apresentar("captura_sala.png");
+    mundo.movendo = 0;
+    mundo.anda = 1.0f;
+    mundo.pika_anda = 1.0f;
 
     sala = salaAtual(&caso_jogo.salas);
     if (sala != NULL) {
@@ -2291,6 +2474,20 @@ int capturarTelasDemonstracao(void) {
                     mundo.pika_de_y = mundo.pika_y;
                 }
             }
+        }
+        if (strcmp(sala->nome, "Laboratório") == 0) {
+            mundo.tx = 4;
+            mundo.ty = 6;
+            mundo.de_x = 4;
+            mundo.de_y = 6;
+            mundo.para_x = 4;
+            mundo.para_y = 6;
+            mundo.dir = 1;
+            mundo.pika_x = 5;
+            mundo.pika_y = 6;
+            mundo.pika_de_x = 5;
+            mundo.pika_de_y = 6;
+            mundo.pika_dir = 1;
         }
         abrirFala(sala->texto_puzzle);
     }
@@ -2315,9 +2512,15 @@ int capturarTelasDemonstracao(void) {
     }
     tela = TELA_BATALHA;
     prepararBatalha();
+    vis.entrada = 0.32f;
+    vis.fase = BAT_ENTRADA;
+    vis.texto_completo = 1;
+    vis.bytes = 400;
+    vis.transicao = 0;
+    desenharTudo();
+    apresentar("captura_intro.png");
     vis.entrada = 1.0f;
     vis.fase = BAT_COMANDO;
-    vis.transicao = 0;
     desenharTudo();
     apresentar("captura_batalha.png");
 
@@ -2346,11 +2549,15 @@ int capturarTelasDemonstracao(void) {
     }
     tela = TELA_BATALHA;
     prepararBatalha();
-    vis.entrada = 1.0f;
-    vis.fase = BAT_TEXTO;
+    vis.entrada = 0.32f;
+    vis.fase = BAT_ENTRADA;
     vis.texto_completo = 1;
     vis.bytes = 400;
     vis.transicao = 0;
+    desenharTudo();
+    apresentar("captura_giovanni_intro.png");
+    vis.entrada = 1.0f;
+    vis.fase = BAT_TEXTO;
     desenharTudo();
     apresentar("captura_boss.png");
 

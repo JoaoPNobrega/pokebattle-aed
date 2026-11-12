@@ -1,7 +1,27 @@
-Detetive, Giovanni e Poké Bola desenhados para este projeto
-(tools/gerar_personagens.py). Não são sprites da Nintendo.
+Sprites de pessoa, uso acadêmico. A arte é da Nintendo e da Game Freak.
 
-O detetive e o Giovanni de mapa usam uma folha de 16×32:
-quatro linhas (baixo, esquerda, direita, cima) e três colunas
-(parado, passo, passo). O Giovanni da batalha é um PNG de 64×64.
-A Poké Bola é 16×16.
+detetive.png
+  Gentleman do overworld de FireRed/LeafGreen, reordenado em 4 direções
+  e 3 quadros (parado, passo, passo). Fonte: pret/pokefirered,
+  graphics/object_events/pics/people/gentleman.png
+
+giovanni_overworld.png
+  Giovanni do mesmo overworld.
+  graphics/object_events/pics/people/giovanni.png
+
+detetive_costas.png
+  Costas do Red na batalha, cinco quadros do arremesso.
+  graphics/trainers/back_pics/red_back_pic.png
+
+giovanni.png
+  Sprite de treinador da geração III.
+  https://play.pokemonshowdown.com/sprites/trainers/giovanni-gen3.png
+
+pikachu_overworld.png
+  Seguidor do HeartGold/SoulSilver, quatro direções e três quadros.
+  GIFs 25-1 a 25-4 em https://pokeamice.com/hgss-pokemon-walk/
+
+pokebola.png
+  Pixel art deste projeto, 16×16.
+
+O jogo não baixa esses arquivos. tools/baixar_personagens.py refaz a pasta.
