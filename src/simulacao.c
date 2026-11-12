@@ -1,14 +1,14 @@
 /*
  * simulacao.c
  * -----------
- * Partida automática. Os dois lados escolhem o golpe de maior dano.
- * Ver simulacao.h.
+ * Partida sem janela: resolve o puzzle do laboratório com o Choque
+ * do Pikachu, entra no corredor e luta até o capanga cair.
+ * O programa `./bin/pokebattle --simular` usa isto. Ver simulacao.h.
  */
 
 #include "simulacao.h"
 
-#include "batalha.h"
-#include "jogo.h"
+#include "caso.h"
 
 #include <stdio.h>
 
@@ -17,88 +17,58 @@ static void narrarSimulacao(void *contexto, const char *mensagem) {
     printf("%s\n", mensagem);
 }
 
-static int acaoAutomatica(void *contexto, const VisaoBatalha *visao, AcaoJogador *acao) {
-    const Pokemon *eu;
-    const Pokemon *oponente;
-
-    (void)contexto;
-    if (visao == NULL || acao == NULL) {
-        return 0;
-    }
-
-    eu = obterAtivo(visao->time_jogador);
-    oponente = obterAtivo(visao->time_oponente);
-    acao->tipo = ACAO_GOLPE;
-    acao->indice = escolherGolpeAdversario(eu, oponente);
-    if (acao->indice < 0) {
-        acao->indice = 0;
-    }
-    return 1;
-}
-
-static int trocaAutomatica(void *contexto, const VisaoBatalha *visao, int *posicao) {
-    int viva;
-
-    (void)contexto;
-    if (visao == NULL || posicao == NULL) {
-        return 0;
-    }
-
-    viva = primeiraPosicaoViva(visao->time_jogador);
-    if (viva < 0) {
-        return 0;
-    }
-    *posicao = viva;
-    return 1;
-}
-
-static int colocar(Jogo *jogo, const char *nome) {
-    const Pokemon *modelo = buscarPokemon(&jogo->pokedex, nome);
-    Pokemon preparado;
-
-    if (modelo == NULL) {
-        fprintf(stderr, "Espécie ausente na simulação: %s\n", nome);
-        return 0;
-    }
-    preparado = pokemonPreparar(modelo, NIVEL_DO_JOGADOR);
-    return adicionarPokemon(&jogo->time, &preparado);
-}
-
 int simularArenaAutomatica(void) {
-    Jogo jogo;
-    int resultado;
+    Caso caso;
+    SaidaBatalha saida;
+    int codigo = 1;
+    int turnos = 0;
 
-    if (!iniciarJogo(&jogo)) {
+    if (!iniciarCaso(&caso)) {
         fprintf(stderr, "Falha ao carregar a Pokédex.\n");
         return -1;
     }
-    if (!reiniciarDesafio(&jogo)) {
-        fprintf(stderr, "Falha ao montar a arena.\n");
-        encerrarJogo(&jogo);
+    if (!comecarCaso(&caso)) {
+        fprintf(stderr, "Falha ao abrir o caso.\n");
+        encerrarCaso(&caso);
         return -1;
     }
 
-    /*
-     * Líder de água para o Brock, tanque no meio e Dragonite para
-     * fechar o Mewtwo se o combate apertar. A ordem é a da lista.
-     */
-    if (!colocar(&jogo, "Blastoise") || !colocar(&jogo, "Snorlax") ||
-        !colocar(&jogo, "Dragonite") || !colocar(&jogo, "Venusauro") ||
-        !colocar(&jogo, "Gengar") || !colocar(&jogo, "Alakazam")) {
-        encerrarJogo(&jogo);
-        return -1;
+    printf("Simulação: O Caso do Laboratório\n");
+    if (!casoUsarHabilidade(&caso)) {
+        fprintf(stderr, "O puzzle do laboratório não foi resolvido.\n");
+        encerrarCaso(&caso);
+        return 0;
+    }
+    if (!casoAvancar(&caso)) {
+        fprintf(stderr, "Não foi possível entrar no corredor.\n");
+        encerrarCaso(&caso);
+        return 0;
+    }
+    if (!casoIniciarBatalha(&caso)) {
+        fprintf(stderr, "A luta não começou.\n");
+        encerrarCaso(&caso);
+        return 0;
     }
 
-    printf("Simulação da arena (os dois lados usam a mesma regra de golpe).\n");
-    resultado = conduzirArena(&jogo.time, &jogo.fila, &jogo.log,
-                              acaoAutomatica, trocaAutomatica, narrarSimulacao, NULL);
+    saida.narrar = narrarSimulacao;
+    saida.contexto = NULL;
+    saida.log = &caso.nucleo.log;
 
-    if (resultado == 1) {
+    while (codigo == 1 && turnos < 40) {
+        const Pokemon *eu = obterAtivo(&caso.nucleo.time);
+        const Pokemon *oponente = obterAtivo(&caso.oponente_atual.time);
+        int golpe = escolherGolpeAdversario(eu, oponente);
+
+        codigo = casoExecutarGolpe(&caso, golpe, &saida);
+        turnos++;
+    }
+
+    if (codigo == 0) {
         printf("RESULTADO: VITORIA\n");
     } else {
         printf("RESULTADO: DERROTA\n");
     }
 
-    encerrarJogo(&jogo);
-    return resultado == 1 ? 1 : 0;
+    encerrarCaso(&caso);
+    return codigo == 0 ? 1 : 0;
 }

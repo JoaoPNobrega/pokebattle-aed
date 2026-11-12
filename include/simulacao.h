@@ -1,13 +1,9 @@
 /*
  * simulacao.h
  * -----------
- * Uma partida inteira jogada pela regra do adversário, dos dois lados.
- * Serve para validar a arena sem depender de um script frágil de
- * teclado: o programa `./bin/pokebattle --simular` usa isto.
- *
- * O time automático entra no nível 50, na ordem Blastoise, Snorlax,
- * Dragonite, Venusauro, Gengar e Alakazam. Entre treinadores o HP
- * volta, como numa jornada normal.
+ * Uma partida inteira sem janela: puzzle do laboratório, avanço de
+ * sala e luta contra o capanga. Os dois lados escolhem o golpe de
+ * maior dano. `./bin/pokebattle --simular` usa isto.
  */
 
 #ifndef SIMULACAO_H

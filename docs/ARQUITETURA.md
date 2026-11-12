@@ -1,4 +1,12 @@
-# Arquitetura — PokéBattle: Arena do Mewtwo
+# Arquitetura — PokéBattle: O Caso do Laboratório
+
+> O conceito mudou. Este texto ainda descreve a arena antiga e vai ser
+> reescrito. Até lá, a fonte da verdade para quem for alterar o jogo
+> (pessoa ou IA) é o `AGENTS.md` na raiz: detetive, salas em lista
+> dupla, puzzle por habilidade, batalha reusando insertion sort e
+> lista circular, interface em raylib.
+
+# Arquitetura antiga — Arena do Mewtwo
 
 Material para ler antes da defesa. A ideia é conseguir apontar, no código, qual estrutura toma qual decisão.
 

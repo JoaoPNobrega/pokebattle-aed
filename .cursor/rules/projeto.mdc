@@ -1,0 +1,15 @@
+---
+description: Contexto obrigatório do PokéBattle (AED, CESAR School)
+alwaysApply: true
+---
+
+Leia e obedeça o `AGENTS.md` na raiz antes de alterar o projeto.
+
+PokéBattle: O Caso do Laboratório. Detetive (não é o Pikachu) explora salas, resolve puzzles com a habilidade do Pokémon e luta por turnos. Chefão no estilo Giovanni zera o caso. Não é quiz.
+
+- C11, `gcc -Wall -Wextra` sem warning. Nomes e comentários em português. Função pública com parâmetros, retorno e Big-O.
+- Estruturas na lógica, feitas à mão: lista dupla das salas e do time, fila de lutas, pilha do histórico, lista circular + insertion sort no turno, hash e AVL na Pokédex, merge sort ao reorganizar a Pokédex.
+- Não usar biblioteca pronta de estrutura. Não trocar a ordenação do turno por `qsort`. Não remover a raylib. Não colocar desenho dentro da regra nem regra dentro do `DrawText`.
+- Janela em `src/ui_raylib.c`. Regra em `src/caso.c`, `src/sala.c`, `src/batalha.c`. Teste sem janela: `make teste` e `./bin/pokebattle --simular`.
+- Não commitar `bin/`, `build/` nem `third_party/`.
+- Se mudar regra ou pasta, atualize `AGENTS.md`, `README.md` e `docs/ARQUITETURA.md`.

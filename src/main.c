@@ -1,25 +1,20 @@
 /*
  * main.c
  * ------
- * Ponto de entrada do PokéBattle: Arena do Mewtwo.
+ * PokéBattle: O Caso do Laboratório.
  *
- * Sem argumentos, abre o menu no terminal.
- * Com --simular, joga uma arena inteira sozinho e devolve
- * 0 se o time vencer, 1 se perder, 2 se nem conseguir montar o jogo.
+ * Sem argumentos, abre a janela (raylib).
+ * Com --simular, joga o caso sozinho, sem janela, e devolve
+ * 0 se o detetive vence o capanga, 1 se perde, 2 se nem monta o caso.
  */
 
-#include "jogo.h"
 #include "simulacao.h"
-#include "ui_terminal.h"
+#include "ui_raylib.h"
 
 #include <stdio.h>
 #include <string.h>
 
 int main(int argc, char **argv) {
-    Jogo jogo;
-    int codigo;
-
-    /* Em pipe o stdout vem em bloco; linha a linha deixa o teste legível. */
     setvbuf(stdout, NULL, _IOLBF, 0);
 
     if (argc > 1 && strcmp(argv[1], "--simular") == 0) {
@@ -30,12 +25,5 @@ int main(int argc, char **argv) {
         return resultado == 1 ? 0 : 1;
     }
 
-    if (!iniciarJogo(&jogo)) {
-        fprintf(stderr, "Não foi possível carregar a Pokédex.\n");
-        return 1;
-    }
-
-    codigo = executarInterfaceTerminal(&jogo);
-    encerrarJogo(&jogo);
-    return codigo;
+    return executarInterfaceRaylib();
 }

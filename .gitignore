@@ -1,6 +1,10 @@
 # Build do projeto
 bin/
 build/
+third_party/
+
+# Raylib baixada pelo script (não versionar a biblioteca)
+libraylib.a
 
 # Prerequisites
 *.d

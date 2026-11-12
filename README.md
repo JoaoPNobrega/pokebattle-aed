@@ -1,129 +1,123 @@
-# PokéBattle: Arena do Mewtwo
+# PokéBattle: O Caso do Laboratório
 
-Jogo de batalha por turnos em C, no clima de *Pokémon: O Filme — Mewtwo Contra-Ataca* (1998). Projeto da disciplina **Algoritmos e Estruturas de Dados** (CESAR School, 2026.2, Profa. Maira Lira), tema *Ode ao Cinema*.
+Jogo em C para a disciplina **Algoritmos e Estruturas de Dados** (CESAR School, 2026.2, Profa. Maira Lira), tema *Ode ao Cinema*.
 
-O jogador monta um time de até 6 Pokémon da 1ª geração e enfrenta, nesta ordem, **Brock**, **Misty**, a **Equipe Rocket**, **Ash** e o **Mewtwo**. Quem age primeiro em cada turno sai de um *insertion sort* por prioridade do golpe e velocidade. Não é um quiz.
+O jogador é um detetive. O Pikachu é o parceiro, não o protagonista. A história se passa no laboratório onde o Mewtwo foi criado e bebe de *Mewtwo Contra-Ataca* e de *Detetive Pikachu*, sem seguir nenhum dos dois à risca. Há salas com puzzle, batalha por turnos e, no plano do jogo, um chefão no estilo Giovanni. Não é um quiz.
 
-Esta etapa é só o núcleo no terminal, sem biblioteca gráfica. A tela está isolada em `src/ui_terminal.c` para a etapa do raylib não reescrever a luta.
+A base jogável de hoje: menu em janela, laboratório com um puzzle (o Choque do Pikachu religa o painel), corredor e uma luta contra um capanga da Equipe Rocket. O restante está na lista de TODO, dividida entre João e Leo.
+
+Quem for alterar o código com IA deve ler o `AGENTS.md` antes. Ele também está apontado em `CLAUDE.md`, `.cursor/rules/projeto.mdc` e `.github/copilot-instructions.md`.
 
 ## Como compilar e rodar
 
-Precisa de um compilador C11 (`gcc` ou `clang`). Não há dependência externa.
+Precisa de gcc (ou Clang) com C11 e da raylib 5. Não há executável no repositório.
 
-### Linux e macOS
+### Linux
+
+Pacotes de compilação da raylib (X11 e OpenGL):
+
+```bash
+sudo apt install build-essential libgl1-mesa-dev libx11-dev libxrandr-dev libxi-dev libxcursor-dev libxinerama-dev
+```
+
+Se a distribuição já tiver a raylib no `pkg-config` (`pkg-config --libs raylib`), basta:
 
 ```bash
 make
 ./bin/pokebattle
 ```
 
-No macOS o comando `gcc` costuma ser o Clang. Os avisos `-Wall -Wextra -Wpedantic` funcionam do mesmo jeito. Se `make` não existir, instale as ferramentas de linha de comando (`xcode-select --install`).
-
-### Windows (MinGW ou MSYS2)
-
-No prompt do MinGW, na pasta do projeto:
+Se não tiver, o Makefile chama o script, que baixa a raylib 5.5 para `third_party/` (essa pasta não entra no git) e compila a biblioteca estática:
 
 ```bash
-mingw32-make
-bin\pokebattle.exe
+./scripts/baixar_raylib.sh
+make
+./bin/pokebattle
 ```
 
-Se o `make` não estiver no PATH, o mesmo binário sai com:
-
-```bash
-gcc -std=c11 -Wall -Wextra -Wpedantic -Iinclude -o pokebattle.exe src/*.c
-pokebattle.exe
-```
-
-O terminal precisa estar em UTF-8 para os acentos aparecerem certos (Windows Terminal, ou `chcp 65001` no prompt antigo).
-
-### Testes
+Teste sem abrir janela:
 
 ```bash
 make teste
 ```
 
-Isso faz três coisas:
+Isso roda os testes das estruturas e `./bin/pokebattle --simular`, que resolve o puzzle, entra no corredor, vence o capanga e imprime `RESULTADO: VITORIA`.
 
-1. `bin/testar_estruturas` — lista, fila, pilha, hash, AVL, ordenação, dano e a lista circular do turno.
-2. `bin/pokebattle --simular` — uma arena inteira, os dois lados escolhendo o golpe de maior dano. Termina com `RESULTADO: VITORIA`.
-3. `bin/pokebattle < tests/entrada_menu.txt` — o menu de verdade: Pokédex, ordenação, montagem do time, um turno contra o Brock e desistência.
-
-Memória:
+### macOS
 
 ```bash
-make sanitizar    # recompila com -fsanitize=address,undefined e repete os testes
-make memcheck     # o mesmo percurso sob o valgrind, se ele estiver instalado
+brew install raylib
+make
+./bin/pokebattle
 ```
 
-`make clean` apaga `build/` e `bin/`. O zip da entrega não deve incluir o executável.
+O `gcc` do Mac costuma ser o Clang. As flags `-Wall -Wextra -Wpedantic` são as mesmas. Se o `pkg-config` não achar a raylib, use `./scripts/baixar_raylib.sh` (precisa do Xcode command line tools).
 
-## Como jogar
+### Windows (MSYS2 / MinGW)
 
-No menu:
+No terminal MSYS2 UCRT64 ou MINGW64:
 
-1. **Nova jornada** — monta o time e entra na arena.
-2. **Consultar a Pokédex** — nome (hash), número (AVL) ou a lista em ordem.
-3. **Organizar a Pokédex** — merge sort por número, nome ou velocidade.
-4. **Como jogar** — resumo na própria tela.
-5. **Sair**.
-
-Na montagem do time, o nível é sempre 50. Dá para digitar o número (`25`) ou o nome (`Pikachu`). Outros comandos: `LISTAR`, `TIME`, `REMOVER <nome>`, `TROCAR <i> <j>`, `PROX`, `ANT`, `ORDENAR`, `PRONTO`, `CANCELAR`.
-
-A posição 1 da lista é quem entra no começo de cada batalha. `TROCAR` muda essa ordem. `ORDENAR` põe o mais rápido na frente com insertion sort.
-
-Na luta, as opções são fixas:
-
-- `1` a `4` — golpes (slot vazio avisa e pede de novo)
-- `5` — trocar (gasta o turno; o oponente ainda age)
-- `6` — histórico, do lance mais antigo ao mais novo
-- `7` — desistir da arena
-
-Se o Pokémon ativo desmaia e só há um substituto, ele entra sozinho. Se há escolha, o jogo pergunta. Entre um treinador e outro o HP volta. Dentro da luta, não.
-
-Água contra Pedra/Terra é 4× ("extremamente efetivo"). Elétrico contra Terra não tem efeito. Ataque Rápido tem prioridade 1 e age antes mesmo de um Pokémon mais rápido.
-
-## Estrutura de pastas
-
-```text
-include/    cabeçalhos, um por módulo
-src/        implementação
-    ui_terminal.c   única leitura de teclado e escrita na tela
-    batalha.c       regra da luta, sem printf de menu
-    simulacao.c     arena automática usada por --simular
-tests/      testes das estruturas e um roteiro de teclado
-docs/       material de estudo para a defesa oral
-bin/        executável (gerado; não vai no zip)
-build/      objetos (gerado)
+```bash
+pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-raylib mingw-w64-x86_64-pkg-config make
+mingw32-make
+bin/pokebattle.exe
 ```
 
-## Onde está cada requisito do roteiro
+O `pkg-config` deve enxergar a raylib. Sem ele, o script `scripts/baixar_raylib.sh` também funciona dentro do MSYS2, desde que os headers de OpenGL estejam instalados.
 
-| Requisito | Onde olhar |
+O terminal precisa de UTF-8 para os acentos dos comentários e do README. A janela usa a fonte DejaVu ou Arial, se existir no sistema; sem isso, cai na fonte padrão da raylib.
+
+## Controles
+
+| Onde | Mouse | Teclado |
+| --- | --- | --- |
+| Menu | Novo jogo, Como jogar, Pokédex, Sair | 1, 2, 3, 4 |
+| Sala | Usar Choque, Avançar, Voltar, Enfrentar | E, D, A, B |
+| Batalha | Clique no golpe | 1 a 4 |
+| Qualquer tela, fora do menu | — | Esc volta ao menu |
+
+Na batalha, a barra verde é o HP. Quem age primeiro é decidido pela prioridade do golpe e pela velocidade (insertion sort). Ataque Rápido fura a fila da velocidade.
+
+## Onde está cada requisito
+
+| Requisito | Onde |
 | --- | --- |
-| C11, `gcc -Wall -Wextra` sem aviso | `Makefile` (`-std=c11 -Wall -Wextra -Wpedantic`) |
-| Menu interativo | `executarInterfaceTerminal` em `src/ui_terminal.c` |
-| Lista dupla na lógica, não só como depósito | `src/lista_time.c`: o cursor `ativo` é quem está em campo; `avancarParaProximoVivo` manda o próximo quando o oponente desmaia; `removerPokemon` relêga `ant`/`prox` |
-| Lista circular na lógica | `definirOrdemTurno` + `executarTurno` (`src/batalha.c`, `src/lista_turno.c`). Cada turno recria o ciclo na ordem do insertion sort e percorre cada nó uma vez |
-| Fila na lógica | `conduzirArena` (`src/batalha.c`) só enfrenta quem `frenteDaFila` mostra e `proximoTreinador` tira. Não dá para pular o Brock |
-| Pilha na lógica | Cada lance vai para `empilharLog`. A opção 6 chama `mostrarHistorico`, que desempilha numa pilha auxiliar e restaura a original |
-| Tabela hash | `buscarPokemon` (`src/hash_pokedex.c`), usada ao digitar o nome na montagem do time |
-| Árvore AVL | `buscarPorNumero` e `percorrerEmOrdem` (`src/arvore_pokedex.c`). O número da Pokédex cai aqui; a listagem em ordem é o percurso, sem sort |
-| Insertion sort fora de ranking | `ordenarTurnoPorInsercao`, chamada todo turno por `definirOrdemTurno`. Também `ordenarTime` / `ORDENAR`, que muda quem entra primeiro |
-| Merge sort | `ordenarPokedex` (`src/ordenacao.c`), menu "Organizar a Pokédex" |
-| Pelo menos 6 operações de estrutura | Na lista do time: `adicionarPokemon`, `removerPokemon`, `trocarPokemon`, `avancarAtivo`, `retrocederAtivo`, `avancarParaProximoVivo`, `definirAtivoPorPosicao`, `ordenarTime` |
-| Não é quiz | A partida é uma batalha; a Pokédex só consulta ficha |
+| C11, sem warning em `-Wall -Wextra` | `Makefile` |
+| Menu interativo | `executarInterfaceRaylib` em `src/ui_raylib.c` |
+| Lista dupla na lógica | `src/sala.c` (salas: avançar, voltar, desbloquear) e `src/lista_time.c` (time e parceiro ativo) |
+| Fila na lógica | `casoIniciarBatalha` tira o próximo oponente com `proximoTreinador` |
+| Pilha na lógica | Cada lance vai para `empilharLog`. O topo aparece na sala |
+| Lista circular + insertion sort no turno | `definirOrdemTurno` e `casoExecutarGolpe` |
+| Hash e AVL | Pokédex: nome na hash, número e listagem em ordem na AVL |
+| Merge sort | `ordenarPokedex` (menu de organizar ainda é da etapa anterior; a função continua no código) |
+| Matriz de tipos | `src/tipos.c`, usada por `calcularDano` |
+| Seis ou mais operações na estrutura | Em `sala.c`: criar, liberar, adicionar, avançar, voltar, resolver, tamanho |
+| Não é quiz | Exploração e batalha |
+| Interface gráfica | raylib, só em `src/ui_raylib.c` |
 
-A matriz de tipos (`src/tipos.c`) entra em `calcularDano`. Sem ela o golpe não sabe se é super efetivo, pouco efetivo ou imune.
+## O que falta
 
-## O que ficou para as próximas etapas
+A base compila, abre janela e tem um caso curto. O jogo completo ainda não está aqui.
 
-- Trocar `src/ui_terminal.c` por uma tela em raylib (barras, sprites, animações), sem mexer em `batalha.c`.
-- Batalha dupla: `ordenarTurnoPorInsercao` já ordena N atores; hoje N vale no máximo 2.
-- Status que alteram a velocidade (paralisia) antes do insertion sort.
-- Itens, experiência e evolução.
-- Gravar e carregar o time.
-- Mais espécies lidas de arquivo, em vez do catálogo fixo de `src/dados_pokemon.c`.
-- Variação de dano (o jogo hoje é determinístico de propósito, para o teste repetir).
+### João
 
-O divisor `/2` no fim de `calcularDano` também é desta etapa: a fórmula clássica, com os níveis da arena, apagava o time adversário em um golpe e a luta deixava de mostrar troca e desmaio. A proporção entre os tipos não muda. Na defesa, vale dizer isso com essa frase.
+- Mais salas na lista dupla: gelo (fogo derrete), incêndio (água apaga), objeto (psíquico move). Cada uma desbloqueia a próxima.
+- Captura depois da luta: o Pokémon selvagem entra na lista do time e passa a valer para o puzzle.
+- Fila de confrontos até o chefão (vilão no estilo Giovanni). Vencer essa luta zera o caso, com tela de vitória final.
+- Poucos diálogos, só em momento pontual. Se entrar árvore, que seja uma árvore de falas curta, não um romance.
+- `make teste` cobrindo o caso inteiro até o boss, ainda sem janela.
+- Reescrever `docs/ARQUITETURA.md` (o miolo ainda é da arena antiga; o aviso no topo aponta para o `AGENTS.md`).
+- `docs/DECLARACAO_USO_IA.md` preenchido com os prompts usados, como o plano de ensino pede.
+- Zip sem executável e o vídeo da entrega (18/11/2026, 07:59).
+
+### Leo
+
+- Visual das salas e da batalha em `src/ui_raylib.c`, sem mover regra para dentro do desenho.
+- Transição entre salas, feedback claro quando o puzzle recusa a habilidade, barra de HP mais legível.
+- Sprites só com licença livre, e a origem escrita neste README.
+- Caixa de diálogo desenhada em cima do texto que a lógica devolver. A fala não nasce no arquivo da janela.
+- Conferir a build no Windows (MSYS2) e no macOS se tiver a máquina.
+
+## Legado
+
+`src/ui_terminal.c` é o menu de texto da etapa anterior (arena até o Mewtwo). Não é a tela do jogo atual. A regra de dano, o insertion sort, a lista circular, a hash, a AVL e a matriz de tipos foram reaproveitados.
