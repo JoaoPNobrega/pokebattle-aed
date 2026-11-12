@@ -99,7 +99,7 @@ Oito salas, nesta ordem: Laboratório (choque), Pátio (Charmander capturável),
 
 ## O que ainda falta
 
-Diálogos pontuais além da fala de uma linha, declaração de IA preenchida, zip sem executável e o vídeo da entrega. O mapa e a batalha no estilo GBA já estão em `ui_raylib.c`. O Leo pode caprichar em cima disso sem reescrever a regra. Não reimplemente salas, captura nem o chefão.
+Declaração de IA assinada por quem vai defender, zip sem executável e o vídeo até 18/11/2026. Diálogos, bolsa, fuga, créditos e game over já estão no jogo. O mapa e a batalha no estilo GBA ficam em `ui_raylib.c`. Não reimplemente salas, captura nem o chefão. A bolsa e a fuga moram em `caso.c`; a janela só mostra.
 
 ## O que NÃO fazer
 

@@ -46,6 +46,17 @@ Pedido resumido: primeiro um núcleo de batalha em C com as estruturas da discip
 
 O que revisar antes da entrega: ler `docs/ARQUITETURA.md`, abrir `sala.c`, `caso.c` e `batalha.c`, e confirmar que cada um explica o próprio módulo. Apagar da declaração o que não for verdade.
 
+### Bolsa, fuga, falas e créditos
+
+- Aluno: João e Leo (os dois precisam ler e assinar se aceitarem)
+- Data: 12/11/2026
+- Ferramenta: Cursor, agente de código
+- Arquivos: `src/caso.c`, `src/historia.c`, `src/ui_raylib.c`, `include/caso.h`, `include/historia.h`, README e `docs/`
+
+Pedido resumido: diálogos pontuais da história, bolsa com Poção, Super Poção e Poké Bola gastando o turno, fuga de selvagem sem sorteio e recusa no chefe, tela de créditos e de game over. Manter `make teste` e `--simular` em vitória, sem warnings, e sem merge na main.
+
+O que revisar antes de assinar: jogar a abertura, usar uma Poção, fugir de um selvagem, perder de propósito e ler os créditos. Apagar desta declaração qualquer frase que não for verdade.
+
 ## O que não entra como "a IA fez sozinha"
 
 - Ideia do detetive, do Pikachu parceiro, dos puzzles por tipo e do Giovanni: decisão de João e Leo, comunicada à professora.

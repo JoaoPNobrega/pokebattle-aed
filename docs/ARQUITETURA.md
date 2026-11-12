@@ -97,4 +97,4 @@ HP de batalha: `(2 * base * nível) / 100 + nível + 10`. Ataque, defesa e veloc
 
 ## O que a janela não decide
 
-`src/ui_raylib.c` escolhe o retângulo e a cor. O texto do puzzle, o HP e o nome do golpe vêm do `Caso`. Um sprite novo entra nesse arquivo. A trava da porta não entra.
+`src/ui_raylib.c` escolhe o retângulo e a cor. O texto do puzzle, o HP e o nome do golpe vêm do `Caso`. As falas da história vêm de `historia.c`. A bolsa e a fuga estão em `casoUsarItem` e `casoTentarFugir`: a janela só mostra a quantidade e o resultado. Usar item ou falhar a fuga chama o mesmo turno em que o jogador entra com golpe -1 e só o oponente age. Não há `rand`. A trava da porta não entra na janela.

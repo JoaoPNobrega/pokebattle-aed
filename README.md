@@ -80,9 +80,12 @@ A cena é desenhada em 240×160 (o tamanho do GBA) e ampliada em pixels inteiros
 | Menu | Setas e Z, ou 1, 2, 3, 4. Mouse também serve |
 | Mapa | Setas ou WASD, uma célula por vez. Z interage (painel, porta, Pokémon). N abre o caderno |
 | Batalha | Setas escolhem LUTAR, BOLSA, POKÉMON ou FUGIR. Z confirma, X volta. A grade de golpes mostra tipo e PP |
-| Qualquer tela | Esc volta ao menu. No caderno ou na fala, Esc ou Z fecha |
+| Texto | Z avança a digitação e a próxima página |
+| Qualquer tela | Esc volta ao menu. No caderno, Esc ou Z fecha |
 
-O Pikachu anda atrás do detetive. A porta só abre depois do puzzle ou da luta. A barra de HP desce sozinha e fica amarela abaixo de 50% e vermelha abaixo de 20%.
+A bolsa começa com 2 Poções (20 de HP), 1 Super Poção (50) e 3 Poké Bolas. Usar um item gasta o turno e o oponente age. A Poké Bola só pega selvagem com no máximo metade do HP, sem sorteio. Fugir do selvagem depende da velocidade vezes o número da tentativa. Do chefe, a frase é "Não dá pra fugir de um chefe!".
+
+O Pikachu anda atrás do detetive. A porta só abre depois do puzzle ou da luta. A barra de HP desce sozinha e fica amarela abaixo de 50% e vermelha abaixo de 20%. O acerto pisca o sprite e treme. O som é uma onda gerada no código; sem placa de áudio, a luta segue muda.
 
 Quem age primeiro continua sendo prioridade do golpe e velocidade (insertion sort). Ataque Rápido fura a fila.
 
@@ -126,10 +129,10 @@ O caso até o Giovanni já roda na janela e no `--simular`. Ainda não é a entr
 
 ### João
 
-- Um ou dois diálogos curtos, só em momento pontual (a fala do Giovanni hoje é uma linha na luta). Se virar árvore de falas, que seja pequena.
-- Preencher `docs/DECLARACAO_USO_IA.md` com os prompts reais de cada um. O arquivo já tem o modelo.
+- Assinar `docs/DECLARACAO_USO_IA.md` com o que cada um realmente usou e o que reescreveu. O modelo e um rascunho da sessão de novembro já estão no arquivo.
 - Zip do código, sem executável, e o vídeo da entrega (18/11/2026, 07:59).
 - Balancear níveis se uma luta ficar longa ou curta demais na mão de vocês.
+- Se o sobrenome do Leo for entrar nos créditos, trocar a linha "Leo" em `desenharCreditos`.
 
 ### Leo
 
