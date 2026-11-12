@@ -98,7 +98,7 @@ Oito salas, nesta ordem: Laboratório (choque), Pátio (Charmander capturável),
 
 ## O que ainda falta
 
-Diálogos pontuais além da fala de uma linha, polimento visual (tarefa do Leo, só em `ui_raylib.c`), declaração de IA preenchida, zip sem executável e o vídeo da entrega. A divisão está no README. Não reimplemente salas, captura nem o chefão: eles já estão na lógica.
+Diálogos pontuais além da fala de uma linha, declaração de IA preenchida, zip sem executável e o vídeo da entrega. O visual pixel (barra, typewriter, caderno, chefe) já está em `ui_raylib.c`; o Leo pode caprichar em cima dele sem reescrever a regra. Não reimplemente salas, captura nem o chefão.
 
 ## O que NÃO fazer
 
@@ -110,6 +110,18 @@ Diálogos pontuais além da fala de uma linha, polimento visual (tarefa do Leo, 
 - Não apagar o modo `--simular` nem o `make teste`.
 - Não commitar binário, zip com executável, ou a pasta `third_party/`.
 - Ao mudar regra ou pasta, atualize este arquivo, o README e (quando ele for reescrito) `docs/ARQUITETURA.md`.
+
+## Convenção visual (não quebrar)
+
+A janela desenha em 384×216 e amplia com escala inteira e `TEXTURE_FILTER_POINT`. A fonte é Press Start 2P, 8 px, também com filtro point. Sem isso o pixel borra.
+
+- Barra de HP: verde acima de 50%, amarela até 20%, vermelha abaixo. A cor segue o valor animado, não o HP final.
+- Golpes ficam numa grade 2×2. O texto da luta aparece letra por letra.
+- Laboratório apagado usa vinheta. Giovanni usa fundo vermelho e tremor. Os outros cômodos não tremem.
+- O caderno (tecla N) só lê a pilha e as salas já visitadas. Não crie outro inventário paralelo.
+- Sprite de Pokémon: grade no próprio `ui_raylib.c`, ou PNG em `assets/` com licença no README e fallback se o arquivo não existir. Não baixar sprite oficial da PokéAPI para o repositório sem esse aviso.
+- Som de clique e de acerto é onda gerada no código. Arquivo de áudio novo precisa de licença citada.
+- Referências e o que foi aproveitado: `docs/REFERENCIAS_VISUAIS.md`.
 
 ## Convenção de comentário
 

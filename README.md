@@ -65,18 +65,31 @@ bin/pokebattle.exe
 
 O `pkg-config` deve enxergar a raylib. Sem ele, o script `scripts/baixar_raylib.sh` também funciona dentro do MSYS2, desde que os headers de OpenGL estejam instalados.
 
-O terminal precisa de UTF-8 para os acentos dos comentários e do README. A janela usa a fonte DejaVu ou Arial, se existir no sistema; sem isso, cai na fonte padrão da raylib.
+Rode o programa a partir da pasta do projeto, para achar `assets/fontes/`. Sem a fonte, a janela cai na fonte padrão da raylib.
 
 ## Controles
 
+A cena é desenhada em 384×216 e ampliada em pixels inteiros.
+
 | Onde | Mouse | Teclado |
 | --- | --- | --- |
-| Menu | Novo jogo, Como jogar, Pokédex, Sair | 1, 2, 3, 4 |
-| Sala | Usar Choque, Avançar, Voltar, Enfrentar | E, D, A, B |
-| Batalha | Clique no golpe | 1 a 4 |
-| Qualquer tela, fora do menu | — | Esc volta ao menu |
+| Menu | Novo jogo, Ajuda, Pokédex, Sair | 1, 2, 3, 4 |
+| Sala | Habilidade, Avançar, Voltar, Capturar, Lutar | E, D, A, C, B |
+| Caderno de pistas | — | N abre e fecha |
+| Batalha | Grade 2×2 de golpes | 1 a 4. A barra desce sozinha e fica amarela abaixo de 50% e vermelha abaixo de 20% |
+| Qualquer tela, fora do menu | — | Esc volta ao menu. No caderno, Esc só fecha o caderno |
 
-Na batalha, a barra verde é o HP. Quem age primeiro é decidido pela prioridade do golpe e pela velocidade (insertion sort). Ataque Rápido fura a fila da velocidade.
+Quem age primeiro continua sendo prioridade do golpe e velocidade (insertion sort). Ataque Rápido fura a fila.
+
+## Créditos e licenças
+
+| Arquivo | O que é | Licença |
+| --- | --- | --- |
+| `assets/fontes/PressStart2P-Regular.ttf` | Fonte pixel Press Start 2P, Cody Boisclair | SIL OFL 1.1 (`assets/fontes/OFL-PressStart2P.txt`). O nome é reservado. [Google Fonts](https://fonts.google.com/specimen/Press+Start+2P) |
+| Sprites dos Pokémon em `src/ui_raylib.c` | Grades de pixel feitas no código | Originais deste projeto. Não são sprites oficiais nem da PokéAPI |
+| Cliques e acerto | Onda quadrada gerada na hora | Sem arquivo externo |
+
+A lista do que foi olhado e do que entrou na tela está em `docs/REFERENCIAS_VISUAIS.md`. Não há arte do Kenney empacotada; a licença CC0 dele foi só o critério para o que poderia entrar.
 
 ## Onde está cada requisito
 
@@ -108,10 +121,11 @@ O caso até o Giovanni já roda na janela e no `--simular`. Ainda não é a entr
 
 ### Leo
 
-- Visual das salas e da batalha em `src/ui_raylib.c`, sem mover regra para dentro do desenho.
-- Transição entre salas, feedback quando o puzzle recusa a habilidade, barra de HP mais legível.
-- Sprites só com licença livre, e a origem escrita neste README.
-- Caixa de diálogo desenhada em cima do texto que a lógica devolver.
+A base visual já está em `src/ui_raylib.c` (pixel, barra, typewriter, caderno, chefe). Se for mexer:
+
+- Não mude a resolução virtual nem troque o filtro point por bilinear.
+- Não desenhe fora de `ui_raylib.c` e não mova regra para dentro do desenho.
+- Sprite novo: ou grade no código, ou PNG livre em `assets/` com licença neste README e um desenho reserva se o arquivo faltar.
 - Conferir a build no Windows (MSYS2) e no macOS se tiver a máquina.
 
 ## Legado
