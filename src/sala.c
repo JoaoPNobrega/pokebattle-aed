@@ -93,7 +93,7 @@ int avancarSala(ListaSalas *lista, PilhaLog *log) {
     }
 
     lista->atual = lista->atual->prox;
-    snprintf(msg, sizeof msg, "Voce entrou em: %s", lista->atual->nome);
+    snprintf(msg, sizeof msg, "Você entrou em: %s", lista->atual->nome);
     anotar(log, msg);
     return 1;
 }
@@ -106,7 +106,7 @@ int voltarSala(ListaSalas *lista, PilhaLog *log) {
     }
 
     lista->atual = lista->atual->ant;
-    snprintf(msg, sizeof msg, "Voce voltou para: %s", lista->atual->nome);
+    snprintf(msg, sizeof msg, "Você voltou para: %s", lista->atual->nome);
     anotar(log, msg);
     return 1;
 }
@@ -188,7 +188,7 @@ int resolverPuzzleDaSala(ListaSalas *lista, const ListaTime *time, PilhaLog *log
         return 1;
     }
     if (!timeTemHabilidade(time, sala->habilidade)) {
-        anotar(log, "Nenhum Pokemon do time resolve este puzzle.");
+        anotar(log, "Nenhum Pokémon do time resolve este puzzle.");
         return 0;
     }
 

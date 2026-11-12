@@ -46,7 +46,7 @@ static int enfileirarChefe(FilaTreinadores *fila, HashPokedex *pokedex) {
     Treinador chefe;
 
     criarTreinador(&chefe, "Giovanni",
-                   "Equipe Rocket. Este laboratorio e meu. Saia enquanto pode.");
+                   "Equipe Rocket. Este laboratório é meu. Saia enquanto pode.");
     if (!colocarEspecie(&chefe.time, pokedex, "Meowth", 22)) {
         liberarListaTime(&chefe.time);
         return 0;
@@ -81,58 +81,58 @@ static int preencherSala(NoSala *sala, const char *nome, const char *descricao,
 static int montarSalas(ListaSalas *salas) {
     NoSala sala;
 
-    preencherSala(&sala, "Laboratorio",
+    preencherSala(&sala, "Laboratório",
                   "Tanques vazios e um painel sem luz. Foi aqui que criaram o Mewtwo.",
-                  "O painel esta morto. Um choque pode religar a sala.",
-                  "As luzes acendem. A porta do patio destrava.",
+                  "O painel está morto. Um choque pode religar a sala.",
+                  "As luzes acendem. A porta do pátio destrava.",
                   HAB_ELETRICA, 0, 0, 0);
     if (!adicionarSala(salas, &sala)) return 0;
 
-    preencherSala(&sala, "Patio",
+    preencherSala(&sala, "Pátio",
                   "Um Charmander selvagem circula entre as caixas quebradas.",
-                  "Nao ha puzzle. Ha um Pokemon selvagem.",
-                  "O patio fica quieto.",
+                  "Não há puzzle. Há um Pokémon selvagem.",
+                  "O pátio fica quieto.",
                   HAB_NENHUMA, 1, 1, 0);
     if (!adicionarSala(salas, &sala)) return 0;
 
-    preencherSala(&sala, "Camara fria",
-                  "A porta seguinte esta selada por uma placa de gelo.",
-                  "O gelo nao cede. Uma chama abriria caminho.",
+    preencherSala(&sala, "Câmara fria",
+                  "A porta seguinte está selada por uma placa de gelo.",
+                  "O gelo não cede. Uma chama abriria caminho.",
                   "O gelo derrete. A porta do tanque abre.",
                   HAB_FOGO, 0, 0, 0);
     if (!adicionarSala(salas, &sala)) return 0;
 
     preencherSala(&sala, "Tanque",
-                  "Um Squirtle nada no tanque de contencao, assustado.",
-                  "Nao ha puzzle. Ha um Pokemon selvagem.",
+                  "Um Squirtle nada no tanque de contenção, assustado.",
+                  "Não há puzzle. Há um Pokémon selvagem.",
                   "O tanque esvazia o suficiente para passar.",
                   HAB_NENHUMA, 1, 1, 0);
     if (!adicionarSala(salas, &sala)) return 0;
 
     preencherSala(&sala, "Oficina",
-                  "Um incendio pequeno bloqueia a estante de arquivos.",
-                  "Agua apagaria isso. Fogo so piora.",
-                  "O fogo apaga. Da para chegar na jaula.",
+                  "Um incêndio pequeno bloqueia a estante de arquivos.",
+                  "Água apagaria isso. Fogo só piora.",
+                  "O fogo apaga. Dá para chegar na jaula.",
                   HAB_AGUA, 0, 0, 0);
     if (!adicionarSala(salas, &sala)) return 0;
 
     preencherSala(&sala, "Jaula",
-                  "Um Alakazam de teste, ainda fraco, observa atras das grades.",
-                  "Nao ha puzzle. Ha um Pokemon selvagem.",
+                  "Um Alakazam de teste, ainda fraco, observa atrás das grades.",
+                  "Não há puzzle. Há um Pokémon selvagem.",
                   "A jaula abre.",
                   HAB_NENHUMA, 1, 1, 0);
     if (!adicionarSala(salas, &sala)) return 0;
 
     preencherSala(&sala, "Arquivo",
                   "Uma estante pesada cobre a porta da sala do chefe.",
-                  "Ninguem empurra isso com as maos. Uma mente, talvez.",
+                  "Ninguém empurra isso com as mãos. Uma mente, talvez.",
                   "A estante desliza. A sala do chefe aparece.",
                   HAB_PSIQUICA, 0, 0, 0);
     if (!adicionarSala(salas, &sala)) return 0;
 
     preencherSala(&sala, "Sala do chefe",
-                  "Giovanni espera. A Equipe Rocket nao vai embora sem luta.",
-                  "Nao ha puzzle. Ha o chefao.",
+                  "Giovanni espera. A Equipe Rocket não vai embora sem luta.",
+                  "Não há puzzle. Há o chefão.",
                   "Giovanni recua.",
                   HAB_NENHUMA, 1, 0, 1);
     if (!adicionarSala(salas, &sala)) return 0;
@@ -142,7 +142,7 @@ static int montarSalas(ListaSalas *salas) {
 
 static int montarFila(FilaTreinadores *fila, HashPokedex *pokedex) {
     if (!enfileirarLuta(fila, pokedex, "Charmander selvagem",
-                        "O Charmander rosna, mas nao foge.", "Charmander", 14)) {
+                        "O Charmander rosna, mas não foge.", "Charmander", 14)) {
         return 0;
     }
     if (!enfileirarLuta(fila, pokedex, "Squirtle selvagem",
@@ -150,7 +150,7 @@ static int montarFila(FilaTreinadores *fila, HashPokedex *pokedex) {
         return 0;
     }
     if (!enfileirarLuta(fila, pokedex, "Alakazam de teste",
-                        "O experimento ainda nao esta estavel.", "Alakazam", 8)) {
+                        "O experimento ainda não está estável.", "Alakazam", 8)) {
         return 0;
     }
     if (!enfileirarChefe(fila, pokedex)) {
@@ -215,7 +215,7 @@ int comecarCaso(Caso *caso) {
         return 0;
     }
 
-    empilharLog(&caso->nucleo.log, "Caso aberto. Voce e o detetive. O Pikachu e o seu parceiro.");
+    empilharLog(&caso->nucleo.log, "Caso aberto. Você é o detetive. O Pikachu é o seu parceiro.");
     return 1;
 }
 
@@ -265,7 +265,7 @@ int casoIniciarBatalha(Caso *caso) {
     }
 
     caso->em_batalha = 1;
-    empilharLog(&caso->nucleo.log, "A luta comecou.");
+    empilharLog(&caso->nucleo.log, "A luta começou.");
     return 1;
 }
 
@@ -322,7 +322,7 @@ int casoExecutarGolpe(Caso *caso, int indice_golpe, SaidaBatalha *saida) {
             if (sala->e_chefe) {
                 caso->caso_encerrado = 1;
             }
-            snprintf(msg, sizeof msg, "Voce venceu %s.", caso->oponente_atual.nome);
+            snprintf(msg, sizeof msg, "Você venceu %s.", caso->oponente_atual.nome);
             registrarMensagem(saida, msg);
         }
         soltarOponente(caso);
@@ -343,7 +343,7 @@ int casoExecutarGolpe(Caso *caso, int indice_golpe, SaidaBatalha *saida) {
     if (verificarDesmaio(eu)) {
         if (avancarParaProximoVivo(&caso->nucleo.time)) {
             char msg[LOG_MAX];
-            snprintf(msg, sizeof msg, "Voce enviou %s!", obterAtivo(&caso->nucleo.time)->nome);
+            snprintf(msg, sizeof msg, "Você enviou %s!", obterAtivo(&caso->nucleo.time)->nome);
             registrarMensagem(saida, msg);
         } else {
             caso->em_batalha = 0;

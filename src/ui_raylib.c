@@ -236,6 +236,12 @@ static Color corPixel(char c, int flash) {
     case 'g': return (Color){248, 208, 72, 255};
     case 'G': return (Color){120, 124, 132, 255};
     case 'h': return (Color){72, 76, 84, 255};
+    case 'H': return (Color){92, 52, 28, 255};
+    case 'w': return (Color){150, 156, 170, 255};
+    case 'W': return (Color){210, 214, 224, 255};
+    case 'n': return (Color){36, 64, 120, 255};
+    case 'N': return (Color){18, 28, 52, 255};
+    case 'p': return (Color){240, 200, 156, 255};
     default: return (Color){200, 200, 210, 255};
     }
 }
@@ -253,10 +259,142 @@ static const char **gradeDoNome(const char *nome) {
     return PIKACHU;
 }
 
-static void desenharGrade(const char **grade, int x, int y, int flash) {
+static const char *PIKACHU_COSTAS[16] = {
+    ".....kk....kk...",
+    ".....yy....yy...",
+    ".....yy....yy...",
+    "....yyyyyyyy....",
+    "...yyyyyyyyyy...",
+    "...yyybbyybbyy..",
+    "...yyyyyyyyyyy..",
+    "....yyybbyyy....",
+    ".....yyyyyy.....",
+    "......yyyy......",
+    ".....yy..yy.....",
+    "....yaa....y....",
+    "...yaaa.........",
+    "..yaa...........",
+    ".ya.............",
+    "................"
+};
+
+static const char *CHAR_COSTAS[16] = {
+    "................",
+    "......oooo......",
+    ".....oooooo.....",
+    "....oooooooo....",
+    "....ooobbooo....",
+    "....oooooooo....",
+    ".....oooooo.....",
+    "......oooo......",
+    ".......oo.......",
+    "......oo.ff.....",
+    ".....oo..faf....",
+    "....oo....ff....",
+    "................",
+    "................",
+    "................",
+    "................"
+};
+
+static const char *SQUIRT_COSTAS[16] = {
+    "................",
+    "......BBBB......",
+    ".....BBBBBB.....",
+    "....BBBBBBBB....",
+    "...BBBbbbbBBB...",
+    "...BBBbbbbBBB...",
+    "....BBbbbbBB....",
+    ".....BBBBBB.....",
+    "......BBBB......",
+    ".....BB..BB.....",
+    "....BB....BB....",
+    "................",
+    "................",
+    "................",
+    "................",
+    "................"
+};
+
+static const char *DETETIVE[16] = {
+    "......HH......",
+    ".....HHHH.....",
+    ".....HppH.....",
+    "......pp......",
+    ".....nnnn.....",
+    "....nnnnnn....",
+    "...nnnnnnnn...",
+    "...nn.nn.nn...",
+    "....nnnnnn....",
+    ".....n..n.....",
+    ".....N..N.....",
+    "....NN..NN....",
+    "................",
+    "................",
+    "................",
+    "................"
+};
+
+static const char *GIOVANNI[16] = {
+    "......kk......",
+    ".....kkkk.....",
+    ".....kppk.....",
+    "......pp......",
+    ".....wrrw.....",
+    "....wwwwww....",
+    "...WwwwwwwW...",
+    "...Ww.ww.wW...",
+    "....wwwwww....",
+    ".....w..w.....",
+    ".....W..W.....",
+    "....WW..WW....",
+    "................",
+    "................",
+    "................",
+    "................"
+};
+
+static int celulaCheia(const char **grade, int linha, int coluna) {
+    const char *texto;
+
+    if (linha < 0 || coluna < 0 || linha >= 16) {
+        return 0;
+    }
+    texto = grade[linha];
+    if (texto == NULL || coluna >= (int)strlen(texto)) {
+        return 0;
+    }
+    return texto[coluna] != '.' && texto[coluna] != '\0';
+}
+
+/* escala 1 = 16 px; 3 = 48 px; 4 = 64 px, já com contorno de um pixel da arte. */
+static void desenharGrade(const char **grade, int x, int y, int escala, int flash) {
     int linha;
     int coluna;
+    int k;
+    static const int dxs[4] = {-1, 1, 0, 0};
+    static const int dys[4] = {0, 0, -1, 1};
 
+    if (grade == NULL) {
+        return;
+    }
+    if (escala < 1) {
+        escala = 1;
+    }
+    for (linha = 0; linha < 16; linha++) {
+        for (coluna = 0; coluna < 16; coluna++) {
+            if (!celulaCheia(grade, linha, coluna)) {
+                continue;
+            }
+            for (k = 0; k < 4; k++) {
+                if (!celulaCheia(grade, linha + dys[k], coluna + dxs[k])) {
+                    DrawRectangle(x + (coluna + dxs[k]) * escala,
+                                  y + (linha + dys[k]) * escala,
+                                  escala, escala, (Color){10, 10, 14, 255});
+                }
+            }
+        }
+    }
     for (linha = 0; linha < 16; linha++) {
         const char *texto = grade[linha];
         for (coluna = 0; texto[coluna] != '\0' && coluna < 16; coluna++) {
@@ -264,7 +402,7 @@ static void desenharGrade(const char **grade, int x, int y, int flash) {
             if (cor.a == 0) {
                 continue;
             }
-            DrawRectangle(x + coluna, y + linha, 1, 1, cor);
+            DrawRectangle(x + coluna * escala, y + linha * escala, escala, escala, cor);
         }
     }
 }
@@ -645,9 +783,29 @@ static void desenharParticulas(void) {
     }
 }
 
-static void desenharMon(const char *nome, int x, int y, int flash) {
-    int bob = (int)sinf(vis.tempo * 4.0f);
-    desenharGrade(gradeDoNome(nome), x, y + bob, flash);
+static const char **gradeCostas(const char *nome) {
+    if (nome != NULL && strcmp(nome, "Charmander") == 0) {
+        return CHAR_COSTAS;
+    }
+    if (nome != NULL && strcmp(nome, "Squirtle") == 0) {
+        return SQUIRT_COSTAS;
+    }
+    if (nome != NULL && strcmp(nome, "Alakazam") == 0) {
+        return ALAKAZAM;
+    }
+    return PIKACHU_COSTAS;
+}
+
+/* escala 3 desenha 48 px; escala 4 desenha 64 px, antes do contorno. */
+static void desenharMon(const char *nome, int x, int y, int escala, int costas, int flash) {
+    int bob = (escala > 1) ? (int)sinf(vis.tempo * 4.0f) : 0;
+    const char **grade = costas ? gradeCostas(nome) : gradeDoNome(nome);
+    desenharGrade(grade, x, y + bob, escala, flash);
+}
+
+static void desenharPessoa(const char **grade, int x, int y, int escala) {
+    int bob = (int)sinf(vis.tempo * 3.0f);
+    desenharGrade(grade, x, y + bob, escala, 0);
 }
 
 static void plataforma(int x, int y) {
@@ -663,58 +821,120 @@ static void vinheta(int forca) {
     DrawRectangle(VIRT_L - 16, 0, 16, VIRT_A, borda);
 }
 
+static void piso(int y0, int y1, Color a, Color b) {
+    int x;
+    int y;
+
+    for (y = y0; y < y1; y += 8) {
+        for (x = 0; x < VIRT_L; x += 8) {
+            DrawRectangle(x, y, 8, 8, (((x + y) / 8) % 2) == 0 ? a : b);
+        }
+    }
+}
+
+static void tubo(int x, int y, int h, Color liquido, int aceso) {
+    Color vidro = aceso ? (Color){170, 210, 220, 255} : (Color){50, 64, 78, 255};
+    Color dentro = aceso ? liquido : (Color){liquido.r / 3, liquido.g / 3, liquido.b / 3, 255};
+
+    DrawRectangle(x, y, 12, h, (Color){16, 18, 24, 255});
+    DrawRectangle(x + 1, y + 2, 10, h - 4, vidro);
+    DrawRectangle(x + 3, y + 6, 6, h - 12, dentro);
+    DrawRectangle(x + 2, y + 4, 2, h - 8, (Color){255, 255, 255, (unsigned char)(aceso ? 90 : 30)});
+}
+
 static void desenharCenario(const NoSala *sala) {
     int aceso;
     int pulso;
     const char *nome;
+    Color parede;
+    Color chao_a;
+    Color chao_b;
 
     nome = (sala != NULL) ? sala->nome : "";
     aceso = (sala != NULL && sala->resolvido) ? 1 : 0;
-    pulso = (int)(sinf(vis.tempo * 5.0f) * 20.0f);
+    pulso = 160 + (int)(sinf(vis.tempo * 5.0f) * 40.0f);
+    parede = (Color){18, 24, 40, 255};
+    chao_a = (Color){32, 36, 48, 255};
+    chao_b = (Color){24, 28, 38, 255};
 
-    if (strcmp(nome, "Laboratorio") == 0) {
-        DrawRectangle(0, 0, 376, 96, aceso ? (Color){18, 28, 58, 255} : (Color){6, 8, 16, 255});
-        DrawRectangle(18, 20, 10, 60, (Color){40, 80, 120, (unsigned char)(aceso ? 180 + pulso : 40)});
-        DrawRectangle(40, 28, 10, 52, (Color){120, 60, 180, (unsigned char)(aceso ? 160 : 30)});
-        DrawRectangle(300, 18, 14, 64, (Color){60, 200, 220, (unsigned char)(aceso ? 200 : 24)});
-        DrawRectangle(150, 58, 70, 22, aceso ? (Color){80, 220, 200, 255} : (Color){30, 36, 48, 255});
-        if (!aceso) {
-            vinheta(180);
-        }
-    } else if (strcmp(nome, "Camara fria") == 0) {
-        DrawRectangle(0, 0, 376, 96, (Color){170, 210, 230, 255});
-        DrawRectangle(150, 30, 80, 50, aceso ? (Color){200, 230, 240, 180} : (Color){120, 190, 230, 255});
+    if (strcmp(nome, "Câmara fria") == 0) {
+        parede = (Color){150, 190, 210, 255};
+        chao_a = (Color){190, 220, 230, 255};
+        chao_b = (Color){160, 200, 214, 255};
     } else if (strcmp(nome, "Oficina") == 0) {
-        DrawRectangle(0, 0, 376, 96, (Color){48, 22, 18, 255});
-        if (!aceso) {
-            DrawRectangle(160, 40, 16, 28, (Color){255, 90, 20, 255});
-            DrawRectangle(176, 28, 12, 40, (Color){255, 180, 40, 255});
-            DrawRectangle(148, 48, 10, 20, (Color){255, 60, 20, 255});
-        }
-    } else if (strcmp(nome, "Tanque") == 0) {
-        DrawRectangle(0, 0, 376, 96, (Color){16, 40, 72, 255});
-        DrawRectangle(120, 36, 140, 44, (Color){40, 120, 200, 255});
-    } else if (strcmp(nome, "Jaula") == 0) {
-        DrawRectangle(0, 0, 376, 96, (Color){24, 20, 36, 255});
-        DrawRectangle(140, 16, 4, 70, (Color){180, 180, 190, 255});
-        DrawRectangle(160, 16, 4, 70, (Color){180, 180, 190, 255});
-        DrawRectangle(180, 16, 4, 70, (Color){180, 180, 190, 255});
-        DrawRectangle(200, 16, 4, 70, (Color){180, 180, 190, 255});
-    } else if (strcmp(nome, "Arquivo") == 0) {
-        DrawRectangle(0, 0, 376, 96, (Color){36, 28, 24, 255});
-        DrawRectangle(150, 20, 90, 64, aceso ? (Color){90, 70, 50, 255} : (Color){120, 84, 48, 255});
+        parede = (Color){48, 22, 18, 255};
+        chao_a = (Color){60, 32, 24, 255};
+        chao_b = (Color){42, 22, 18, 255};
     } else if (strcmp(nome, "Sala do chefe") == 0) {
-        DrawRectangle(0, 0, 376, 96, (Color){28, 6, 10, 255});
-        DrawRectangle(160, 0, 50, 96, (Color){120, 16, 24, 90});
-        vinheta(140);
-    } else {
-        DrawRectangle(0, 0, 376, 96, (Color){22, 48, 36, 255});
-        DrawRectangle(20, 70, 40, 8, (Color){40, 120, 60, 255});
-        DrawRectangle(300, 66, 36, 10, (Color){40, 120, 60, 255});
+        parede = (Color){36, 8, 12, 255};
+        chao_a = (Color){48, 12, 16, 255};
+        chao_b = (Color){28, 8, 10, 255};
+    } else if (strcmp(nome, "Pátio") == 0) {
+        parede = (Color){18, 40, 28, 255};
+        chao_a = (Color){36, 90, 48, 255};
+        chao_b = (Color){28, 70, 38, 255};
     }
 
-    if (sala != NULL && !sala->resolvido && ((int)(vis.tempo * 3.0f) % 2) == 0) {
-        DrawRectangleLines(146, 26, 84, 52, DOURADO);
+    DrawRectangle(0, 0, VIRT_L, 150, parede);
+    piso(96, 150, chao_a, chao_b);
+    DrawRectangle(0, 92, VIRT_L, 4, (Color){12, 12, 16, 255});
+
+    if (strcmp(nome, "Laboratório") == 0 || nome[0] == '\0') {
+        tubo(12, 28, 62, (Color){80, 220, 210, 255}, aceso);
+        tubo(30, 36, 54, ROXO, aceso);
+        tubo(330, 24, 66, CIANO, aceso);
+        tubo(348, 40, 50, (Color){80, 140, 255, 255}, aceso);
+        DrawRectangle(120, 78, 140, 16, (Color){40, 44, 56, 255});
+        DrawRectangle(132, 62, 28, 16, (Color){20, 24, 32, 255});
+        DrawRectangle(134, 64, 24, 10, aceso ? (Color){80, 220, 120, 255} : (Color){20, 50, 30, 255});
+        DrawRectangle(168, 64, 22, 14, (Color){20, 24, 32, 255});
+        DrawRectangle(170, 66, 18, 8, aceso ? CIANO : (Color){30, 40, 50, 255});
+        DrawLine(150, 78, 150, 96, (Color){80, 70, 40, 255});
+        DrawLine(190, 78, 210, 96, (Color){80, 70, 40, 255});
+        DrawRectangle(210, 48, 36, 28, aceso ? (Color){90, 230, 210, 255} : (Color){36, 48, 58, 255});
+        if (!aceso && ((int)(vis.tempo * 3.0f) % 2) == 0) {
+            DrawRectangleLines(208, 46, 40, 32, DOURADO);
+        }
+    } else if (strcmp(nome, "Câmara fria") == 0) {
+        DrawRectangle(150, 40, 90, 52, (Color){200, 236, 245, 255});
+        DrawRectangle(156, 46, 78, 40, (Color){150, 210, 230, 255});
+        if (!aceso && ((int)(vis.tempo * 3.0f) % 2) == 0) {
+            DrawRectangleLines(148, 38, 94, 56, DOURADO);
+        }
+    } else if (strcmp(nome, "Oficina") == 0) {
+        DrawRectangle(140, 70, 100, 22, (Color){50, 36, 28, 255});
+        if (!aceso) {
+            DrawRectangle(168, 36, 14, 34, (Color){255, 90, 24, 255});
+            DrawRectangle(182, 24, 12, 46, (Color){255, 170, 40, (unsigned char)pulso});
+            DrawRectangle(156, 44, 10, 26, (Color){255, 60, 20, 255});
+            DrawRectangleLines(150, 20, 52, 54, DOURADO);
+        }
+    } else if (strcmp(nome, "Tanque") == 0) {
+        DrawRectangle(130, 36, 130, 56, (Color){20, 50, 80, 255});
+        DrawRectangle(136, 42, 118, 44, (Color){40, 130, 200, 255});
+        DrawRectangle(140, 46, 30, 8, (Color){180, 230, 255, 180});
+    } else if (strcmp(nome, "Jaula") == 0) {
+        DrawRectangle(140, 28, 100, 64, (Color){30, 28, 40, 255});
+        DrawRectangle(148, 28, 3, 64, CREME);
+        DrawRectangle(166, 28, 3, 64, CREME);
+        DrawRectangle(184, 28, 3, 64, CREME);
+        DrawRectangle(202, 28, 3, 64, CREME);
+        DrawRectangle(220, 28, 3, 64, CREME);
+    } else if (strcmp(nome, "Arquivo") == 0) {
+        DrawRectangle(236, 30, 18, 62, (Color){110, 72, 40, 255});
+        DrawRectangle(256, 30, 18, 62, (Color){90, 58, 32, 255});
+        DrawRectangle(276, 30, 18, 62, (Color){120, 80, 44, 255});
+        DrawRectangle(150, 36, 70, 56, aceso ? (Color){70, 50, 36, 255} : (Color){130, 90, 48, 255});
+        if (!aceso && ((int)(vis.tempo * 3.0f) % 2) == 0) {
+            DrawRectangleLines(148, 34, 74, 60, DOURADO);
+        }
+    } else if (strcmp(nome, "Sala do chefe") == 0) {
+        DrawRectangle(160, 0, 70, 96, (Color){90, 12, 18, 110});
+        DrawRectangle(40, 30, 50, 60, (Color){20, 8, 10, 255});
+        DrawRectangle(44, 36, 18, 12, (Color){120, 20, 24, 255});
+    } else {
+        DrawRectangle(20, 60, 30, 16, (Color){30, 90, 40, 255});
+        DrawRectangle(300, 58, 36, 18, (Color){24, 80, 36, 255});
     }
 }
 
@@ -725,14 +945,14 @@ static void desenharEquipe(Caso *caso) {
 
     for (i = 0; i < n && i < 6; i++) {
         const Pokemon *membro = pokemonNaPosicao(&caso->nucleo.time, i);
-        int x = 4 + i * 20;
+        int x = 168 + i * 18;
         if (membro == NULL) {
             continue;
         }
         if (i == ativo) {
             DrawRectangle(x - 1, 17, 18, 18, DOURADO);
         }
-        desenharGrade(gradeDoNome(membro->nome), x, 18, 0);
+        desenharGrade(gradeDoNome(membro->nome), x, 2, 1, 0);
     }
 }
 
@@ -748,19 +968,29 @@ static void desenharFade(void) {
 
 static void desenharMenu(void) {
     int i;
-    int y;
 
     for (i = 0; i < 28; i++) {
         int x = (i * 53 + (int)(vis.tempo * 12.0f)) % VIRT_L;
         int sy = (i * 37) % 90;
         DrawRectangle(x, sy, 1, 1, (Color){160, 190, 210, 255});
     }
-    y = 28 + (int)sinf(vis.tempo * 2.0f);
-    texto("PokéBattle", 78, y, DOURADO);
-    texto("O Caso do Laboratório", 48, y + 16, CREME);
-    plataforma(190, 110);
-    desenharMon("Pikachu", 176, 78, 0);
-    texto("Um detetive. Um Pikachu.", 70, 124, CIANO);
+    if (fonte_ok) {
+        DrawTextEx(fonte, "PokéBattle", (Vector2){88.0f, 8.0f}, 16.0f, 1.0f, (Color){90, 40, 20, 255});
+        DrawTextEx(fonte, "PokéBattle", (Vector2){86, 6}, 16.0f, 1.0f, DOURADO);
+    } else {
+        texto("PokéBattle", 86, 6, DOURADO);
+    }
+    texto("O Caso do Laboratório", 56, 28, CREME);
+    DrawRectangle(0, 48, VIRT_L, 90, (Color){12, 18, 36, 255});
+    DrawRectangle(40, 70, 70, 48, (Color){20, 28, 48, 255});
+    DrawRectangle(48, 78, 18, 12, CIANO);
+    DrawRectangle(70, 78, 18, 12, ROXO);
+    DrawCircle(300, 62, 10, (Color){230, 230, 210, 255});
+    plataforma(150, 132);
+    plataforma(230, 132);
+    desenharPessoa(DETETIVE, 120, 58, 3);
+    desenharMon("Pikachu", 200, 66, 3, 1, 0);
+    texto("Um detetive. Um Pikachu.", 64, 122, CIANO);
 }
 
 static void desenharSala(Caso *caso) {
@@ -773,18 +1003,25 @@ static void desenharSala(Caso *caso) {
     }
     texto("N caderno", 292, 5, CIANO);
     desenharEquipe(caso);
-    DrawRectangle(2, 38, 380, 98, NOITE);
     desenharCenario(sala);
+    if (sala != NULL && strcmp(sala->nome, "Laboratório") == 0 && !sala->resolvido) {
+        BeginBlendMode(BLEND_ADDITIVE);
+        DrawCircle(70, 108, 50, (Color){55, 48, 18, 255});
+        DrawCircle(70, 108, 24, (Color){90, 78, 30, 255});
+        EndBlendMode();
+        vinheta(120);
+    }
+    desenharPessoa(DETETIVE, 36, 86, 3);
+    desenharMon("Pikachu", 88, 98, 2, 1, 0);
     if (sala != NULL && sala->e_chefe) {
-        desenharMon("Meowth", 250, 78, 0);
-    } else if (sala != NULL && strcmp(sala->nome, "Patio") == 0 && !sala->batalha_concluida) {
-        desenharMon("Charmander", 250, 78, 0);
+        desenharPessoa(GIOVANNI, 250, 78, 3);
+        desenharMon("Meowth", 210, 90, 2, 0, 0);
+    } else if (sala != NULL && strcmp(sala->nome, "Pátio") == 0 && !sala->batalha_concluida) {
+        desenharMon("Charmander", 250, 90, 3, 0, 0);
     } else if (sala != NULL && strcmp(sala->nome, "Tanque") == 0 && !sala->batalha_concluida) {
-        desenharMon("Squirtle", 250, 78, 0);
+        desenharMon("Squirtle", 250, 90, 3, 0, 0);
     } else if (sala != NULL && strcmp(sala->nome, "Jaula") == 0 && !sala->batalha_concluida) {
-        desenharMon("Alakazam", 250, 78, 0);
-    } else {
-        desenharMon("Pikachu", 48, 78, 0);
+        desenharMon("Alakazam", 250, 90, 3, 0, 0);
     }
     desenharParticulas();
 
@@ -840,7 +1077,7 @@ static void desenharBatalha(Caso *caso) {
     const Pokemon *eu = obterAtivo(&caso->nucleo.time);
     const Pokemon *opp = caso->oponente_carregado ? obterAtivo(&caso->oponente_atual.time) : NULL;
     int chefe = caso->oponente_atual.nome[0] != '\0' && strcmp(caso->oponente_atual.nome, "Giovanni") == 0;
-    int deslize = (int)((1.0f - vis.entrada) * 70.0f);
+    int deslize = (int)((1.0f - vis.entrada) * 24.0f);
     float real_eu = 1.0f;
     float real_opp = 1.0f;
     char linha[64];
@@ -854,33 +1091,43 @@ static void desenharBatalha(Caso *caso) {
         DrawRectangle(0, 96, VIRT_L, 44, (Color){28, 64, 48, 255});
     }
 
-    plataforma(72 - deslize, 108);
-    plataforma(318 + deslize, 62);
+    /* Jogador embaixo à esquerda, de costas. Inimigo no alto à direita.
+       As caixas ficam no lado oposto de cada sprite, sem cobri-los. */
+    plataforma(48 - deslize, 118);
+    plataforma(300 + deslize, 72);
     if (eu != NULL) {
         real_eu = (eu->hp_max > 0) ? (float)eu->hp_atual / (float)eu->hp_max : 0.0f;
-        desenharMon(eu->nome, 56 - deslize, 90, flashDeDano(vis.hp_eu, real_eu));
+        desenharMon(eu->nome, 20 - deslize, 52, 4, 1, flashDeDano(vis.hp_eu, real_eu));
     }
-    if (opp != NULL) {
+    if (chefe) {
+        desenharPessoa(GIOVANNI, 268 + deslize, 0, 4);
+        if (opp != NULL) {
+            real_opp = (opp->hp_max > 0) ? (float)opp->hp_atual / (float)opp->hp_max : 0.0f;
+            desenharMon(opp->nome, 200 + deslize, 40, 2, 0, flashDeDano(vis.hp_opp, real_opp));
+        }
+    } else if (opp != NULL) {
         real_opp = (opp->hp_max > 0) ? (float)opp->hp_atual / (float)opp->hp_max : 0.0f;
-        desenharMon(opp->nome, 302 + deslize, 44, flashDeDano(vis.hp_opp, real_opp));
+        desenharMon(opp->nome, 292 + deslize, 8, 4, 0, flashDeDano(vis.hp_opp, real_opp));
     }
 
-    painel(4, 4, 150, 36, (Color){232, 236, 244, 255});
+    painel(4, 4, 132, 28, (Color){232, 236, 244, 255});
     if (opp != NULL) {
-        texto(opp->nome, 8, 8, TINTA);
-        snprintf(linha, sizeof linha, "Nv.%d", opp->nivel);
-        texto(linha, 108, 8, TINTA);
-        barraHp(8, 22, 120, vis.hp_opp);
+        texto(opp->nome, 8, 7, TINTA);
+        texto("Nv", 8, 16, (Color){40, 90, 180, 255});
+        snprintf(linha, sizeof linha, "%d", opp->nivel);
+        texto(linha, 26, 16, (Color){180, 40, 40, 255});
+        barraHp(48, 18, 78, vis.hp_opp);
     }
 
-    painel(210, 86, 168, 44, (Color){232, 236, 244, 255});
+    painel(168, 86, 150, 32, (Color){232, 236, 244, 255});
     if (eu != NULL) {
-        texto(eu->nome, 216, 90, TINTA);
-        snprintf(linha, sizeof linha, "Nv.%d", eu->nivel);
-        texto(linha, 330, 90, TINTA);
-        barraHp(216, 104, 130, vis.hp_eu);
+        texto(eu->nome, 172, 88, TINTA);
+        texto("Nv", 172, 97, (Color){40, 90, 180, 255});
+        snprintf(linha, sizeof linha, "%d", eu->nivel);
+        texto(linha, 190, 97, (Color){180, 40, 40, 255});
+        barraHp(214, 98, 96, vis.hp_eu);
         snprintf(linha, sizeof linha, "%d/%d", eu->hp_atual, eu->hp_max);
-        texto(linha, 216, 114, TINTA);
+        texto(linha, 214, 106, TINTA);
     }
 
     painel(2, 128, 380, 28, CREME);
@@ -951,7 +1198,7 @@ static void atualizarBarras(Caso *caso, float dt) {
 static void desenharAjuda(void) {
     painel(16, 16, 352, 150, (Color){16, 24, 48, 255});
     texto("COMO JOGAR", 28, 26, DOURADO);
-    textoQuebra("Voce e o detetive. O Pikachu e o parceiro. Use a habilidade do tipo para abrir a sala. Capture os selvagens: cada um destrava o proximo puzzle.",
+    textoQuebra("Você é o detetive. O Pikachu é o parceiro. Use a habilidade do tipo para abrir a sala. Capture os selvagens: cada um destrava o próximo puzzle.",
                 28, 46, 328, 6, CREME);
     texto("1 menu  2 ajuda  3 pokedex  4 sair", 28, 120, CIANO);
     texto("Na luta, 1 a 4 escolhem o golpe.", 28, 136, CIANO);
@@ -976,12 +1223,12 @@ static void desenharPokedex(ListaDex *dex) {
 static void desenharFim(int vitoria) {
     if (vitoria) {
         texto("CASO ENCERRADO", 70, 48, DOURADO);
-        textoQuebra("Giovanni recuou. O laboratorio fica para tras.", 40, 80, 300, 3, CREME);
-        desenharMon("Pikachu", 176, 120, 0);
+        textoQuebra("Giovanni recuou. O laboratório fica para trás.", 40, 80, 300, 3, CREME);
+        desenharMon("Pikachu", 160, 100, 3, 1, 0);
     } else {
         DrawRectangle(0, 0, VIRT_L, VIRT_A, (Color){24, 6, 8, 255});
         texto("DERROTA", 140, 48, VERMELHO);
-        textoQuebra("O time desmaiou. Da para tentar de novo.", 40, 80, 300, 3, CREME);
+        textoQuebra("O time desmaiou. Dá para tentar de novo.", 40, 80, 300, 3, CREME);
     }
 }
 
@@ -1365,9 +1612,9 @@ int capturarTelasDemonstracao(void) {
         const Pokemon *eu = obterAtivo(&caso.nucleo.time);
         vis.fade = 0.0f;
         vis.texto_completo = 1;
-        vis.entrada = 1.0f;
         vis.hp_pronto = 0;
         atualizarBarras(&caso, 0.016f);
+        vis.entrada = 1.0f;
         enfileirarTexto(caso.oponente_atual.fala);
         vis.bytes_texto = (int)strlen(vis.texto);
         comecarQuadro();
@@ -1382,11 +1629,12 @@ int capturarTelasDemonstracao(void) {
         irAteOChefe(&chefe);
         vis.fade = 0.0f;
         vis.texto_completo = 1;
-        vis.entrada = 1.0f;
         vis.hp_pronto = 0;
         vis.fila_n = 0;
         atualizarBarras(&chefe, 0.016f);
-        enfileirarTexto("Equipe Rocket. Este laboratorio e meu.");
+        vis.entrada = 1.0f;
+        vis.tremor = 0.0f;
+        enfileirarTexto(chefe.oponente_atual.fala);
         vis.bytes_texto = (int)strlen(vis.texto);
         comecarQuadro();
         desenharBatalha(&chefe);
