@@ -25,7 +25,17 @@ typedef struct {
     int captura_disponivel; /* 1 = há um Pokémon selvagem esperando captura */
     Pokemon captura_pendente;
     int caso_encerrado; /* 1 = o chefão foi derrotado */
+    int pocoes;
+    int super_pocoes;
+    int pokebolas;
+    int tentativas_fuga; /* conta as fugas desta luta, sem sorteio */
 } Caso;
+
+/* Itens da bolsa. A quantidade mora no Caso, não na janela. */
+#define ITEM_POCAO 0
+#define ITEM_SUPER_POCAO 1
+#define ITEM_POKE_BOLA 2
+#define ITEM_CONTAGEM 3
 
 /*
  * iniciarCaso
@@ -94,5 +104,44 @@ int casoExecutarGolpe(Caso *caso, int indice_golpe, SaidaBatalha *saida);
  * Complexidade: O(1) (o time tem no máximo 6).
  */
 int casoCapturar(Caso *caso);
+
+/*
+ * casoNomeItem / casoQuantidadeItem
+ * Nome em português e quantas unidades restam. item fora da faixa
+ * devolve NULL ou 0.
+ *
+ * Complexidade: O(1).
+ */
+const char *casoNomeItem(int item);
+int casoQuantidadeItem(const Caso *caso, int item);
+
+/*
+ * casoUsarItem
+ * Gasta um item na luta. Poção cura 20 de HP. Super Poção cura 50.
+ * Poké Bola só serve em sala capturável: pega se o HP restante
+ * for no máximo a metade. Não há sorteio, para a defesa repetir
+ * o mesmo resultado.
+ *
+ * Usar de verdade gasta o turno: o oponente age em seguida, pela
+ * mesma lista circular (o jogador entra com golpe -1 e fica de fora).
+ * Item inválido ou sala de chefe não gasta a unidade nem o turno.
+ *
+ * Retorno: o mesmo de casoExecutarGolpe (1 continua, 0 vitória,
+ * -1 derrota, -2 não usou).
+ * Complexidade: O(g + n^2), g <= 4 e n <= 2, quando o oponente age.
+ */
+int casoUsarItem(Caso *caso, int item, SaidaBatalha *saida);
+
+/*
+ * casoTentarFugir
+ * Chefe recusa, sem turno gasto. No selvagem, a fuga sai sem
+ * sorteio: a tentativa i (1, 2, 3...) funciona quando
+ * velocidade_do_jogador * i >= velocidade_do_oponente.
+ * Se falhar, o oponente age.
+ *
+ * Retorno: 3 se fugiu, ou o código de casoExecutarGolpe.
+ * Complexidade: O(g + n^2) quando o oponente chega a agir.
+ */
+int casoTentarFugir(Caso *caso, SaidaBatalha *saida);
 
 #endif
