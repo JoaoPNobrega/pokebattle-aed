@@ -15,6 +15,7 @@
 #include "ui_raylib.h"
 
 #include "caso.h"
+#include "historia.h"
 #include "util.h"
 
 #include <math.h>
@@ -49,7 +50,9 @@ typedef enum {
     TELA_AJUDA,
     TELA_POKEDEX,
     TELA_SALA,
-    TELA_BATALHA
+    TELA_BATALHA,
+    TELA_CREDITOS,
+    TELA_GAMEOVER
 } Tela;
 
 typedef enum {
@@ -58,6 +61,7 @@ typedef enum {
     BAT_COMANDO,
     BAT_GOLPES,
     BAT_TIME,
+    BAT_BOLSA,
     BAT_CAPTURA,
     BAT_FIM
 } FaseBatalha;
@@ -102,6 +106,13 @@ typedef struct {
     float captura_t;
     int caderno;
     int leu_puzzle;
+    char paginas[6][TEXTO_SALA_MAX];
+    int pagina_n;
+    int pagina_i;
+    int intro_feita;
+    int salas_vistas[8];
+    int depois_fala;
+    int cursor_bolsa;
     int pp[6][4];
     int pp_init[6];
     int vitoria;
@@ -347,6 +358,7 @@ static char tileEm(const char **mapa, int x, int y);
 static int solido(char simbolo, const NoSala *sala);
 static void entrarNaSala(void);
 static void abrirFala(const char *texto);
+static void tentarBatalha(void);
 static void prepararBatalha(void);
 static void desenharTudo(void);
 static void apresentar(const char *png);
@@ -842,12 +854,108 @@ static void narrarUi(void *contexto, const char *mensagem) {
     filaPor(mensagem);
 }
 
-static void abrirFala(const char *mensagem) {
+static void mostrarFala(const char *mensagem) {
     copiarTexto(vis.fala, sizeof vis.fala, mensagem == NULL ? "" : mensagem);
     vis.fala_aberta = 1;
     vis.bytes = 0;
     vis.texto_completo = 0;
     vis.acum = 0.0f;
+}
+
+static void abrirFala(const char *mensagem) {
+    vis.pagina_n = 0;
+    vis.pagina_i = 0;
+    mostrarFala(mensagem);
+}
+
+static void abrirPaginas(const char *(*obter)(int)) {
+    vis.pagina_n = 0;
+    vis.pagina_i = 0;
+    if (obter == NULL) {
+        return;
+    }
+    while (vis.pagina_n < 6) {
+        const char *texto = obter(vis.pagina_n);
+        if (texto == NULL) {
+            break;
+        }
+        copiarTexto(vis.paginas[vis.pagina_n], TEXTO_SALA_MAX, texto);
+        vis.pagina_n++;
+    }
+    if (vis.pagina_n > 0) {
+        mostrarFala(vis.paginas[0]);
+    }
+}
+
+static int indiceDaSala(const NoSala *sala) {
+    const NoSala *cursor;
+    int i = 0;
+
+    if (sala == NULL) {
+        return -1;
+    }
+    for (cursor = caso_jogo.salas.inicio; cursor != NULL && i < 8; cursor = cursor->prox, i++) {
+        if (cursor == sala) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+static void narrarSalaAtual(void) {
+    NoSala *sala = salaAtual(&caso_jogo.salas);
+    const char *fala;
+    int indice;
+
+    if (sala == NULL || !vis.intro_feita || vis.fala_aberta) {
+        return;
+    }
+    indice = indiceDaSala(sala);
+    if (indice < 0 || vis.salas_vistas[indice]) {
+        return;
+    }
+    fala = historiaAoEntrar(sala->nome);
+    if (fala == NULL) {
+        return;
+    }
+    vis.salas_vistas[indice] = 1;
+    abrirFala(fala);
+}
+
+static void aoFecharFala(void) {
+    int depois = vis.depois_fala;
+
+    vis.fala_aberta = 0;
+    vis.pagina_n = 0;
+    vis.depois_fala = 0;
+    if (depois == 1) {
+        tentarBatalha();
+        return;
+    }
+    if (depois == 2) {
+        tela = TELA_CREDITOS;
+        vis.menu_cursor = 0;
+        return;
+    }
+    if (depois == 3) {
+        tela = TELA_GAMEOVER;
+        vis.menu_cursor = 0;
+        return;
+    }
+    narrarSalaAtual();
+}
+
+static void confirmarFala(void) {
+    if (!vis.texto_completo) {
+        completarTexto(vis.fala);
+        return;
+    }
+    if (vis.pagina_i + 1 < vis.pagina_n) {
+        vis.pagina_i++;
+        mostrarFala(vis.paginas[vis.pagina_i]);
+        return;
+    }
+    aoFecharFala();
 }
 
 static const char **mapaDa(const char *nome) {
@@ -1089,8 +1197,9 @@ static void tentarPuzzle(char simbolo) {
         return;
     }
     if (casoUsarHabilidade(&caso_jogo)) {
+        const char *fala = historiaAoResolver(sala->nome);
         clique();
-        abrirFala(sala->texto_resolvido);
+        abrirFala(fala != NULL ? fala : sala->texto_resolvido);
         return;
     }
     abrirFala("Nenhum Pokémon do time resolve isto.");
@@ -1253,15 +1362,12 @@ static void atualizarMundo(float dt) {
     sala = salaAtual(&caso_jogo.salas);
     if (sala != NULL && strcmp(sala->nome, mundo.sala) != 0) {
         entrarNaSala();
+        narrarSalaAtual();
     }
     if (vis.fala_aberta) {
         revelarTexto(dt, vis.fala);
         if (acaoPressionada() || IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-            if (!vis.texto_completo) {
-                completarTexto(vis.fala);
-            } else {
-                vis.fala_aberta = 0;
-            }
+            confirmarFala();
         }
         return;
     }
@@ -1710,12 +1816,15 @@ static void avancarFilaBatalha(void) {
         vis.captura_t = 0.0f;
         return;
     }
+    if (vis.resultado == 3) {
+        sairParaMundo();
+        return;
+    }
     if (vis.resultado == 0 && caso_jogo.caso_encerrado) {
         vis.fase = BAT_FIM;
         vis.vitoria = 1;
-        abrirFala("Giovanni recua. O caso está encerrado.");
-        vis.texto_completo = 0;
-        vis.bytes = 0;
+        vis.depois_fala = 2;
+        abrirPaginas(historiaDesfecho);
         return;
     }
     if (vis.resultado == 0) {
@@ -1725,9 +1834,8 @@ static void avancarFilaBatalha(void) {
     if (vis.resultado < 0 && !caso_jogo.em_batalha) {
         vis.fase = BAT_FIM;
         vis.vitoria = 0;
+        vis.depois_fala = 3;
         abrirFala("Seu time desmaiou.");
-        vis.texto_completo = 0;
-        vis.bytes = 0;
         return;
     }
     vis.fase = BAT_COMANDO;
@@ -1834,11 +1942,7 @@ static void atualizarBatalha(float dt) {
     if (vis.fase == BAT_FIM) {
         revelarTexto(dt, vis.fala);
         if (acaoPressionada()) {
-            if (!vis.texto_completo) {
-                completarTexto(vis.fala);
-            } else {
-                tela = TELA_MENU;
-            }
+            confirmarFala();
         }
         return;
     }
@@ -1859,19 +1963,25 @@ static void atualizarBatalha(float dt) {
                 vis.fase = BAT_GOLPES;
                 vis.cursor = 0;
             } else if (vis.cursor == 1) {
-                filaLimpar();
-                filaPor("A bolsa está vazia.");
-                vis.fase = BAT_TEXTO;
-                vis.resultado = 1;
+                vis.fase = BAT_BOLSA;
+                vis.cursor_bolsa = 0;
             } else if (vis.cursor == 2) {
                 vis.fase = BAT_TIME;
                 vis.cursor_time = posicaoDoAtivo(&caso_jogo.nucleo.time);
                 if (vis.cursor_time < 0) vis.cursor_time = 0;
             } else {
+                SaidaBatalha saida;
+                int resultado;
                 filaLimpar();
-                filaPor("Não dá para fugir!");
+                saida.narrar = narrarUi;
+                saida.contexto = NULL;
+                saida.log = &caso_jogo.nucleo.log;
+                resultado = casoTentarFugir(&caso_jogo, &saida);
+                vis.resultado = (resultado == -2) ? 1 : resultado;
                 vis.fase = BAT_TEXTO;
-                vis.resultado = 1;
+                if (vis.fila_n == 0) {
+                    filaPor("Não deu para fugir.");
+                }
             }
             clique();
         }
@@ -1925,6 +2035,35 @@ static void atualizarBatalha(float dt) {
                 vis.entrada = 0.4f;
                 clique();
             }
+        }
+        return;
+    }
+    if (vis.fase == BAT_BOLSA) {
+        if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
+            vis.cursor_bolsa = (vis.cursor_bolsa + 1) % ITEM_CONTAGEM;
+        }
+        if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
+            vis.cursor_bolsa = (vis.cursor_bolsa + ITEM_CONTAGEM - 1) % ITEM_CONTAGEM;
+        }
+        if (voltarPressionado()) {
+            vis.fase = BAT_COMANDO;
+            return;
+        }
+        if (acaoPressionada()) {
+            SaidaBatalha saida;
+            int resultado;
+            filaLimpar();
+            saida.narrar = narrarUi;
+            saida.contexto = NULL;
+            saida.log = &caso_jogo.nucleo.log;
+            resultado = casoUsarItem(&caso_jogo, vis.cursor_bolsa, &saida);
+            if (resultado == -2 && vis.fila_n == 0) {
+                vis.fase = BAT_BOLSA;
+                return;
+            }
+            vis.resultado = (resultado == -2) ? 1 : resultado;
+            vis.fase = BAT_TEXTO;
+            clique();
         }
     }
 }
@@ -2105,6 +2244,17 @@ static void desenharBatalha(void) {
             textoAte(comandos[i], (float)cx + 4.0f, (float)cy + 8.0f, (float)largura - 8.0f,
                      selecionado ? (Color){248, 248, 240, 255} : BLACK);
         }
+    } else if (vis.fase == BAT_BOLSA) {
+        int i;
+        caixa(24, 36, 192, 112, (Color){248, 248, 240, 255});
+        texto("BOLSA", 32.0f, 44.0f, FONTE_PX, BLACK);
+        for (i = 0; i < ITEM_CONTAGEM; i++) {
+            char linha[48];
+            Color tinta = (vis.cursor_bolsa == i) ? (Color){180, 32, 32, 255} : BLACK;
+            snprintf(linha, sizeof linha, "%s x%d", casoNomeItem(i), casoQuantidadeItem(&caso_jogo, i));
+            texto(linha, 32.0f, 64.0f + (float)i * 18.0f, FONTE_PX, tinta);
+        }
+        texto("Z usa. X volta.", 32.0f, 126.0f, FONTE_PX, (Color){80, 80, 80, 255});
     } else if (vis.fase == BAT_FIM) {
         desenharMensagem(vis.fala, 0, 112, VIRT_L, 48);
     } else {
@@ -2166,8 +2316,35 @@ static void desenharAjuda(void) {
     texto("Z interage. N caderno.", 16.0f, 64.0f, FONTE_PX, BLACK);
     texto("Na luta: LUTAR, BOLSA,", 16.0f, 84.0f, FONTE_PX, BLACK);
     texto("POKéMON e FUGIR.", 16.0f, 96.0f, FONTE_PX, BLACK);
-    texto("X volta. Esc menu.", 16.0f, 116.0f, FONTE_PX, BLACK);
+    texto("Z avança o texto.", 16.0f, 112.0f, FONTE_PX, BLACK);
+    texto("X volta. Esc menu.", 16.0f, 124.0f, FONTE_PX, BLACK);
     texto("Z para fechar", 16.0f, 136.0f, FONTE_PX, (Color){80, 80, 80, 255});
+}
+
+static void desenharCreditos(void) {
+    DrawRectangle(0, 0, VIRT_L, VIRT_A, (Color){12, 16, 36, 255});
+    texto("PokéBattle", 16.0f, 8.0f, FONTE_PX, (Color){255, 214, 64, 255});
+    texto("O Caso do Laboratório", 16.0f, 22.0f, FONTE_PX, (Color){248, 248, 236, 255});
+    texto("João Pedro", 16.0f, 42.0f, FONTE_PX, (Color){248, 248, 236, 255});
+    texto("Leo", 16.0f, 54.0f, FONTE_PX, (Color){248, 248, 236, 255});
+    texto("AED · CESAR School", 16.0f, 70.0f, FONTE_PX, (Color){180, 200, 230, 255});
+    texto("2026.2", 16.0f, 82.0f, FONTE_PX, (Color){180, 200, 230, 255});
+    texto("PokéAPI", 16.0f, 102.0f, FONTE_PX, (Color){220, 220, 210, 255});
+    texto("Nintendo / Game Freak", 16.0f, 114.0f, FONTE_PX, (Color){220, 220, 210, 255});
+    texto("Z volta ao menu", 16.0f, 140.0f, FONTE_PX, (Color){255, 214, 64, 255});
+}
+
+static void desenharGameOver(void) {
+    const char *opcoes[] = {"TENTAR DE NOVO", "MENU"};
+    int i;
+
+    DrawRectangle(0, 0, VIRT_L, VIRT_A, (Color){24, 8, 12, 255});
+    texto("Seu time desmaiou.", 16.0f, 36.0f, FONTE_PX, (Color){248, 220, 210, 255});
+    for (i = 0; i < 2; i++) {
+        int selecionado = vis.menu_cursor == i;
+        caixa(40, 70 + i * 28, 160, 22, selecionado ? (Color){255, 214, 64, 255} : (Color){248, 248, 240, 255});
+        texto(opcoes[i], 48.0f, 76.0f + (float)i * 28.0f, FONTE_PX, BLACK);
+    }
 }
 
 static void visitarPk(const Pokemon *pokemon, void *contexto) {
@@ -2214,6 +2391,8 @@ static void desenharTudo(void) {
     else if (tela == TELA_AJUDA) desenharAjuda();
     else if (tela == TELA_POKEDEX) desenharPokedex();
     else if (tela == TELA_SALA) desenharMundo();
+    else if (tela == TELA_CREDITOS) desenharCreditos();
+    else if (tela == TELA_GAMEOVER) desenharGameOver();
     else desenharBatalha();
     if (vis.transicao != 0) {
         int altura = (int)(vis.trans_t * (float)(VIRT_A / 2));
@@ -2286,6 +2465,8 @@ static void atualizarMenu(void) {
                 zerarVisual();
                 entrarNaSala();
                 tela = TELA_SALA;
+                vis.intro_feita = 1;
+                abrirPaginas(historiaIntro);
             }
         } else if (vis.menu_cursor == 1) {
             tela = TELA_AJUDA;
@@ -2324,6 +2505,25 @@ static void atualizar(float dt) {
         atualizarMundo(dt);
     } else if (tela == TELA_BATALHA) {
         atualizarBatalha(dt);
+    } else if (tela == TELA_CREDITOS) {
+        if (acaoPressionada() || IsKeyPressed(KEY_ESCAPE)) {
+            tela = TELA_MENU;
+        }
+    } else if (tela == TELA_GAMEOVER) {
+        if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S) || IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
+            vis.menu_cursor = 1 - vis.menu_cursor;
+        }
+        if (acaoPressionada()) {
+            if (vis.menu_cursor == 0 && comecarCaso(&caso_jogo)) {
+                zerarVisual();
+                entrarNaSala();
+                tela = TELA_SALA;
+                vis.intro_feita = 1;
+                abrirPaginas(historiaIntro);
+            } else if (vis.menu_cursor != 0) {
+                tela = TELA_MENU;
+            }
+        }
     }
 }
 
@@ -2447,6 +2647,15 @@ int capturarTelasDemonstracao(void) {
     mundo.pika_de_y = 4;
     mundo.pika_anda = 0.4f;
     mundo.pika_dir = 0;
+    vis.intro_feita = 1;
+    abrirPaginas(historiaIntro);
+    vis.texto_completo = 1;
+    vis.bytes = 800;
+    desenharTudo();
+    apresentar("captura_intro_fala.png");
+    vis.fala_aberta = 0;
+    vis.pagina_n = 0;
+    vis.salas_vistas[0] = 1;
     desenharTudo();
     apresentar("captura_sala.png");
     mundo.movendo = 0;
@@ -2523,6 +2732,29 @@ int capturarTelasDemonstracao(void) {
     vis.fase = BAT_COMANDO;
     desenharTudo();
     apresentar("captura_batalha.png");
+    vis.fase = BAT_BOLSA;
+    vis.cursor_bolsa = 0;
+    desenharTudo();
+    apresentar("captura_bolsa.png");
+    {
+        SaidaBatalha saida;
+        filaLimpar();
+        saida.narrar = narrarUi;
+        saida.contexto = NULL;
+        saida.log = &caso_jogo.nucleo.log;
+        casoTentarFugir(&caso_jogo, &saida);
+        vis.fase = BAT_TEXTO;
+        vis.texto_completo = 1;
+        vis.bytes = 400;
+        vis.resultado = 3;
+        desenharTudo();
+        apresentar("captura_fuga.png");
+        casoIniciarBatalha(&caso_jogo);
+        prepararBatalha();
+        vis.entrada = 1.0f;
+        vis.fase = BAT_COMANDO;
+        vis.transicao = 0;
+    }
 
     if (!lutarAteVencer()) {
         fprintf(stderr, "A batalha de demonstração não terminou em vitória.\n");
@@ -2560,6 +2792,25 @@ int capturarTelasDemonstracao(void) {
     vis.fase = BAT_TEXTO;
     desenharTudo();
     apresentar("captura_boss.png");
+    if (!lutarAteVencer()) {
+        fprintf(stderr, "O chefe não caiu na demonstração.\n");
+        encerrarCaso(&caso_jogo);
+        fecharGrafico();
+        return 1;
+    }
+    abrirPaginas(historiaDesfecho);
+    vis.texto_completo = 1;
+    vis.bytes = 800;
+    vis.fase = BAT_FIM;
+    desenharTudo();
+    apresentar("captura_desfecho.png");
+    tela = TELA_CREDITOS;
+    desenharTudo();
+    apresentar("captura_creditos.png");
+    tela = TELA_GAMEOVER;
+    vis.menu_cursor = 0;
+    desenharTudo();
+    apresentar("captura_gameover.png");
 
     encerrarCaso(&caso_jogo);
     caso_ok = 0;
