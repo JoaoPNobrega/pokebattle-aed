@@ -13,6 +13,7 @@
 #include "lista_turno.h"
 #include "ordenacao.h"
 #include "pilha_log.h"
+#include "sala.h"
 #include "pokemon.h"
 #include "tipos.h"
 #include "util.h"
@@ -318,6 +319,47 @@ static void testarDano(void) {
     checar(verificarDesmaio(NULL), "NULL conta como desmaiado");
 }
 
+static void testarSalas(void) {
+    ListaSalas salas;
+    ListaTime time;
+    PilhaLog log;
+    NoSala gelo;
+    NoSala porta;
+    Pokemon fogo;
+    char topo[LOG_MAX];
+
+    memset(&gelo, 0, sizeof gelo);
+    memset(&porta, 0, sizeof porta);
+    copiarTexto(gelo.nome, sizeof gelo.nome, "Gelo");
+    gelo.habilidade = HAB_FOGO;
+    copiarTexto(gelo.texto_resolvido, sizeof gelo.texto_resolvido, "derreteu");
+    copiarTexto(porta.nome, sizeof porta.nome, "Porta");
+    porta.habilidade = HAB_NENHUMA;
+    porta.resolvido = 1;
+
+    criarListaSalas(&salas);
+    criarListaTime(&time);
+    criarPilhaLog(&log);
+    checar(adicionarSala(&salas, &gelo), "sala do gelo entra");
+    checar(adicionarSala(&salas, &porta), "porta entra bloqueada");
+    checar(!avancarSala(&salas, &log), "não avança com puzzle fechado");
+
+    fogo = especieSimples(4, "Charmander", 65);
+    fogo.tipo1 = TIPO_FOGO;
+    checar(adicionarPokemon(&time, &fogo), "charmander no time");
+    checar(resolverPuzzleDaSala(&salas, &time, &log), "chama resolve o gelo");
+    checar(salaAtual(&salas)->resolvido, "sala ficou resolvida");
+    checar(avancarSala(&salas, &log), "avança depois do puzzle");
+    checar(strcmp(salaAtual(&salas)->nome, "Porta") == 0, "cursor na porta");
+    checar(voltarSala(&salas, &log), "volta para o gelo");
+    checar(topoDoLog(&log, topo, sizeof topo), "histórico do caminho");
+    checar(tamanhoSalas(&salas) == 2, "duas salas");
+
+    liberarPilhaLog(&log);
+    liberarListaTime(&time);
+    liberarListaSalas(&salas);
+}
+
 int main(void) {
     inicializarTipos();
     testarLista();
@@ -327,6 +369,7 @@ int main(void) {
     testarArvore();
     testarOrdenacaoETurno();
     testarDano();
+    testarSalas();
 
     if (falhas == 0) {
         printf("Estruturas: todos os testes passaram.\n");

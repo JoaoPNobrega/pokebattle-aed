@@ -24,6 +24,9 @@ int main(int argc, char **argv) {
         }
         return resultado == 1 ? 0 : 1;
     }
+    if (argc > 1 && strcmp(argv[1], "--capturas") == 0) {
+        return capturarTelasDemonstracao();
+    }
 
     return executarInterfaceRaylib();
 }

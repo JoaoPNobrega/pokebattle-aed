@@ -18,4 +18,13 @@
  */
 int executarInterfaceRaylib(void);
 
+/*
+ * capturarTelasDemonstracao
+ * Abre a janela, desenha menu, sala, puzzle resolvido e batalha,
+ * e grava um PNG de cada uma no diretório atual. Serve para o xvfb.
+ *
+ * Retorno: 0 se gravou, 1 se a Pokédex não carregou.
+ */
+int capturarTelasDemonstracao(void);
+
 #endif

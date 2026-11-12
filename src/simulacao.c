@@ -34,39 +34,71 @@ int simularArenaAutomatica(void) {
     }
 
     printf("Simulação: O Caso do Laboratório\n");
-    if (!casoUsarHabilidade(&caso)) {
-        fprintf(stderr, "O puzzle do laboratório não foi resolvido.\n");
-        encerrarCaso(&caso);
-        return 0;
-    }
-    if (!casoAvancar(&caso)) {
-        fprintf(stderr, "Não foi possível entrar no corredor.\n");
-        encerrarCaso(&caso);
-        return 0;
-    }
-    if (!casoIniciarBatalha(&caso)) {
-        fprintf(stderr, "A luta não começou.\n");
-        encerrarCaso(&caso);
-        return 0;
-    }
-
     saida.narrar = narrarSimulacao;
     saida.contexto = NULL;
     saida.log = &caso.nucleo.log;
 
-    while (codigo == 1 && turnos < 40) {
-        const Pokemon *eu = obterAtivo(&caso.nucleo.time);
-        const Pokemon *oponente = obterAtivo(&caso.oponente_atual.time);
-        int golpe = escolherGolpeAdversario(eu, oponente);
+    while (!caso.caso_encerrado && turnos < 30) {
+        NoSala *sala = salaAtual(&caso.salas);
 
-        codigo = casoExecutarGolpe(&caso, golpe, &saida);
+        if (sala == NULL) {
+            codigo = -1;
+            break;
+        }
+        printf("Sala: %s\n", sala->nome);
+
+        if (!sala->resolvido) {
+            if (!casoUsarHabilidade(&caso)) {
+                fprintf(stderr, "Puzzle sem solução em %s.\n", sala->nome);
+                codigo = -1;
+                break;
+            }
+        }
+
+        if (sala->inicia_batalha && !sala->batalha_concluida) {
+            int luta = 1;
+            int golpes = 0;
+
+            if (!casoIniciarBatalha(&caso)) {
+                fprintf(stderr, "A luta não começou em %s.\n", sala->nome);
+                codigo = -1;
+                break;
+            }
+            while (luta == 1 && golpes < 60) {
+                const Pokemon *eu = obterAtivo(&caso.nucleo.time);
+                const Pokemon *oponente = obterAtivo(&caso.oponente_atual.time);
+                int golpe = escolherGolpeAdversario(eu, oponente);
+                luta = casoExecutarGolpe(&caso, golpe, &saida);
+                golpes++;
+            }
+            if (luta != 0) {
+                codigo = luta;
+                break;
+            }
+            if (caso.captura_disponivel && !casoCapturar(&caso)) {
+                fprintf(stderr, "Não foi possível capturar em %s.\n", sala->nome);
+                codigo = -1;
+                break;
+            }
+        }
+
+        if (caso.caso_encerrado) {
+            codigo = 0;
+            break;
+        }
+        if (!casoAvancar(&caso)) {
+            fprintf(stderr, "Travou em %s.\n", sala->nome);
+            codigo = -1;
+            break;
+        }
         turnos++;
     }
 
-    if (codigo == 0) {
+    if (codigo == 0 && caso.caso_encerrado) {
         printf("RESULTADO: VITORIA\n");
     } else {
         printf("RESULTADO: DERROTA\n");
+        codigo = -1;
     }
 
     encerrarCaso(&caso);

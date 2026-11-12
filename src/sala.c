@@ -87,6 +87,10 @@ int avancarSala(ListaSalas *lista, PilhaLog *log) {
     if (!lista->atual->resolvido || !lista->atual->prox->desbloqueada) {
         return 0;
     }
+    /* Sala de luta não deixa passar enquanto o confronto não acaba. */
+    if (lista->atual->inicia_batalha && !lista->atual->batalha_concluida) {
+        return 0;
+    }
 
     lista->atual = lista->atual->prox;
     snprintf(msg, sizeof msg, "Voce entrou em: %s", lista->atual->nome);

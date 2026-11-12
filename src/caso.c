@@ -25,57 +25,135 @@ static int colocarEspecie(ListaTime *time, HashPokedex *pokedex, const char *nom
     return adicionarPokemon(time, &preparado);
 }
 
-static int enfileirarCapanga(FilaTreinadores *fila, HashPokedex *pokedex) {
-    Treinador capanga;
+static int enfileirarLuta(FilaTreinadores *fila, HashPokedex *pokedex,
+                          const char *nome, const char *fala,
+                          const char *especie, int nivel) {
+    Treinador treinador;
 
-    criarTreinador(&capanga, "Capanga Rocket",
-                   "O chefe mandou fechar este laboratorio. Some daqui.");
-    if (!colocarEspecie(&capanga.time, pokedex, "Meowth", 16)) {
-        liberarListaTime(&capanga.time);
+    criarTreinador(&treinador, nome, fala);
+    if (!colocarEspecie(&treinador.time, pokedex, especie, nivel)) {
+        liberarListaTime(&treinador.time);
         return 0;
     }
-    if (!enfileirarTreinador(fila, &capanga)) {
-        liberarListaTime(&capanga.time);
+    if (!enfileirarTreinador(fila, &treinador)) {
+        liberarListaTime(&treinador.time);
         return 0;
     }
     return 1;
 }
 
-static int montarSalas(ListaSalas *salas) {
-    NoSala laboratorio;
-    NoSala corredor;
+static int enfileirarChefe(FilaTreinadores *fila, HashPokedex *pokedex) {
+    Treinador chefe;
 
-    memset(&laboratorio, 0, sizeof laboratorio);
-    memset(&corredor, 0, sizeof corredor);
-
-    copiarTexto(laboratorio.nome, sizeof laboratorio.nome, "Laboratorio");
-    copiarTexto(laboratorio.descricao, sizeof laboratorio.descricao,
-                "Tanques vazios, cabos soltos e um painel sem luz. Foi aqui que criaram o Mewtwo.");
-    copiarTexto(laboratorio.texto_puzzle, sizeof laboratorio.texto_puzzle,
-                "O painel esta morto. Um choque pode religar a sala.");
-    copiarTexto(laboratorio.texto_resolvido, sizeof laboratorio.texto_resolvido,
-                "As luzes acendem. A porta do corredor destrava.");
-    laboratorio.habilidade = HAB_ELETRICA;
-    laboratorio.resolvido = 0;
-    laboratorio.desbloqueada = 1;
-    laboratorio.inicia_batalha = 0;
-
-    copiarTexto(corredor.nome, sizeof corredor.nome, "Corredor");
-    copiarTexto(corredor.descricao, sizeof corredor.descricao,
-                "Um capanga da Equipe Rocket bloqueia a passagem para o resto do predio.");
-    copiarTexto(corredor.texto_puzzle, sizeof corredor.texto_puzzle,
-                "Nao ha puzzle aqui. Ha uma luta.");
-    copiarTexto(corredor.texto_resolvido, sizeof corredor.texto_resolvido,
-                "O corredor fica livre.");
-    corredor.habilidade = HAB_NENHUMA;
-    corredor.resolvido = 1;
-    corredor.desbloqueada = 0;
-    corredor.inicia_batalha = 1;
-
-    if (!adicionarSala(salas, &laboratorio)) {
+    criarTreinador(&chefe, "Giovanni",
+                   "Equipe Rocket. Este laboratorio e meu. Saia enquanto pode.");
+    if (!colocarEspecie(&chefe.time, pokedex, "Meowth", 22)) {
+        liberarListaTime(&chefe.time);
         return 0;
     }
-    if (!adicionarSala(salas, &corredor)) {
+    if (!colocarEspecie(&chefe.time, pokedex, "Geodude", 20)) {
+        liberarListaTime(&chefe.time);
+        return 0;
+    }
+    if (!enfileirarTreinador(fila, &chefe)) {
+        liberarListaTime(&chefe.time);
+        return 0;
+    }
+    return 1;
+}
+
+static int preencherSala(NoSala *sala, const char *nome, const char *descricao,
+                         const char *puzzle, const char *resolvido,
+                         Habilidade habilidade, int batalha, int captura, int chefe) {
+    memset(sala, 0, sizeof *sala);
+    copiarTexto(sala->nome, sizeof sala->nome, nome);
+    copiarTexto(sala->descricao, sizeof sala->descricao, descricao);
+    copiarTexto(sala->texto_puzzle, sizeof sala->texto_puzzle, puzzle);
+    copiarTexto(sala->texto_resolvido, sizeof sala->texto_resolvido, resolvido);
+    sala->habilidade = habilidade;
+    sala->resolvido = (habilidade == HAB_NENHUMA);
+    sala->inicia_batalha = batalha;
+    sala->capturavel = captura;
+    sala->e_chefe = chefe;
+    return 1;
+}
+
+static int montarSalas(ListaSalas *salas) {
+    NoSala sala;
+
+    preencherSala(&sala, "Laboratorio",
+                  "Tanques vazios e um painel sem luz. Foi aqui que criaram o Mewtwo.",
+                  "O painel esta morto. Um choque pode religar a sala.",
+                  "As luzes acendem. A porta do patio destrava.",
+                  HAB_ELETRICA, 0, 0, 0);
+    if (!adicionarSala(salas, &sala)) return 0;
+
+    preencherSala(&sala, "Patio",
+                  "Um Charmander selvagem circula entre as caixas quebradas.",
+                  "Nao ha puzzle. Ha um Pokemon selvagem.",
+                  "O patio fica quieto.",
+                  HAB_NENHUMA, 1, 1, 0);
+    if (!adicionarSala(salas, &sala)) return 0;
+
+    preencherSala(&sala, "Camara fria",
+                  "A porta seguinte esta selada por uma placa de gelo.",
+                  "O gelo nao cede. Uma chama abriria caminho.",
+                  "O gelo derrete. A porta do tanque abre.",
+                  HAB_FOGO, 0, 0, 0);
+    if (!adicionarSala(salas, &sala)) return 0;
+
+    preencherSala(&sala, "Tanque",
+                  "Um Squirtle nada no tanque de contencao, assustado.",
+                  "Nao ha puzzle. Ha um Pokemon selvagem.",
+                  "O tanque esvazia o suficiente para passar.",
+                  HAB_NENHUMA, 1, 1, 0);
+    if (!adicionarSala(salas, &sala)) return 0;
+
+    preencherSala(&sala, "Oficina",
+                  "Um incendio pequeno bloqueia a estante de arquivos.",
+                  "Agua apagaria isso. Fogo so piora.",
+                  "O fogo apaga. Da para chegar na jaula.",
+                  HAB_AGUA, 0, 0, 0);
+    if (!adicionarSala(salas, &sala)) return 0;
+
+    preencherSala(&sala, "Jaula",
+                  "Um Alakazam de teste, ainda fraco, observa atras das grades.",
+                  "Nao ha puzzle. Ha um Pokemon selvagem.",
+                  "A jaula abre.",
+                  HAB_NENHUMA, 1, 1, 0);
+    if (!adicionarSala(salas, &sala)) return 0;
+
+    preencherSala(&sala, "Arquivo",
+                  "Uma estante pesada cobre a porta da sala do chefe.",
+                  "Ninguem empurra isso com as maos. Uma mente, talvez.",
+                  "A estante desliza. A sala do chefe aparece.",
+                  HAB_PSIQUICA, 0, 0, 0);
+    if (!adicionarSala(salas, &sala)) return 0;
+
+    preencherSala(&sala, "Sala do chefe",
+                  "Giovanni espera. A Equipe Rocket nao vai embora sem luta.",
+                  "Nao ha puzzle. Ha o chefao.",
+                  "Giovanni recua.",
+                  HAB_NENHUMA, 1, 0, 1);
+    if (!adicionarSala(salas, &sala)) return 0;
+
+    return 1;
+}
+
+static int montarFila(FilaTreinadores *fila, HashPokedex *pokedex) {
+    if (!enfileirarLuta(fila, pokedex, "Charmander selvagem",
+                        "O Charmander rosna, mas nao foge.", "Charmander", 14)) {
+        return 0;
+    }
+    if (!enfileirarLuta(fila, pokedex, "Squirtle selvagem",
+                        "O Squirtle se esconde no casco.", "Squirtle", 14)) {
+        return 0;
+    }
+    if (!enfileirarLuta(fila, pokedex, "Alakazam de teste",
+                        "O experimento ainda nao esta estavel.", "Alakazam", 8)) {
+        return 0;
+    }
+    if (!enfileirarChefe(fila, pokedex)) {
         return 0;
     }
     return 1;
@@ -124,15 +202,16 @@ int comecarCaso(Caso *caso) {
     criarFilaTreinadores(&caso->nucleo.fila);
     criarPilhaLog(&caso->nucleo.log);
     criarListaSalas(&caso->salas);
-    caso->batalha_vencida = 0;
+    caso->caso_encerrado = 0;
+    caso->captura_disponivel = 0;
 
-    if (!colocarEspecie(&caso->nucleo.time, &caso->nucleo.pokedex, "Pikachu", 28)) {
+    if (!colocarEspecie(&caso->nucleo.time, &caso->nucleo.pokedex, "Pikachu", 32)) {
         return 0;
     }
     if (!montarSalas(&caso->salas)) {
         return 0;
     }
-    if (!enfileirarCapanga(&caso->nucleo.fila, &caso->nucleo.pokedex)) {
+    if (!montarFila(&caso->nucleo.fila, &caso->nucleo.pokedex)) {
         return 0;
     }
 
@@ -164,12 +243,12 @@ int casoVoltar(Caso *caso) {
 int casoIniciarBatalha(Caso *caso) {
     NoSala *sala;
 
-    if (caso == NULL || caso->batalha_vencida) {
+    if (caso == NULL || caso->caso_encerrado) {
         return 0;
     }
 
     sala = salaAtual(&caso->salas);
-    if (sala == NULL || !sala->inicia_batalha) {
+    if (sala == NULL || !sala->inicia_batalha || sala->batalha_concluida) {
         return 0;
     }
 
@@ -226,16 +305,67 @@ int casoExecutarGolpe(Caso *caso, int indice_golpe, SaidaBatalha *saida) {
     liberarListaTurno(&ordem);
 
     if (timeFoiDerrotado(&caso->oponente_atual.time)) {
+        NoSala *sala = salaAtual(&caso->salas);
+        char msg[LOG_MAX];
+
         caso->em_batalha = 0;
-        caso->batalha_vencida = 1;
+        if (sala != NULL) {
+            sala->batalha_concluida = 1;
+            if (sala->prox != NULL) {
+                sala->prox->desbloqueada = 1;
+            }
+            if (sala->capturavel) {
+                caso->captura_pendente = *oponente;
+                caso->captura_pendente.hp_atual = caso->captura_pendente.hp_max;
+                caso->captura_disponivel = 1;
+            }
+            if (sala->e_chefe) {
+                caso->caso_encerrado = 1;
+            }
+            snprintf(msg, sizeof msg, "Voce venceu %s.", caso->oponente_atual.nome);
+            registrarMensagem(saida, msg);
+        }
         soltarOponente(caso);
-        registrarMensagem(saida, "O capanga fugiu. O corredor e seu.");
         return 0;
     }
-    if (verificarDesmaio(eu)) {
-        caso->em_batalha = 0;
-        registrarMensagem(saida, "Seu Pokemon desmaiou.");
-        return -1;
+
+    oponente = obterAtivo(&caso->oponente_atual.time);
+    if (verificarDesmaio(oponente)) {
+        if (avancarParaProximoVivo(&caso->oponente_atual.time)) {
+            char msg[LOG_MAX];
+            snprintf(msg, sizeof msg, "%s enviou %s!",
+                     caso->oponente_atual.nome, obterAtivo(&caso->oponente_atual.time)->nome);
+            registrarMensagem(saida, msg);
+        }
     }
+
+    eu = obterAtivo(&caso->nucleo.time);
+    if (verificarDesmaio(eu)) {
+        if (avancarParaProximoVivo(&caso->nucleo.time)) {
+            char msg[LOG_MAX];
+            snprintf(msg, sizeof msg, "Voce enviou %s!", obterAtivo(&caso->nucleo.time)->nome);
+            registrarMensagem(saida, msg);
+        } else {
+            caso->em_batalha = 0;
+            registrarMensagem(saida, "Seu time desmaiou.");
+            return -1;
+        }
+    }
+    return 1;
+}
+
+int casoCapturar(Caso *caso) {
+    char msg[LOG_MAX];
+
+    if (caso == NULL || !caso->captura_disponivel) {
+        return 0;
+    }
+    if (!adicionarPokemon(&caso->nucleo.time, &caso->captura_pendente)) {
+        return 0;
+    }
+
+    snprintf(msg, sizeof msg, "%s entrou no time.", caso->captura_pendente.nome);
+    empilharLog(&caso->nucleo.log, msg);
+    caso->captura_disponivel = 0;
     return 1;
 }

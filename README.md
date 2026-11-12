@@ -4,7 +4,7 @@ Jogo em C para a disciplina **Algoritmos e Estruturas de Dados** (CESAR School, 
 
 O jogador é um detetive. O Pikachu é o parceiro, não o protagonista. A história se passa no laboratório onde o Mewtwo foi criado e bebe de *Mewtwo Contra-Ataca* e de *Detetive Pikachu*, sem seguir nenhum dos dois à risca. Há salas com puzzle, batalha por turnos e, no plano do jogo, um chefão no estilo Giovanni. Não é um quiz.
 
-A base jogável de hoje: menu em janela, laboratório com um puzzle (o Choque do Pikachu religa o painel), corredor e uma luta contra um capanga da Equipe Rocket. O restante está na lista de TODO, dividida entre João e Leo.
+O caso jogável atravessa oito salas: o painel elétrico, um Charmander selvagem, a câmara fria, um Squirtle, a oficina em chamas, um Alakazam de teste, a estante do arquivo e a luta contra o Giovanni. Capturar o selvagem é o que abre a sala seguinte. O que ainda falta para a entrega está na lista de TODO.
 
 Quem for alterar o código com IA deve ler o `AGENTS.md` antes. Ele também está apontado em `CLAUDE.md`, `.cursor/rules/projeto.mdc` e `.github/copilot-instructions.md`.
 
@@ -97,25 +97,21 @@ Na batalha, a barra verde é o HP. Quem age primeiro é decidido pela prioridade
 
 ## O que falta
 
-A base compila, abre janela e tem um caso curto. O jogo completo ainda não está aqui.
+O caso até o Giovanni já roda na janela e no `--simular`. Ainda não é a entrega final.
 
 ### João
 
-- Mais salas na lista dupla: gelo (fogo derrete), incêndio (água apaga), objeto (psíquico move). Cada uma desbloqueia a próxima.
-- Captura depois da luta: o Pokémon selvagem entra na lista do time e passa a valer para o puzzle.
-- Fila de confrontos até o chefão (vilão no estilo Giovanni). Vencer essa luta zera o caso, com tela de vitória final.
-- Poucos diálogos, só em momento pontual. Se entrar árvore, que seja uma árvore de falas curta, não um romance.
-- `make teste` cobrindo o caso inteiro até o boss, ainda sem janela.
-- Reescrever `docs/ARQUITETURA.md` (o miolo ainda é da arena antiga; o aviso no topo aponta para o `AGENTS.md`).
-- `docs/DECLARACAO_USO_IA.md` preenchido com os prompts usados, como o plano de ensino pede.
-- Zip sem executável e o vídeo da entrega (18/11/2026, 07:59).
+- Um ou dois diálogos curtos, só em momento pontual (a fala do Giovanni hoje é uma linha na luta). Se virar árvore de falas, que seja pequena.
+- Preencher `docs/DECLARACAO_USO_IA.md` com os prompts reais de cada um. O arquivo já tem o modelo.
+- Zip do código, sem executável, e o vídeo da entrega (18/11/2026, 07:59).
+- Balancear níveis se uma luta ficar longa ou curta demais na mão de vocês.
 
 ### Leo
 
 - Visual das salas e da batalha em `src/ui_raylib.c`, sem mover regra para dentro do desenho.
-- Transição entre salas, feedback claro quando o puzzle recusa a habilidade, barra de HP mais legível.
+- Transição entre salas, feedback quando o puzzle recusa a habilidade, barra de HP mais legível.
 - Sprites só com licença livre, e a origem escrita neste README.
-- Caixa de diálogo desenhada em cima do texto que a lógica devolver. A fala não nasce no arquivo da janela.
+- Caixa de diálogo desenhada em cima do texto que a lógica devolver.
 - Conferir a build no Windows (MSYS2) e no macOS se tiver a máquina.
 
 ## Legado

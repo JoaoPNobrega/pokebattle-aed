@@ -22,7 +22,9 @@ typedef struct {
     Treinador oponente_atual;
     int oponente_carregado; /* 1 = oponente_atual é dono de um time */
     int em_batalha;
-    int batalha_vencida;
+    int captura_disponivel; /* 1 = há um Pokémon selvagem esperando captura */
+    Pokemon captura_pendente;
+    int caso_encerrado; /* 1 = o chefão foi derrotado */
 } Caso;
 
 /*
@@ -42,8 +44,8 @@ void encerrarCaso(Caso *caso);
 
 /*
  * comecarCaso
- * Recomeça a investigação: time só com o Pikachu, laboratório e
- * corredor na lista de salas, um capanga na fila de lutas.
+ * Recomeça a investigação: time só com o Pikachu, a sequência de
+ * salas do laboratório e a fila de lutas até o chefão.
  * Retorno: 1 se montou, 0 se faltou dado ou memória.
  * Complexidade: O(1) além das liberações do estado anterior.
  */
@@ -62,7 +64,7 @@ int casoVoltar(Caso *caso);
 /*
  * casoIniciarBatalha
  * Se a sala atual pede luta e ela ainda não foi vencida, tira o
- * próximo treinador da fila (só na primeira vez) e entra em batalha.
+ * próximo treinador da fila (só na primeira tentativa) e entra em batalha.
  * Retorno: 1 se a luta começou, 0 se não havia luta.
  * Complexidade: O(1).
  */
@@ -82,5 +84,15 @@ int casoIniciarBatalha(Caso *caso);
  * Complexidade: O(g + n^2) com g <= 4 golpes e n <= 2 atores no turno.
  */
 int casoExecutarGolpe(Caso *caso, int indice_golpe, SaidaBatalha *saida);
+
+/*
+ * casoCapturar
+ * Copia o selvagem pendente para o fim do time, com HP cheio.
+ * Só existe pendência depois de vencer uma sala marcada como capturável.
+ *
+ * Retorno: 1 se entrou no time, 0 se não havia ninguém ou o time está cheio.
+ * Complexidade: O(1) (o time tem no máximo 6).
+ */
+int casoCapturar(Caso *caso);
 
 #endif

@@ -38,7 +38,10 @@ typedef struct NoSala {
     Habilidade habilidade; /* HAB_NENHUMA = sala sem puzzle */
     int resolvido;
     int desbloqueada;
-    int inicia_batalha; /* 1 = tem um confronto ao entrar em ação */
+    int inicia_batalha;    /* 1 = esta sala tem uma luta */
+    int capturavel;        /* 1 = o oponente pode entrar no time depois da vitória */
+    int e_chefe;           /* 1 = vencer esta luta encerra o caso */
+    int batalha_concluida; /* 1 = a luta desta sala já foi ganha */
     struct NoSala *prox;
     struct NoSala *ant;
 } NoSala;

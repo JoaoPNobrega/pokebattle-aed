@@ -249,8 +249,15 @@ static void desenharSala(Caso *caso) {
     }
 
     if (parceiro != NULL) {
-        desenhar(parceiro->nome, 60, 350, 22, COR_DESTAQUE);
-        barraHp(60, 384, 280, parceiro->hp_atual, parceiro->hp_max);
+        int i;
+        int n = tamanhoTime(&caso->nucleo.time);
+        desenhar("Time", 60, 340, 18, COR_DESTAQUE);
+        for (i = 0; i < n && i < 6; i++) {
+            const Pokemon *membro = pokemonNaPosicao(&caso->nucleo.time, i);
+            if (membro != NULL) {
+                desenhar(membro->nome, 60, 366 + (float)i * 18, 16, COR_TEXTO);
+            }
+        }
     }
 
     if (topoDoLog(&caso->nucleo.log, topo, sizeof topo)) {
@@ -366,36 +373,42 @@ int executarInterfaceRaylib(void) {
             desenharSala(&caso);
             sala = salaAtual(&caso.salas);
             if (sala != NULL && !sala->resolvido) {
-                if (botao("Usar Choque do Pikachu", (Rectangle){60, 450, 360, 52}, COR_BOTAO) ||
+                char rotulo[64];
+                snprintf(rotulo, sizeof rotulo, "Usar %s", nomeHabilidade(sala->habilidade));
+                if (botao(rotulo, (Rectangle){60, 470, 250, 46}, COR_BOTAO) ||
                     IsKeyPressed(KEY_E)) {
                     casoUsarHabilidade(&caso);
                 }
             }
-            if (sala != NULL && sala->prox != NULL && sala->resolvido && sala->prox->desbloqueada) {
-                if (botao("Avançar", (Rectangle){440, 450, 160, 52}, COR_BOTAO) ||
+            if (caso.captura_disponivel) {
+                char rotulo[80];
+                snprintf(rotulo, sizeof rotulo, "Capturar %s", caso.captura_pendente.nome);
+                if (botao(rotulo, (Rectangle){330, 470, 280, 46}, COR_DESTAQUE) ||
+                    IsKeyPressed(KEY_C)) {
+                    casoCapturar(&caso);
+                }
+            }
+            if (sala != NULL && sala->prox != NULL && sala->resolvido && sala->prox->desbloqueada &&
+                (!sala->inicia_batalha || sala->batalha_concluida)) {
+                if (botao("Avançar", (Rectangle){630, 470, 150, 46}, COR_BOTAO) ||
                     IsKeyPressed(KEY_D)) {
                     casoAvancar(&caso);
                 }
             }
             if (sala != NULL && sala->ant != NULL) {
-                if (botao("Voltar", (Rectangle){620, 450, 160, 52}, COR_BOTAO) ||
+                if (botao("Voltar", (Rectangle){800, 470, 150, 46}, COR_BOTAO) ||
                     IsKeyPressed(KEY_A)) {
                     casoVoltar(&caso);
                 }
             }
-            if (sala != NULL && sala->inicia_batalha && !caso.batalha_vencida) {
-                if (botao("Enfrentar", (Rectangle){800, 450, 180, 52}, COR_PERIGO) ||
+            if (sala != NULL && sala->inicia_batalha && !sala->batalha_concluida) {
+                const char *rotulo = sala->e_chefe ? "Enfrentar Giovanni" : "Enfrentar";
+                if (botao(rotulo, (Rectangle){630, 516, 320, 40}, COR_PERIGO) ||
                     IsKeyPressed(KEY_B)) {
                     if (casoIniciarBatalha(&caso)) {
                         memset(&painel, 0, sizeof painel);
                         tela = TELA_BATALHA;
                     }
-                }
-            }
-            if (caso.batalha_vencida && sala != NULL && sala->inicia_batalha) {
-                if (botao("Concluir o caso", (Rectangle){800, 450, 180, 52}, COR_DESTAQUE)) {
-                    resultado = 1;
-                    tela = TELA_FIM;
                 }
             }
             if (botao("Menu", (Rectangle){60, 516, 120, 40}, COR_PAINEL)) {
@@ -428,8 +441,12 @@ int executarInterfaceRaylib(void) {
                 saida.log = &caso.nucleo.log;
                 codigo = casoExecutarGolpe(&caso, golpe, &saida);
                 if (codigo == 0) {
-                    resultado = 1;
-                    tela = TELA_FIM;
+                    if (caso.caso_encerrado) {
+                        resultado = 1;
+                        tela = TELA_FIM;
+                    } else {
+                        tela = TELA_SALA;
+                    }
                 } else if (codigo < 0 && codigo != -2) {
                     resultado = -1;
                     tela = TELA_FIM;
@@ -438,7 +455,7 @@ int executarInterfaceRaylib(void) {
         } else if (tela == TELA_FIM) {
             if (resultado > 0) {
                 desenhar("Caso encerrado", 80, 80, 48, COR_DESTAQUE);
-                desenharQuebra("O capanga saiu do caminho. O laboratório ainda guarda segredos, mas esta passagem é sua.",
+                desenharQuebra("Giovanni recuou. O laboratório fica para trás e o caso se encerra.",
                                80, 170, 24, 860, COR_TEXTO);
             } else {
                 desenhar("Derrota", 80, 80, 48, COR_PERIGO);
@@ -456,6 +473,76 @@ int executarInterfaceRaylib(void) {
         }
 
         EndDrawing();
+    }
+
+    if (fonte_ok) {
+        UnloadFont(fonte);
+        fonte_ok = 0;
+    }
+    CloseWindow();
+    encerrarCaso(&caso);
+    return 0;
+}
+
+int capturarTelasDemonstracao(void) {
+    Caso caso;
+    PainelCombate painel;
+
+    if (!iniciarCaso(&caso) || !comecarCaso(&caso)) {
+        fprintf(stderr, "Não foi possível montar o caso para as capturas.\n");
+        return 1;
+    }
+
+    memset(&painel, 0, sizeof painel);
+    InitWindow(LARGURA, ALTURA, "PokéBattle: O Caso do Laboratório");
+    SetExitKey(KEY_NULL);
+    SetTargetFPS(30);
+    carregarFonte();
+
+    BeginDrawing();
+    ClearBackground(COR_FUNDO);
+    desenharMenu();
+    botao("Novo jogo", (Rectangle){84, 250, 320, 52}, COR_BOTAO);
+    botao("Como jogar", (Rectangle){84, 316, 320, 52}, COR_BOTAO);
+    botao("Pokédex", (Rectangle){84, 382, 320, 52}, COR_BOTAO);
+    botao("Sair", (Rectangle){84, 448, 320, 52}, COR_PERIGO);
+    EndDrawing();
+    TakeScreenshot("captura_menu.png");
+
+    BeginDrawing();
+    ClearBackground(COR_FUNDO);
+    desenharSala(&caso);
+    botao("Usar Choque", (Rectangle){60, 470, 250, 46}, COR_BOTAO);
+    botao("Menu", (Rectangle){60, 516, 120, 40}, COR_PAINEL);
+    EndDrawing();
+    TakeScreenshot("captura_sala.png");
+
+    casoUsarHabilidade(&caso);
+    BeginDrawing();
+    ClearBackground(COR_FUNDO);
+    desenharSala(&caso);
+    botao("Avançar", (Rectangle){630, 470, 150, 46}, COR_BOTAO);
+    botao("Menu", (Rectangle){60, 516, 120, 40}, COR_PAINEL);
+    EndDrawing();
+    TakeScreenshot("captura_puzzle.png");
+
+    casoAvancar(&caso);
+    if (casoIniciarBatalha(&caso)) {
+        const Pokemon *eu = obterAtivo(&caso.nucleo.time);
+        int i;
+
+        BeginDrawing();
+        ClearBackground(COR_FUNDO);
+        desenharBatalha(&caso, &painel);
+        if (eu != NULL) {
+            for (i = 0; i < eu->qtd_golpes; i++) {
+                char rotulo[80];
+                snprintf(rotulo, sizeof rotulo, "%d  %s", i + 1, eu->golpes[i].nome);
+                botao(rotulo, (Rectangle){60, 390 + (float)i * 44, 420, 40}, COR_BOTAO);
+            }
+        }
+        EndDrawing();
+        TakeScreenshot("captura_batalha.png");
     }
 
     if (fonte_ok) {

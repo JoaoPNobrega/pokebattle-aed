@@ -90,13 +90,15 @@ macOS: `brew install raylib` e `make`. Windows (MSYS2): `pacman -S mingw-w64-x86
 
 ## O que já está jogável
 
-- Janela com menu, ajuda, Pokédex, sala do laboratório (puzzle do Choque do Pikachu), corredor e uma batalha contra o capanga (Meowth), com barra de HP e golpes.
-- Vitória ou derrota. Derrota permite tentar de novo.
-- `--simular` resolve o puzzle, avança e vence o capanga.
+Oito salas, nesta ordem: Laboratório (choque), Pátio (Charmander capturável), Câmara fria (chama), Tanque (Squirtle capturável), Oficina (jato), Jaula (Alakazam de teste capturável), Arquivo (mente) e Sala do chefe (Giovanni, Meowth e Geodude). Vencer o Giovanni encerra o caso.
 
-## O que ainda não fazer passar batido (TODO)
+- Menu, ajuda, Pokédex, exploração, captura e batalha com barra de HP estão em `src/ui_raylib.c`.
+- `--simular` joga esse percurso sozinho e só imprime `RESULTADO: VITORIA` se o chefe cair.
+- `docs/ARQUITETURA.md` descreve este fluxo. `docs/DECLARACAO_USO_IA.md` é o modelo para os alunos preencherem.
 
-Está dividido no README entre João e Leo. Resumo: mais salas e puzzles, captura, boss Giovanni, diálogos pontuais, `docs/ARQUITETURA.md` reescrito, `docs/DECLARACAO_USO_IA.md`, testes da partida inteira até o boss, vídeo da entrega. Visual (sprite, transição, barra animada) fica na camada raylib, sem mudar a regra.
+## O que ainda falta
+
+Diálogos pontuais além da fala de uma linha, polimento visual (tarefa do Leo, só em `ui_raylib.c`), declaração de IA preenchida, zip sem executável e o vídeo da entrega. A divisão está no README. Não reimplemente salas, captura nem o chefão: eles já estão na lógica.
 
 ## O que NÃO fazer
 
