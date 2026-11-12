@@ -1,17 +1,15 @@
 /*
  * ui_raylib.c
  * -----------
- * Só desenho. A regra continua em caso.c, sala.c e batalha.c.
+ * Só desenho e leitura de teclado. A regra continua em caso.c,
+ * sala.c e batalha.c. Esta tela não abre rede: os sprites vêm de
+ * assets/pokemon/ (PokéAPI, gravados por tools/baixar_assets.py)
+ * e o chão vem do tileset CC0 do Kenney.
  *
- * A cena nasce numa textura de 384×216 e sobe para a janela em escala
- * inteira, com filtro de ponto, para o pixel não borrar. A fonte é a
- * Press Start 2P (OFL), em assets/fontes/. Os Pokémon são grades de
- * pixel feitas aqui, não sprites oficiais.
- *
- * O que a leitura visual pediu e esta tela faz: barra de HP que desce
- * e troca de cor, caixa de texto letra por letra, golpes em 2×2,
- * plataformas, entrada deslizando, laboratório escuro que acende,
- * caderno de pistas, e a luta do Giovanni em vermelho com tremor.
+ * A cena nasce em 240×160, o tamanho do GBA, e sobe para a janela
+ * em escala inteira com filtro de ponto. Os sprites de batalha da
+ * FireRed já nascem em 64×64, o tamanho nativo daquela tela, então
+ * entram em 1:1 no buffer. A ampliação nítida é a da janela.
  */
 
 #include "ui_raylib.h"
@@ -33,1220 +31,476 @@
 #pragma GCC diagnostic pop
 #endif
 
-#define VIRT_L 384
-#define VIRT_A 216
-#define ESCALA 3
+#define VIRT_L 240
+#define VIRT_A 160
+#define ESCALA 4
 #define JANELA_L (VIRT_L * ESCALA)
 #define JANELA_A (VIRT_A * ESCALA)
+#define TILE 16
+#define MAPA_L 20
+#define MAPA_A 14
 #define FONTE_PX 8
-#define MAX_PART 40
-#define MAX_FILA_TEXTO 8
+#define ESPACO_FONTE 0.0f
+#define MAX_FILA 12
+#define MAX_POKEMON 152
 
 typedef enum {
     TELA_MENU = 0,
     TELA_AJUDA,
     TELA_POKEDEX,
     TELA_SALA,
-    TELA_BATALHA,
-    TELA_FIM
+    TELA_BATALHA
 } Tela;
 
+typedef enum {
+    BAT_ENTRADA = 0,
+    BAT_TEXTO,
+    BAT_COMANDO,
+    BAT_GOLPES,
+    BAT_TIME,
+    BAT_CAPTURA,
+    BAT_FIM
+} FaseBatalha;
+
+typedef const char *Mapa[MAPA_A];
+
 typedef struct {
-    float x;
-    float y;
-    float vx;
-    float vy;
-    float vida;
-    Color cor;
-} Particula;
+    Texture2D frente;
+    Texture2D costas;
+    Texture2D icone;
+    int tem_frente;
+    int tem_costas;
+    int tem_icone;
+} SpriteMon;
 
 typedef struct {
     float tempo;
-    float fade;
-    float tremor;
+    float acum;
+    int bytes;
+    int texto_completo;
+    int fala_aberta;
+    char fala[TEXTO_SALA_MAX];
+    char fila[MAX_FILA][LOG_MAX];
+    int fila_n;
+    int fila_i;
+    int resultado;
+    int captura_feita;
+    int fase;
+    int cursor;
+    int cursor_time;
     float entrada;
     float hp_eu;
     float hp_opp;
-    int hp_pronto;
-    float acum_letra;
-    int bytes_texto;
-    char texto[TEXTO_SALA_MAX];
-    char fila[MAX_FILA_TEXTO][LOG_MAX];
-    int fila_n;
+    int queda_eu;
+    int queda_opp;
+    float flash_eu;
+    float flash_opp;
+    float tremor_eu;
+    float tremor_opp;
+    float trans_t;
+    int transicao;
+    float captura_t;
     int caderno;
-    int ultimo_resolvido;
-    int texto_completo;
-    Particula partes[MAX_PART];
+    int leu_puzzle;
+    int pp[6][4];
+    int pp_init[6];
+    int vitoria;
+    int ultimo_eu;
+    int ultimo_opp;
+    int menu_cursor;
+    int pokedex_topo;
     int som_ok;
     Sound som_clique;
     Sound som_acerto;
 } Visual;
 
+typedef struct {
+    int tx, ty;
+    int de_x, de_y;
+    int para_x, para_y;
+    float anda;
+    int movendo;
+    int dir;
+    int pika_x, pika_y;
+    int pika_de_x, pika_de_y;
+    float pika_anda;
+    int pika_dir;
+    int estava_encontro;
+    char sala[NOME_SALA_MAX];
+} Mundo;
+
+typedef struct {
+    const Pokemon *itens[32];
+    int n;
+} ColetaPk;
+
 static Font fonte;
+static Font fonte_titulo;
 static int fonte_ok = 0;
+static int fonte_titulo_ok = 0;
 static RenderTexture2D alvo;
 static int grafico_ok = 0;
+static Texture2D tileset;
+static int tiles_ok = 0;
+static Texture2D detetive_tex;
+static Texture2D giovanni_ow;
+static Texture2D giovanni_batalha;
+static Texture2D pokebola_tex;
+static int detetive_ok = 0;
+static int giovanni_ow_ok = 0;
+static int giovanni_bat_ok = 0;
+static int pokebola_ok = 0;
+static SpriteMon sprites[MAX_POKEMON];
+static char raiz_assets[256];
+static Caso caso_jogo;
+static int caso_ok = 0;
 static Visual vis;
+static Mundo mundo;
+static Tela tela = TELA_MENU;
 
-static const Color CREME = {244, 244, 236, 255};
-static const Color TINTA = {28, 32, 48, 255};
-static const Color NOITE = {8, 10, 20, 255};
-static const Color AZUL = {36, 72, 168, 255};
-static const Color CIANO = {72, 220, 230, 255};
-static const Color ROXO = {150, 90, 220, 255};
-static const Color DOURADO = {255, 204, 72, 255};
-static const Color VERDE = {72, 200, 88, 255};
-static const Color AMARELO = {248, 208, 64, 255};
-static const Color VERMELHO = {220, 64, 56, 255};
-
-static const char *PIKACHU[16] = {
-    ".....kk....kk...",
-    ".....ky....yk...",
-    ".....yy....yy...",
-    "....yyyyyyyy....",
-    "...yykkkyyykk...",
-    "...yyyyyyyyyyy..",
-    "...yyyrryyrryy..",
-    "....yyyyyyyyyy..",
-    "....yyybyybbyy..",
-    ".....yyyyyyyy...",
-    "......yyyyyy....",
-    ".....yy.yy.yy...",
-    "....yy..yy..yy..",
-    "................",
-    "................",
-    "................"
+static const int NUMEROS_SPRITE[] = {
+    1, 3, 4, 6, 7, 9, 18, 25, 52, 54,
+    65, 68, 74, 94, 95, 130, 143, 149, 150, 151
 };
 
-static const char *CHARMANDER[16] = {
-    "................",
-    ".......oo.......",
-    "......oooo......",
-    ".....ooccooo....",
-    ".....ooooooo....",
-    "....oooooooo....",
-    "....ooocccco....",
-    ".....oooooo.....",
-    "......oooo......",
-    ".......oooo.....",
-    "......oo.fff....",
-    ".....oo..faf....",
-    "....oo...ff.....",
-    "................",
-    "................",
-    "................"
+static Mapa MAPA_LAB = {
+    "####################",
+    "#RSCC........BBBB.C#",
+    "#M................M#",
+    "#M.P..............M#",
+    "#..................#",
+    "#..MM........MM....#",
+    "#..MM..,,,,..MM....#",
+    "#......,,,,........#",
+    "#..................#",
+    "#M................M#",
+    "#V................V#",
+    "#..................#",
+    "#........D.........#",
+    "####################"
 };
 
-static const char *SQUIRTLE[16] = {
-    "................",
-    "......BBBB......",
-    ".....BBBBBB.....",
-    "....BBCCCBBB....",
-    "....BBCCCCBB....",
-    "...BBBCCCCBBB...",
-    "...BBBCCBBBBB...",
-    "....BBBCCBBB....",
-    ".....BBBBBB.....",
-    "......BBBB......",
-    ".....BB..BB.....",
-    "....BB....BB....",
-    "................",
-    "................",
-    "................",
-    "................"
+static Mapa MAPA_PATIO = {
+    "####################",
+    "#BB..............BB#",
+    "#B................B#",
+    "#..................#",
+    "#..................#",
+    "#.........E........#",
+    "#..................#",
+    "#..MM........MM....#",
+    "#..MM........MM....#",
+    "#..................#",
+    "#V................V#",
+    "#..................#",
+    "#........D.........#",
+    "####################"
 };
 
-static const char *ALAKAZAM[16] = {
-    ".....yy..yy.....",
-    "....yyyyyyyy....",
-    "...yyykkkyyy....",
-    "...yyyyyyyyyy...",
-    "..yyymmmmmmyy...",
-    "...yyyyyyyyyy...",
-    "....yyy..yyy....",
-    ".....yy..yy.....",
-    "....sss..sss....",
-    "................",
-    "................",
-    "................",
-    "................",
-    "................",
-    "................",
-    "................"
+static Mapa MAPA_FRIA = {
+    "####################",
+    "#M................M#",
+    "#,,,,,,,,,,,,,,,,,,#",
+    "#,................,#",
+    "#,................,#",
+    "#,................,#",
+    "#,................,#",
+    "#,................,#",
+    "#,,,,,,,,,,,,,,,,,,#",
+    "#.......IIII.......#",
+    "#........PP........#",
+    "#........I.........#",
+    "#........D.........#",
+    "####################"
 };
 
-static const char *MEOWTH[16] = {
-    "....cc....cc....",
-    "...ccc....ccc...",
-    "..cccccccccccc..",
-    "..ccckkcccckkc..",
-    "..cccccccccccc..",
-    "...cccggggccc...",
-    "....cccccccc....",
-    ".....cccccc.....",
-    "......cggc......",
-    ".....cc..cc.....",
-    "................",
-    "................",
-    "................",
-    "................",
-    "................",
-    "................"
+static Mapa MAPA_TANQUE = {
+    "####################",
+    "#M................M#",
+    "#..~~~~~~~~~~~~~~..#",
+    "#..~~~~~~~~~~~~~~..#",
+    "#..~~~~~~~~~~~~~~..#",
+    "#..~~~~~~~~~~~~~~..#",
+    "#........E.........#",
+    "#..................#",
+    "#..................#",
+    "#M................M#",
+    "#..................#",
+    "#..................#",
+    "#........D.........#",
+    "####################"
 };
 
-static const char *GEODUDE[16] = {
-    "................",
-    ".....GGGGGG.....",
-    "....GGGGGGGG....",
-    "...GGkGGGGkGG...",
-    "...GGGGGGGGGGG..",
-    "..GGGGGGGGGGGG..",
-    "..GGGhhGGhhGGG..",
-    "...GGGGGGGGGG...",
-    "....GGGGGGGG....",
-    "...GG......GG...",
-    "..GG........GG..",
-    "................",
-    "................",
-    "................",
-    "................",
-    "................"
+static Mapa MAPA_OFICINA = {
+    "####################",
+    "#C................C#",
+    "#..................#",
+    "#M................M#",
+    "#..................#",
+    "#..................#",
+    "#..................#",
+    "#..................#",
+    "#.......FFFF.......#",
+    "#........FF........#",
+    "#........F.........#",
+    "#..................#",
+    "#........D.........#",
+    "####################"
 };
 
-static Color corPixel(char c, int flash) {
-    if (c == '.' || c == '\0') {
-        return (Color){0, 0, 0, 0};
-    }
-    if (flash) {
-        return (Color){255, 255, 255, 255};
-    }
-    switch (c) {
-    case 'y': return (Color){255, 214, 64, 255};
-    case 'k': return (Color){24, 24, 32, 255};
-    case 'r': return (Color){220, 48, 48, 255};
-    case 'b': return (Color){120, 72, 32, 255};
-    case 'o': return (Color){240, 112, 40, 255};
-    case 'c': return (Color){255, 236, 200, 255};
-    case 'C': return (Color){255, 236, 200, 255};
-    case 'f': return (Color){255, 80, 24, 255};
-    case 'a': return (Color){255, 220, 80, 255};
-    case 'B': return (Color){64, 140, 220, 255};
-    case 'm': return (Color){160, 96, 48, 255};
-    case 's': return (Color){196, 204, 214, 255};
-    case 'g': return (Color){248, 208, 72, 255};
-    case 'G': return (Color){120, 124, 132, 255};
-    case 'h': return (Color){72, 76, 84, 255};
-    case 'H': return (Color){92, 52, 28, 255};
-    case 'w': return (Color){150, 156, 170, 255};
-    case 'W': return (Color){210, 214, 224, 255};
-    case 'n': return (Color){36, 64, 120, 255};
-    case 'N': return (Color){18, 28, 52, 255};
-    case 'p': return (Color){240, 200, 156, 255};
-    default: return (Color){200, 200, 210, 255};
-    }
+static Mapa MAPA_JAULA = {
+    "####################",
+    "#HHHHHHHHHHHHHHHHHH#",
+    "#H................H#",
+    "#H................H#",
+    "#H.......E........H#",
+    "#H................H#",
+    "#HHHHHHH..HHHHHHHHH#",
+    "#..................#",
+    "#..................#",
+    "#M................M#",
+    "#..................#",
+    "#..................#",
+    "#........D.........#",
+    "####################"
+};
+
+static Mapa MAPA_ARQUIVO = {
+    "####################",
+    "#BBBBBBBBBBBBBBBBBB#",
+    "#B................B#",
+    "#B................B#",
+    "#B................B#",
+    "#B................B#",
+    "#B................B#",
+    "#..................#",
+    "#..................#",
+    "#M................M#",
+    "#........BB........#",
+    "#........P.........#",
+    "#........D.........#",
+    "####################"
+};
+
+static Mapa MAPA_CHEFE = {
+    "####################",
+    "#M................M#",
+    "#........G.........#",
+    "#..................#",
+    "#..................#",
+    "#..C............C..#",
+    "#..................#",
+    "#..................#",
+    "#..................#",
+    "#M................M#",
+    "#..................#",
+    "#..................#",
+    "#........D.........#",
+    "####################"
+};
+
+static void texto(const char *conteudo, float x, float y, float tamanho, Color cor);
+static int avancarPonto(const char *texto, int indice);
+static const char **mapaDa(const char *nome);
+static char tileEm(const char **mapa, int x, int y);
+static int solido(char simbolo, const NoSala *sala);
+static void entrarNaSala(void);
+static void abrirFala(const char *texto);
+static void prepararBatalha(void);
+static void desenharTudo(void);
+static void apresentar(const char *png);
+static int abrirGrafico(void);
+static void fecharGrafico(void);
+
+static void zerarVisual(void) {
+    Sound clique;
+    Sound acerto;
+    int som;
+    int topo;
+
+    clique = vis.som_clique;
+    acerto = vis.som_acerto;
+    som = vis.som_ok;
+    topo = vis.pokedex_topo;
+    memset(&vis, 0, sizeof vis);
+    vis.som_clique = clique;
+    vis.som_acerto = acerto;
+    vis.som_ok = som;
+    vis.pokedex_topo = topo;
+    vis.entrada = 1.0f;
+    vis.hp_eu = 1.0f;
+    vis.hp_opp = 1.0f;
+    vis.resultado = 1;
+    memset(&mundo, 0, sizeof mundo);
+    mundo.anda = 1.0f;
+    mundo.pika_anda = 1.0f;
 }
 
-static const char **gradeDoNome(const char *nome) {
-    if (nome == NULL) {
-        return PIKACHU;
-    }
-    if (strcmp(nome, "Pikachu") == 0) return PIKACHU;
-    if (strcmp(nome, "Charmander") == 0) return CHARMANDER;
-    if (strcmp(nome, "Squirtle") == 0) return SQUIRTLE;
-    if (strcmp(nome, "Alakazam") == 0) return ALAKAZAM;
-    if (strcmp(nome, "Meowth") == 0) return MEOWTH;
-    if (strcmp(nome, "Geodude") == 0) return GEODUDE;
-    return PIKACHU;
+static void caminhoAsset(char *destino, size_t capacidade, const char *relativo) {
+    snprintf(destino, capacidade, "%s/%s", raiz_assets, relativo);
 }
 
-static const char *PIKACHU_COSTAS[16] = {
-    ".....kk....kk...",
-    ".....yy....yy...",
-    ".....yy....yy...",
-    "....yyyyyyyy....",
-    "...yyyyyyyyyy...",
-    "...yyybbyybbyy..",
-    "...yyyyyyyyyyy..",
-    "....yyybbyyy....",
-    ".....yyyyyy.....",
-    "......yyyy......",
-    ".....yy..yy.....",
-    "....yaa....y....",
-    "...yaaa.........",
-    "..yaa...........",
-    ".ya.............",
-    "................"
-};
-
-static const char *CHAR_COSTAS[16] = {
-    "................",
-    "......oooo......",
-    ".....oooooo.....",
-    "....oooooooo....",
-    "....ooobbooo....",
-    "....oooooooo....",
-    ".....oooooo.....",
-    "......oooo......",
-    ".......oo.......",
-    "......oo.ff.....",
-    ".....oo..faf....",
-    "....oo....ff....",
-    "................",
-    "................",
-    "................",
-    "................"
-};
-
-static const char *SQUIRT_COSTAS[16] = {
-    "................",
-    "......BBBB......",
-    ".....BBBBBB.....",
-    "....BBBBBBBB....",
-    "...BBBbbbbBBB...",
-    "...BBBbbbbBBB...",
-    "....BBbbbbBB....",
-    ".....BBBBBB.....",
-    "......BBBB......",
-    ".....BB..BB.....",
-    "....BB....BB....",
-    "................",
-    "................",
-    "................",
-    "................",
-    "................"
-};
-
-static const char *DETETIVE[16] = {
-    "......HH......",
-    ".....HHHH.....",
-    ".....HppH.....",
-    "......pp......",
-    ".....nnnn.....",
-    "....nnnnnn....",
-    "...nnnnnnnn...",
-    "...nn.nn.nn...",
-    "....nnnnnn....",
-    ".....n..n.....",
-    ".....N..N.....",
-    "....NN..NN....",
-    "................",
-    "................",
-    "................",
-    "................"
-};
-
-static const char *GIOVANNI[16] = {
-    "......kk......",
-    ".....kkkk.....",
-    ".....kppk.....",
-    "......pp......",
-    ".....wrrw.....",
-    "....wwwwww....",
-    "...WwwwwwwW...",
-    "...Ww.ww.wW...",
-    "....wwwwww....",
-    ".....w..w.....",
-    ".....W..W.....",
-    "....WW..WW....",
-    "................",
-    "................",
-    "................",
-    "................"
-};
-
-static int celulaCheia(const char **grade, int linha, int coluna) {
-    const char *texto;
-
-    if (linha < 0 || coluna < 0 || linha >= 16) {
-        return 0;
-    }
-    texto = grade[linha];
-    if (texto == NULL || coluna >= (int)strlen(texto)) {
-        return 0;
-    }
-    return texto[coluna] != '.' && texto[coluna] != '\0';
-}
-
-/* escala 1 = 16 px; 3 = 48 px; 4 = 64 px, já com contorno de um pixel da arte. */
-static void desenharGrade(const char **grade, int x, int y, int escala, int flash) {
-    int linha;
-    int coluna;
-    int k;
-    static const int dxs[4] = {-1, 1, 0, 0};
-    static const int dys[4] = {0, 0, -1, 1};
-
-    if (grade == NULL) {
-        return;
-    }
-    if (escala < 1) {
-        escala = 1;
-    }
-    for (linha = 0; linha < 16; linha++) {
-        for (coluna = 0; coluna < 16; coluna++) {
-            if (!celulaCheia(grade, linha, coluna)) {
-                continue;
-            }
-            for (k = 0; k < 4; k++) {
-                if (!celulaCheia(grade, linha + dys[k], coluna + dxs[k])) {
-                    DrawRectangle(x + (coluna + dxs[k]) * escala,
-                                  y + (linha + dys[k]) * escala,
-                                  escala, escala, (Color){10, 10, 14, 255});
-                }
-            }
-        }
-    }
-    for (linha = 0; linha < 16; linha++) {
-        const char *texto = grade[linha];
-        for (coluna = 0; texto[coluna] != '\0' && coluna < 16; coluna++) {
-            Color cor = corPixel(texto[coluna], flash);
-            if (cor.a == 0) {
-                continue;
-            }
-            DrawRectangle(x + coluna * escala, y + linha * escala, escala, escala, cor);
-        }
-    }
-}
-
-static int bytesDoCaractere(const unsigned char *s, int i) {
-    if (s[i] == 0) {
-        return 0;
-    }
-    if ((s[i] & 0x80) == 0) {
-        return 1;
-    }
-    if ((s[i] & 0xE0) == 0xC0 && s[i + 1] != 0) {
-        return 2;
-    }
-    if ((s[i] & 0xF0) == 0xE0 && s[i + 1] != 0 && s[i + 2] != 0) {
-        return 3;
-    }
-    return 1;
-}
-
-static void carregarFonte(void) {
-    static const char *caminhos[] = {
-        "assets/fontes/PressStart2P-Regular.ttf",
-        "../assets/fontes/PressStart2P-Regular.ttf",
-        "/workspace/assets/fontes/PressStart2P-Regular.ttf",
-        NULL
-    };
-    int pontos[224];
-    int n = 0;
-    int c;
+static int acharRaiz(void) {
+    const char *candidatos[] = {"assets", "../assets", "/workspace/assets"};
     int i;
 
-    for (c = 32; c <= 255; c++) {
-        pontos[n] = c;
-        n++;
+    for (i = 0; i < 3; i++) {
+        char prova[512];
+        snprintf(prova, sizeof prova, "%s/fontes/PressStart2P-Regular.ttf", candidatos[i]);
+        if (FileExists(prova)) {
+            copiarTexto(raiz_assets, sizeof raiz_assets, candidatos[i]);
+            return 1;
+        }
     }
-    fonte_ok = 0;
-    for (i = 0; caminhos[i] != NULL; i++) {
-        if (!FileExists(caminhos[i])) {
+    copiarTexto(raiz_assets, sizeof raiz_assets, "assets");
+    return 0;
+}
+
+static Texture2D carregarPng(const char *relativo, int *ok) {
+    char caminho[512];
+    Texture2D tex;
+
+    memset(&tex, 0, sizeof tex);
+    *ok = 0;
+    caminhoAsset(caminho, sizeof caminho, relativo);
+    if (!FileExists(caminho)) {
+        return tex;
+    }
+    tex = LoadTexture(caminho);
+    if (tex.id == 0) {
+        return tex;
+    }
+    SetTextureFilter(tex, TEXTURE_FILTER_POINT);
+    *ok = 1;
+    return tex;
+}
+
+static void carregarFonteEm(const char *relativo, int tamanho, Font *fonte_dst, int *ok) {
+    char caminho[512];
+    int codigos[224];
+    int i;
+
+    *ok = 0;
+    for (i = 0; i < 224; i++) {
+        codigos[i] = 32 + i;
+    }
+    caminhoAsset(caminho, sizeof caminho, relativo);
+    if (!FileExists(caminho)) {
+        return;
+    }
+    *fonte_dst = LoadFontEx(caminho, tamanho, codigos, 224);
+    if (fonte_dst->texture.id == 0) {
+        return;
+    }
+    SetTextureFilter(fonte_dst->texture, TEXTURE_FILTER_POINT);
+    *ok = 1;
+}
+
+static void carregarSpritesPokemon(void) {
+    int i;
+
+    memset(sprites, 0, sizeof sprites);
+    for (i = 0; i < (int)(sizeof NUMEROS_SPRITE / sizeof NUMEROS_SPRITE[0]); i++) {
+        int n = NUMEROS_SPRITE[i];
+        char frente[64];
+        char costas[64];
+        char icone[64];
+
+        if (n <= 0 || n >= MAX_POKEMON) {
             continue;
         }
-        fonte = LoadFontEx(caminhos[i], FONTE_PX, pontos, n);
-        if (fonte.glyphCount > 0) {
-            SetTextureFilter(fonte.texture, TEXTURE_FILTER_POINT);
-            fonte_ok = 1;
-            return;
-        }
+        snprintf(frente, sizeof frente, "pokemon/%d_front.png", n);
+        snprintf(costas, sizeof costas, "pokemon/%d_back.png", n);
+        snprintf(icone, sizeof icone, "pokemon/%d_icon.png", n);
+        sprites[n].frente = carregarPng(frente, &sprites[n].tem_frente);
+        sprites[n].costas = carregarPng(costas, &sprites[n].tem_costas);
+        sprites[n].icone = carregarPng(icone, &sprites[n].tem_icone);
     }
 }
 
-static Wave ondaQuadrada(float frequencia, float duracao) {
+static Sound criarTom(float frequencia, float duracao) {
     unsigned int taxa = 22050;
-    unsigned int total = (unsigned int)(taxa * duracao);
-    unsigned int i;
+    unsigned int quadros = (unsigned int)(taxa * duracao);
     short *amostras;
+    unsigned int i;
     Wave onda;
+    Sound som;
 
-    amostras = (short *)calloc(total, sizeof(short));
-    if (amostras != NULL) {
-        for (i = 0; i < total; i++) {
-            float t = (float)i / (float)taxa;
-            float envelope = 1.0f - ((float)i / (float)total);
-            int alto = ((int)(t * frequencia)) % 2;
-            float valor = (alto ? 1.0f : -1.0f) * envelope * 9000.0f;
-            amostras[i] = (short)valor;
-        }
+    memset(&som, 0, sizeof som);
+    amostras = (short *)calloc(quadros, sizeof(short));
+    if (amostras == NULL) {
+        return som;
     }
-    onda.frameCount = total;
+    for (i = 0; i < quadros; i++) {
+        float t = (float)i / (float)taxa;
+        float env = 1.0f - (t / duracao);
+        float s = sinf(t * frequencia * 6.2831853f) > 0.0f ? 1.0f : -1.0f;
+        amostras[i] = (short)(s * env * 9000.0f);
+    }
+    memset(&onda, 0, sizeof onda);
+    onda.frameCount = quadros;
     onda.sampleRate = taxa;
     onda.sampleSize = 16;
     onda.channels = 1;
     onda.data = amostras;
-    return onda;
+    som = LoadSoundFromWave(onda);
+    UnloadWave(onda);
+    return som;
 }
 
-static void prepararSom(void) {
-    Wave clique;
-    Wave acerto;
-
-    vis.som_ok = 0;
+static void carregarAssets(void) {
+    acharRaiz();
+    carregarFonteEm("fontes/PressStart2P-Regular.ttf", FONTE_PX, &fonte, &fonte_ok);
+    carregarFonteEm("fontes/PressStart2P-Regular.ttf", 16, &fonte_titulo, &fonte_titulo_ok);
+    tileset = carregarPng("tiles/kenney_indoor.png", &tiles_ok);
+    detetive_tex = carregarPng("personagens/detetive.png", &detetive_ok);
+    giovanni_ow = carregarPng("personagens/giovanni_overworld.png", &giovanni_ow_ok);
+    giovanni_batalha = carregarPng("personagens/giovanni.png", &giovanni_bat_ok);
+    pokebola_tex = carregarPng("personagens/pokebola.png", &pokebola_ok);
+    carregarSpritesPokemon();
     InitAudioDevice();
-    if (!IsAudioDeviceReady()) {
-        return;
+    if (IsAudioDeviceReady()) {
+        vis.som_clique = criarTom(660.0f, 0.04f);
+        vis.som_acerto = criarTom(180.0f, 0.08f);
+        vis.som_ok = 1;
     }
-    clique = ondaQuadrada(880.0f, 0.04f);
-    acerto = ondaQuadrada(220.0f, 0.08f);
-    vis.som_clique = LoadSoundFromWave(clique);
-    vis.som_acerto = LoadSoundFromWave(acerto);
-    UnloadWave(clique);
-    UnloadWave(acerto);
-    vis.som_ok = 1;
 }
 
-static void tocar(Sound som) {
+static void liberarTextura(Texture2D *tex, int *ok) {
+    if (*ok) {
+        UnloadTexture(*tex);
+        *ok = 0;
+    }
+}
+
+static void liberarAssets(void) {
+    int i;
+
+    for (i = 0; i < MAX_POKEMON; i++) {
+        liberarTextura(&sprites[i].frente, &sprites[i].tem_frente);
+        liberarTextura(&sprites[i].costas, &sprites[i].tem_costas);
+        liberarTextura(&sprites[i].icone, &sprites[i].tem_icone);
+    }
+    liberarTextura(&tileset, &tiles_ok);
+    liberarTextura(&detetive_tex, &detetive_ok);
+    liberarTextura(&giovanni_ow, &giovanni_ow_ok);
+    liberarTextura(&giovanni_batalha, &giovanni_bat_ok);
+    liberarTextura(&pokebola_tex, &pokebola_ok);
+    if (fonte_ok) {
+        UnloadFont(fonte);
+        fonte_ok = 0;
+    }
+    if (fonte_titulo_ok) {
+        UnloadFont(fonte_titulo);
+        fonte_titulo_ok = 0;
+    }
     if (vis.som_ok) {
-        PlaySound(som);
-    }
-}
-
-static void soltarSom(void) {
-    if (!vis.som_ok) {
-        return;
-    }
-    UnloadSound(vis.som_clique);
-    UnloadSound(vis.som_acerto);
-    CloseAudioDevice();
-    vis.som_ok = 0;
-}
-
-static Vector2 mouseVirtual(void) {
-    return (Vector2){
-        (float)GetMouseX() / (float)ESCALA,
-        (float)GetMouseY() / (float)ESCALA
-    };
-}
-
-static void texto(const char *s, int x, int y, Color cor) {
-    if (s == NULL) {
-        return;
-    }
-    if (fonte_ok) {
-        DrawTextEx(fonte, s, (Vector2){(float)x, (float)y}, (float)FONTE_PX, 1.0f, cor);
-    } else {
-        DrawText(s, x, y, FONTE_PX, cor);
-    }
-}
-
-static int larguraTexto(const char *s) {
-    if (s == NULL || s[0] == '\0') {
-        return 0;
-    }
-    if (fonte_ok) {
-        return (int)MeasureTextEx(fonte, s, (float)FONTE_PX, 1.0f).x;
-    }
-    return MeasureText(s, FONTE_PX);
-}
-
-static void textoQuebra(const char *origem, int x, int y, int largura, int linhas_max, Color cor) {
-    const char *p = origem;
-    int linha = 0;
-
-    if (origem == NULL) {
-        return;
-    }
-    while (*p != '\0' && linha < linhas_max && y < VIRT_A) {
-        char buf[TEXTO_SALA_MAX];
-        int i = 0;
-        int ultimo = -1;
-
-        while (p[i] != '\0' && i < (int)sizeof buf - 1) {
-            buf[i] = p[i];
-            buf[i + 1] = '\0';
-            if (larguraTexto(buf) > largura) {
-                buf[i] = '\0';
-                break;
-            }
-            if (p[i] == ' ') {
-                ultimo = i;
-            }
-            i++;
-        }
-        if (p[i] != '\0' && ultimo > 0) {
-            buf[ultimo] = '\0';
-            p += (size_t)ultimo + 1;
-        } else if (i == 0) {
-            break;
-        } else {
-            p += (size_t)i;
-        }
-        texto(buf, x, y, cor);
-        y += FONTE_PX + 3;
-        linha++;
-    }
-}
-
-static void painel(int x, int y, int w, int h, Color miolo) {
-    DrawRectangle(x, y, w, h, (Color){8, 8, 12, 255});
-    DrawRectangle(x + 1, y + 1, w - 2, h - 2, CREME);
-    DrawRectangle(x + 2, y + 2, w - 4, h - 4, miolo);
-}
-
-static int botao(const char *rotulo, int x, int y, int w, int h, Color fundo) {
-    Vector2 mouse = mouseVirtual();
-    Rectangle ret = {(float)x, (float)y, (float)w, (float)h};
-    int sobre = CheckCollisionPointRec(mouse, ret);
-    int tx;
-
-    painel(x, y, w, h, sobre ? AZUL : fundo);
-    tx = x + (w - larguraTexto(rotulo)) / 2;
-    if (tx < x + 3) {
-        tx = x + 3;
-    }
-    texto(rotulo, tx, y + (h - FONTE_PX) / 2, sobre ? DOURADO : CREME);
-    return sobre && IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
-}
-
-static Color corDaBarra(float proporcao) {
-    if (proporcao > 0.50f) {
-        return VERDE;
-    }
-    if (proporcao > 0.20f) {
-        return AMARELO;
-    }
-    return VERMELHO;
-}
-
-static void aproximar(float *visivel, float alvo, float dt) {
-    float delta = alvo - *visivel;
-    float passo = dt * 3.2f;
-
-    if (passo > 1.0f) {
-        passo = 1.0f;
-    }
-    if (fabsf(delta) < 0.004f) {
-        *visivel = alvo;
-    } else {
-        *visivel += delta * passo;
-    }
-}
-
-static void barraHp(int x, int y, int w, float proporcao) {
-    int cheio;
-
-    if (proporcao < 0.0f) {
-        proporcao = 0.0f;
-    }
-    if (proporcao > 1.0f) {
-        proporcao = 1.0f;
-    }
-    cheio = (int)((w - 4) * proporcao);
-    DrawRectangle(x, y, w, 6, (Color){32, 24, 28, 255});
-    if (cheio > 0) {
-        DrawRectangle(x + 1, y + 1, cheio, 4, corDaBarra(proporcao));
-    }
-}
-
-static void definirTexto(const char *s) {
-    if (s == NULL) {
-        s = "";
-    }
-    if (strcmp(vis.texto, s) != 0) {
-        copiarTexto(vis.texto, sizeof vis.texto, s);
-        vis.bytes_texto = 0;
-        vis.acum_letra = 0.0f;
-    }
-}
-
-static void avancarTexto(float dt) {
-    int total = (int)strlen(vis.texto);
-
-    vis.acum_letra += dt * 42.0f;
-    while (vis.acum_letra >= 1.0f && vis.bytes_texto < total) {
-        int n = bytesDoCaractere((const unsigned char *)vis.texto, vis.bytes_texto);
-        if (n <= 0) {
-            break;
-        }
-        vis.bytes_texto += n;
-        vis.acum_letra -= 1.0f;
-    }
-    if (vis.bytes_texto > total) {
-        vis.bytes_texto = total;
-    }
-}
-
-static void desenharTextoAnimado(int x, int y, int largura, int linhas) {
-    char parcial[TEXTO_SALA_MAX];
-    int n = vis.bytes_texto;
-
-    if (n >= (int)sizeof parcial) {
-        n = (int)sizeof parcial - 1;
-    }
-    if (vis.texto_completo) {
-        n = (int)strlen(vis.texto);
-    }
-    if (n > (int)sizeof parcial - 1) {
-        n = (int)sizeof parcial - 1;
-    }
-    memcpy(parcial, vis.texto, (size_t)n);
-    parcial[n] = '\0';
-    textoQuebra(parcial, x, y, largura, linhas, TINTA);
-}
-
-static void enfileirarTexto(const char *mensagem) {
-    if (mensagem == NULL || mensagem[0] == '\0') {
-        return;
-    }
-    if (vis.fila_n >= MAX_FILA_TEXTO) {
-        int i;
-        for (i = 1; i < MAX_FILA_TEXTO; i++) {
-            copiarTexto(vis.fila[i - 1], LOG_MAX, vis.fila[i]);
-        }
-        vis.fila_n = MAX_FILA_TEXTO - 1;
-    }
-    copiarTexto(vis.fila[vis.fila_n], LOG_MAX, mensagem);
-    vis.fila_n++;
-    if (vis.fila_n == 1) {
-        definirTexto(vis.fila[0]);
-    }
-}
-
-static void narrarCombate(void *contexto, const char *mensagem) {
-    (void)contexto;
-    enfileirarTexto(mensagem);
-    if (mensagem != NULL && strstr(mensagem, "Causou") != NULL) {
-        vis.tremor = 2.2f;
-        tocar(vis.som_acerto);
-    }
-}
-
-static void consumirFilaSePronta(float dt) {
-    (void)dt;
-    if (vis.fila_n <= 0) {
-        return;
-    }
-    definirTexto(vis.fila[0]);
-    if (vis.bytes_texto >= (int)strlen(vis.texto) && vis.fila_n > 1 && vis.acum_letra > 8.0f) {
-        int i;
-        for (i = 1; i < vis.fila_n; i++) {
-            copiarTexto(vis.fila[i - 1], LOG_MAX, vis.fila[i]);
-        }
-        vis.fila_n--;
-        definirTexto(vis.fila[0]);
-        vis.acum_letra = 0.0f;
-    }
-}
-
-static void soltarParticulas(int x, int y, Habilidade hab) {
-    Color cor = CIANO;
-    int i;
-    int n = 0;
-
-    if (hab == HAB_FOGO) {
-        cor = (Color){255, 120, 32, 255};
-    } else if (hab == HAB_AGUA) {
-        cor = (Color){64, 160, 255, 255};
-    } else if (hab == HAB_PSIQUICA) {
-        cor = ROXO;
-    } else if (hab == HAB_ELETRICA) {
-        cor = DOURADO;
-    }
-    for (i = 0; i < MAX_PART && n < 16; i++) {
-        if (vis.partes[i].vida > 0.0f) {
-            continue;
-        }
-        vis.partes[i].x = (float)x;
-        vis.partes[i].y = (float)y;
-        vis.partes[i].vx = (float)((n % 5) - 2) * 18.0f;
-        vis.partes[i].vy = (float)(-30 - (n % 4) * 8);
-        vis.partes[i].vida = 0.7f;
-        vis.partes[i].cor = cor;
-        n++;
-    }
-    tocar(vis.som_clique);
-}
-
-static void atualizarParticulas(float dt) {
-    int i;
-
-    for (i = 0; i < MAX_PART; i++) {
-        if (vis.partes[i].vida <= 0.0f) {
-            continue;
-        }
-        vis.partes[i].vida -= dt;
-        vis.partes[i].x += vis.partes[i].vx * dt;
-        vis.partes[i].y += vis.partes[i].vy * dt;
-        vis.partes[i].vy += 40.0f * dt;
-    }
-}
-
-static void desenharParticulas(void) {
-    int i;
-
-    for (i = 0; i < MAX_PART; i++) {
-        if (vis.partes[i].vida <= 0.0f) {
-            continue;
-        }
-        DrawRectangle((int)vis.partes[i].x, (int)vis.partes[i].y, 2, 2, vis.partes[i].cor);
-    }
-}
-
-static const char **gradeCostas(const char *nome) {
-    if (nome != NULL && strcmp(nome, "Charmander") == 0) {
-        return CHAR_COSTAS;
-    }
-    if (nome != NULL && strcmp(nome, "Squirtle") == 0) {
-        return SQUIRT_COSTAS;
-    }
-    if (nome != NULL && strcmp(nome, "Alakazam") == 0) {
-        return ALAKAZAM;
-    }
-    return PIKACHU_COSTAS;
-}
-
-/* escala 3 desenha 48 px; escala 4 desenha 64 px, antes do contorno. */
-static void desenharMon(const char *nome, int x, int y, int escala, int costas, int flash) {
-    int bob = (escala > 1) ? (int)sinf(vis.tempo * 4.0f) : 0;
-    const char **grade = costas ? gradeCostas(nome) : gradeDoNome(nome);
-    desenharGrade(grade, x, y + bob, escala, flash);
-}
-
-static void desenharPessoa(const char **grade, int x, int y, int escala) {
-    int bob = (int)sinf(vis.tempo * 3.0f);
-    desenharGrade(grade, x, y + bob, escala, 0);
-}
-
-static void plataforma(int x, int y) {
-    DrawEllipse(x, y, 28, 8, (Color){20, 24, 32, 255});
-    DrawEllipse(x, y - 1, 22, 5, (Color){48, 56, 72, 255});
-}
-
-static void vinheta(int forca) {
-    Color borda = {0, 0, 0, (unsigned char)forca};
-    DrawRectangle(0, 0, VIRT_L, 18, borda);
-    DrawRectangle(0, VIRT_A - 24, VIRT_L, 24, borda);
-    DrawRectangle(0, 0, 16, VIRT_A, borda);
-    DrawRectangle(VIRT_L - 16, 0, 16, VIRT_A, borda);
-}
-
-static void piso(int y0, int y1, Color a, Color b) {
-    int x;
-    int y;
-
-    for (y = y0; y < y1; y += 8) {
-        for (x = 0; x < VIRT_L; x += 8) {
-            DrawRectangle(x, y, 8, 8, (((x + y) / 8) % 2) == 0 ? a : b);
-        }
-    }
-}
-
-static void tubo(int x, int y, int h, Color liquido, int aceso) {
-    Color vidro = aceso ? (Color){170, 210, 220, 255} : (Color){50, 64, 78, 255};
-    Color dentro = aceso ? liquido : (Color){liquido.r / 3, liquido.g / 3, liquido.b / 3, 255};
-
-    DrawRectangle(x, y, 12, h, (Color){16, 18, 24, 255});
-    DrawRectangle(x + 1, y + 2, 10, h - 4, vidro);
-    DrawRectangle(x + 3, y + 6, 6, h - 12, dentro);
-    DrawRectangle(x + 2, y + 4, 2, h - 8, (Color){255, 255, 255, (unsigned char)(aceso ? 90 : 30)});
-}
-
-static void desenharCenario(const NoSala *sala) {
-    int aceso;
-    int pulso;
-    const char *nome;
-    Color parede;
-    Color chao_a;
-    Color chao_b;
-
-    nome = (sala != NULL) ? sala->nome : "";
-    aceso = (sala != NULL && sala->resolvido) ? 1 : 0;
-    pulso = 160 + (int)(sinf(vis.tempo * 5.0f) * 40.0f);
-    parede = (Color){18, 24, 40, 255};
-    chao_a = (Color){32, 36, 48, 255};
-    chao_b = (Color){24, 28, 38, 255};
-
-    if (strcmp(nome, "Câmara fria") == 0) {
-        parede = (Color){150, 190, 210, 255};
-        chao_a = (Color){190, 220, 230, 255};
-        chao_b = (Color){160, 200, 214, 255};
-    } else if (strcmp(nome, "Oficina") == 0) {
-        parede = (Color){48, 22, 18, 255};
-        chao_a = (Color){60, 32, 24, 255};
-        chao_b = (Color){42, 22, 18, 255};
-    } else if (strcmp(nome, "Sala do chefe") == 0) {
-        parede = (Color){36, 8, 12, 255};
-        chao_a = (Color){48, 12, 16, 255};
-        chao_b = (Color){28, 8, 10, 255};
-    } else if (strcmp(nome, "Pátio") == 0) {
-        parede = (Color){18, 40, 28, 255};
-        chao_a = (Color){36, 90, 48, 255};
-        chao_b = (Color){28, 70, 38, 255};
-    }
-
-    DrawRectangle(0, 0, VIRT_L, 150, parede);
-    piso(96, 150, chao_a, chao_b);
-    DrawRectangle(0, 92, VIRT_L, 4, (Color){12, 12, 16, 255});
-
-    if (strcmp(nome, "Laboratório") == 0 || nome[0] == '\0') {
-        tubo(12, 28, 62, (Color){80, 220, 210, 255}, aceso);
-        tubo(30, 36, 54, ROXO, aceso);
-        tubo(330, 24, 66, CIANO, aceso);
-        tubo(348, 40, 50, (Color){80, 140, 255, 255}, aceso);
-        DrawRectangle(120, 78, 140, 16, (Color){40, 44, 56, 255});
-        DrawRectangle(132, 62, 28, 16, (Color){20, 24, 32, 255});
-        DrawRectangle(134, 64, 24, 10, aceso ? (Color){80, 220, 120, 255} : (Color){20, 50, 30, 255});
-        DrawRectangle(168, 64, 22, 14, (Color){20, 24, 32, 255});
-        DrawRectangle(170, 66, 18, 8, aceso ? CIANO : (Color){30, 40, 50, 255});
-        DrawLine(150, 78, 150, 96, (Color){80, 70, 40, 255});
-        DrawLine(190, 78, 210, 96, (Color){80, 70, 40, 255});
-        DrawRectangle(210, 48, 36, 28, aceso ? (Color){90, 230, 210, 255} : (Color){36, 48, 58, 255});
-        if (!aceso && ((int)(vis.tempo * 3.0f) % 2) == 0) {
-            DrawRectangleLines(208, 46, 40, 32, DOURADO);
-        }
-    } else if (strcmp(nome, "Câmara fria") == 0) {
-        DrawRectangle(150, 40, 90, 52, (Color){200, 236, 245, 255});
-        DrawRectangle(156, 46, 78, 40, (Color){150, 210, 230, 255});
-        if (!aceso && ((int)(vis.tempo * 3.0f) % 2) == 0) {
-            DrawRectangleLines(148, 38, 94, 56, DOURADO);
-        }
-    } else if (strcmp(nome, "Oficina") == 0) {
-        DrawRectangle(140, 70, 100, 22, (Color){50, 36, 28, 255});
-        if (!aceso) {
-            DrawRectangle(168, 36, 14, 34, (Color){255, 90, 24, 255});
-            DrawRectangle(182, 24, 12, 46, (Color){255, 170, 40, (unsigned char)pulso});
-            DrawRectangle(156, 44, 10, 26, (Color){255, 60, 20, 255});
-            DrawRectangleLines(150, 20, 52, 54, DOURADO);
-        }
-    } else if (strcmp(nome, "Tanque") == 0) {
-        DrawRectangle(130, 36, 130, 56, (Color){20, 50, 80, 255});
-        DrawRectangle(136, 42, 118, 44, (Color){40, 130, 200, 255});
-        DrawRectangle(140, 46, 30, 8, (Color){180, 230, 255, 180});
-    } else if (strcmp(nome, "Jaula") == 0) {
-        DrawRectangle(140, 28, 100, 64, (Color){30, 28, 40, 255});
-        DrawRectangle(148, 28, 3, 64, CREME);
-        DrawRectangle(166, 28, 3, 64, CREME);
-        DrawRectangle(184, 28, 3, 64, CREME);
-        DrawRectangle(202, 28, 3, 64, CREME);
-        DrawRectangle(220, 28, 3, 64, CREME);
-    } else if (strcmp(nome, "Arquivo") == 0) {
-        DrawRectangle(236, 30, 18, 62, (Color){110, 72, 40, 255});
-        DrawRectangle(256, 30, 18, 62, (Color){90, 58, 32, 255});
-        DrawRectangle(276, 30, 18, 62, (Color){120, 80, 44, 255});
-        DrawRectangle(150, 36, 70, 56, aceso ? (Color){70, 50, 36, 255} : (Color){130, 90, 48, 255});
-        if (!aceso && ((int)(vis.tempo * 3.0f) % 2) == 0) {
-            DrawRectangleLines(148, 34, 74, 60, DOURADO);
-        }
-    } else if (strcmp(nome, "Sala do chefe") == 0) {
-        DrawRectangle(160, 0, 70, 96, (Color){90, 12, 18, 110});
-        DrawRectangle(40, 30, 50, 60, (Color){20, 8, 10, 255});
-        DrawRectangle(44, 36, 18, 12, (Color){120, 20, 24, 255});
-    } else {
-        DrawRectangle(20, 60, 30, 16, (Color){30, 90, 40, 255});
-        DrawRectangle(300, 58, 36, 18, (Color){24, 80, 36, 255});
-    }
-}
-
-static void desenharEquipe(Caso *caso) {
-    int n = tamanhoTime(&caso->nucleo.time);
-    int ativo = posicaoDoAtivo(&caso->nucleo.time);
-    int i;
-
-    for (i = 0; i < n && i < 6; i++) {
-        const Pokemon *membro = pokemonNaPosicao(&caso->nucleo.time, i);
-        int x = 168 + i * 18;
-        if (membro == NULL) {
-            continue;
-        }
-        if (i == ativo) {
-            DrawRectangle(x - 1, 17, 18, 18, DOURADO);
-        }
-        desenharGrade(gradeDoNome(membro->nome), x, 2, 1, 0);
-    }
-}
-
-static void desenharFade(void) {
-    unsigned char alfa;
-
-    if (vis.fade <= 0.01f) {
-        return;
-    }
-    alfa = (unsigned char)(vis.fade * 255.0f);
-    DrawRectangle(0, 0, VIRT_L, VIRT_A, (Color){0, 0, 0, alfa});
-}
-
-static void desenharMenu(void) {
-    int i;
-
-    for (i = 0; i < 28; i++) {
-        int x = (i * 53 + (int)(vis.tempo * 12.0f)) % VIRT_L;
-        int sy = (i * 37) % 90;
-        DrawRectangle(x, sy, 1, 1, (Color){160, 190, 210, 255});
-    }
-    if (fonte_ok) {
-        DrawTextEx(fonte, "PokéBattle", (Vector2){88.0f, 8.0f}, 16.0f, 1.0f, (Color){90, 40, 20, 255});
-        DrawTextEx(fonte, "PokéBattle", (Vector2){86, 6}, 16.0f, 1.0f, DOURADO);
-    } else {
-        texto("PokéBattle", 86, 6, DOURADO);
-    }
-    texto("O Caso do Laboratório", 56, 28, CREME);
-    DrawRectangle(0, 48, VIRT_L, 90, (Color){12, 18, 36, 255});
-    DrawRectangle(40, 70, 70, 48, (Color){20, 28, 48, 255});
-    DrawRectangle(48, 78, 18, 12, CIANO);
-    DrawRectangle(70, 78, 18, 12, ROXO);
-    DrawCircle(300, 62, 10, (Color){230, 230, 210, 255});
-    plataforma(150, 132);
-    plataforma(230, 132);
-    desenharPessoa(DETETIVE, 120, 58, 3);
-    desenharMon("Pikachu", 200, 66, 3, 1, 0);
-    texto("Um detetive. Um Pikachu.", 64, 122, CIANO);
-}
-
-static void desenharSala(Caso *caso) {
-    NoSala *sala = salaAtual(&caso->salas);
-    const char *fala;
-
-    painel(2, 2, 380, 14, (Color){16, 28, 58, 255});
-    if (sala != NULL) {
-        texto(sala->nome, 8, 5, DOURADO);
-    }
-    texto("N caderno", 292, 5, CIANO);
-    desenharEquipe(caso);
-    desenharCenario(sala);
-    if (sala != NULL && strcmp(sala->nome, "Laboratório") == 0 && !sala->resolvido) {
-        BeginBlendMode(BLEND_ADDITIVE);
-        DrawCircle(70, 108, 50, (Color){55, 48, 18, 255});
-        DrawCircle(70, 108, 24, (Color){90, 78, 30, 255});
-        EndBlendMode();
-        vinheta(120);
-    }
-    desenharPessoa(DETETIVE, 36, 86, 3);
-    desenharMon("Pikachu", 88, 98, 2, 1, 0);
-    if (sala != NULL && sala->e_chefe) {
-        desenharPessoa(GIOVANNI, 250, 78, 3);
-        desenharMon("Meowth", 210, 90, 2, 0, 0);
-    } else if (sala != NULL && strcmp(sala->nome, "Pátio") == 0 && !sala->batalha_concluida) {
-        desenharMon("Charmander", 250, 90, 3, 0, 0);
-    } else if (sala != NULL && strcmp(sala->nome, "Tanque") == 0 && !sala->batalha_concluida) {
-        desenharMon("Squirtle", 250, 90, 3, 0, 0);
-    } else if (sala != NULL && strcmp(sala->nome, "Jaula") == 0 && !sala->batalha_concluida) {
-        desenharMon("Alakazam", 250, 90, 3, 0, 0);
-    }
-    desenharParticulas();
-
-    painel(2, 140, 380, 36, CREME);
-    if (sala == NULL) {
-        fala = "Nenhuma sala.";
-    } else if (!sala->resolvido) {
-        fala = sala->texto_puzzle;
-    } else {
-        fala = sala->texto_resolvido;
-    }
-    definirTexto(fala);
-    desenharTextoAnimado(8, 146, 364, 2);
-}
-
-static void desenharCaderno(Caso *caso) {
-    NoSala *no;
-    int y = 36;
-    char linha[96];
-    FILE *arquivo;
-
-    painel(28, 20, 328, 170, (Color){36, 28, 20, 255});
-    texto("CADERNO", 40, 28, DOURADO);
-    /* Só as salas já visitadas. As de luta nascem "resolvidas" porque
-     * não têm puzzle, mas ainda não são pista enquanto o detetive não chegou. */
-    for (no = caso->salas.inicio; no != NULL && y < 110; no = no->prox) {
-        snprintf(linha, sizeof linha, "- %s", no->nome);
-        texto(linha, 40, y, CREME);
-        y += 11;
-        if (no == caso->salas.atual) {
-            break;
-        }
-    }
-    arquivo = tmpfile();
-    if (arquivo != NULL) {
-        char buffer[128];
-        mostrarHistorico(&caso->nucleo.log, arquivo);
-        rewind(arquivo);
-        if (fgets(buffer, (int)sizeof buffer, arquivo) != NULL) {
-            buffer[strcspn(buffer, "\n")] = '\0';
-            textoQuebra(buffer, 40, 128, 300, 3, (Color){220, 210, 180, 255});
-        }
-        fclose(arquivo);
-    }
-    texto("N fecha", 40, 172, CIANO);
-}
-
-static int flashDeDano(float mostrado, float real) {
-    return (mostrado - real) > 0.08f && ((int)(vis.tempo * 16.0f) % 2) == 0;
-}
-
-static void desenharBatalha(Caso *caso) {
-    const Pokemon *eu = obterAtivo(&caso->nucleo.time);
-    const Pokemon *opp = caso->oponente_carregado ? obterAtivo(&caso->oponente_atual.time) : NULL;
-    int chefe = caso->oponente_atual.nome[0] != '\0' && strcmp(caso->oponente_atual.nome, "Giovanni") == 0;
-    int deslize = (int)((1.0f - vis.entrada) * 24.0f);
-    float real_eu = 1.0f;
-    float real_opp = 1.0f;
-    char linha[64];
-
-    if (chefe) {
-        DrawRectangle(0, 0, VIRT_L, 140, (Color){32, 6, 10, 255});
-        vinheta(120);
-        vis.tremor = 1.3f;
-    } else {
-        DrawRectangle(0, 0, VIRT_L, 140, (Color){18, 36, 64, 255});
-        DrawRectangle(0, 96, VIRT_L, 44, (Color){28, 64, 48, 255});
-    }
-
-    /* Jogador embaixo à esquerda, de costas. Inimigo no alto à direita.
-       As caixas ficam no lado oposto de cada sprite, sem cobri-los. */
-    plataforma(48 - deslize, 118);
-    plataforma(300 + deslize, 72);
-    if (eu != NULL) {
-        real_eu = (eu->hp_max > 0) ? (float)eu->hp_atual / (float)eu->hp_max : 0.0f;
-        desenharMon(eu->nome, 20 - deslize, 52, 4, 1, flashDeDano(vis.hp_eu, real_eu));
-    }
-    if (chefe) {
-        desenharPessoa(GIOVANNI, 268 + deslize, 0, 4);
-        if (opp != NULL) {
-            real_opp = (opp->hp_max > 0) ? (float)opp->hp_atual / (float)opp->hp_max : 0.0f;
-            desenharMon(opp->nome, 200 + deslize, 40, 2, 0, flashDeDano(vis.hp_opp, real_opp));
-        }
-    } else if (opp != NULL) {
-        real_opp = (opp->hp_max > 0) ? (float)opp->hp_atual / (float)opp->hp_max : 0.0f;
-        desenharMon(opp->nome, 292 + deslize, 8, 4, 0, flashDeDano(vis.hp_opp, real_opp));
-    }
-
-    painel(4, 4, 132, 28, (Color){232, 236, 244, 255});
-    if (opp != NULL) {
-        texto(opp->nome, 8, 7, TINTA);
-        texto("Nv", 8, 16, (Color){40, 90, 180, 255});
-        snprintf(linha, sizeof linha, "%d", opp->nivel);
-        texto(linha, 26, 16, (Color){180, 40, 40, 255});
-        barraHp(48, 18, 78, vis.hp_opp);
-    }
-
-    painel(168, 86, 150, 32, (Color){232, 236, 244, 255});
-    if (eu != NULL) {
-        texto(eu->nome, 172, 88, TINTA);
-        texto("Nv", 172, 97, (Color){40, 90, 180, 255});
-        snprintf(linha, sizeof linha, "%d", eu->nivel);
-        texto(linha, 190, 97, (Color){180, 40, 40, 255});
-        barraHp(214, 98, 96, vis.hp_eu);
-        snprintf(linha, sizeof linha, "%d/%d", eu->hp_atual, eu->hp_max);
-        texto(linha, 214, 106, TINTA);
-    }
-
-    painel(2, 128, 380, 28, CREME);
-    if (vis.fila_n > 0) {
-        desenharTextoAnimado(8, 134, 364, 2);
-    } else if (eu != NULL) {
-        snprintf(linha, sizeof linha, "O que %s vai fazer?", eu->nome);
-        textoQuebra(linha, 8, 136, 364, 2, TINTA);
-    }
-
-    if (eu != NULL) {
-        int i;
-        for (i = 0; i < 4; i++) {
-            int coluna = i % 2;
-            int fileira = i / 2;
-            int x = 4 + coluna * 190;
-            int y = 160 + fileira * 26;
-            if (i < eu->qtd_golpes) {
-                if (botao(eu->golpes[i].nome, x, y, 186, 24, AZUL)) {
-                    /* o clique é lido de novo no laço; aqui só desenha */
-                }
-            } else {
-                painel(x, y, 186, 24, (Color){70, 74, 84, 255});
-            }
-        }
-    }
-    (void)real_eu;
-    (void)real_opp;
-}
-
-static void atualizarBarras(Caso *caso, float dt) {
-    const Pokemon *eu;
-    const Pokemon *opp;
-    float real_eu = vis.hp_eu;
-    float real_opp = vis.hp_opp;
-
-    if (!caso->em_batalha) {
-        vis.hp_pronto = 0;
-        return;
-    }
-    eu = obterAtivo(&caso->nucleo.time);
-    opp = caso->oponente_carregado ? obterAtivo(&caso->oponente_atual.time) : NULL;
-    if (!vis.hp_pronto) {
-        vis.hp_eu = (eu != NULL && eu->hp_max > 0) ? (float)eu->hp_atual / (float)eu->hp_max : 1.0f;
-        vis.hp_opp = (opp != NULL && opp->hp_max > 0) ? (float)opp->hp_atual / (float)opp->hp_max : 1.0f;
-        vis.hp_pronto = 1;
-        vis.entrada = 0.0f;
-    }
-    if (eu != NULL && eu->hp_max > 0) {
-        real_eu = (float)eu->hp_atual / (float)eu->hp_max;
-    }
-    if (opp != NULL && opp->hp_max > 0) {
-        real_opp = (float)opp->hp_atual / (float)opp->hp_max;
-    }
-    if (real_eu + 0.05f < vis.hp_eu || real_opp + 0.05f < vis.hp_opp) {
-        vis.tremor = 2.4f;
-    }
-    aproximar(&vis.hp_eu, real_eu, dt);
-    aproximar(&vis.hp_opp, real_opp, dt);
-    if (vis.entrada < 1.0f) {
-        vis.entrada += dt * 1.8f;
-        if (vis.entrada > 1.0f) {
-            vis.entrada = 1.0f;
-        }
-    }
-}
-
-static void desenharAjuda(void) {
-    painel(16, 16, 352, 150, (Color){16, 24, 48, 255});
-    texto("COMO JOGAR", 28, 26, DOURADO);
-    textoQuebra("Você é o detetive. O Pikachu é o parceiro. Use a habilidade do tipo para abrir a sala. Capture os selvagens: cada um destrava o próximo puzzle.",
-                28, 46, 328, 6, CREME);
-    texto("1 menu  2 ajuda  3 pokedex  4 sair", 28, 120, CIANO);
-    texto("Na luta, 1 a 4 escolhem o golpe.", 28, 136, CIANO);
-}
-
-typedef struct {
-    char linhas[24][80];
-    int n;
-} ListaDex;
-
-static void desenharPokedex(ListaDex *dex) {
-    int i;
-
-    texto("POKEDEX", 8, 6, DOURADO);
-    for (i = 0; i < dex->n; i++) {
-        int coluna = i / 10;
-        int linha = i % 10;
-        texto(dex->linhas[i], 8 + coluna * 128, 24 + linha * 16, CREME);
-    }
-}
-
-static void desenharFim(int vitoria) {
-    if (vitoria) {
-        texto("CASO ENCERRADO", 70, 48, DOURADO);
-        textoQuebra("Giovanni recuou. O laboratório fica para trás.", 40, 80, 300, 3, CREME);
-        desenharMon("Pikachu", 160, 100, 3, 1, 0);
-    } else {
-        DrawRectangle(0, 0, VIRT_L, VIRT_A, (Color){24, 6, 8, 255});
-        texto("DERROTA", 140, 48, VERMELHO);
-        textoQuebra("O time desmaiou. Dá para tentar de novo.", 40, 80, 300, 3, CREME);
-    }
-}
-
-static void apresentar(void) {
-    Rectangle origem = {0.0f, 0.0f, (float)VIRT_L, -(float)VIRT_A};
-    int tremer_x = (int)(sinf(vis.tempo * 46.0f) * vis.tremor);
-    int tremer_y = (int)(cosf(vis.tempo * 33.0f) * vis.tremor * 0.6f);
-    Rectangle destino = {(float)tremer_x, (float)tremer_y, (float)JANELA_L, (float)JANELA_A};
-
-    BeginDrawing();
-    ClearBackground((Color){0, 0, 0, 255});
-    DrawTexturePro(alvo.texture, origem, destino, (Vector2){0.0f, 0.0f}, 0.0f, WHITE);
-    EndDrawing();
-    if (vis.tremor > 0.0f && vis.tremor < 1.2f) {
-        vis.tremor *= 0.84f;
-        if (vis.tremor < 0.12f) {
-            vis.tremor = 0.0f;
-        }
+        UnloadSound(vis.som_clique);
+        UnloadSound(vis.som_acerto);
+        vis.som_ok = 0;
+    }
+    if (IsAudioDeviceReady()) {
+        CloseAudioDevice();
     }
 }
 
@@ -1255,12 +509,14 @@ static int abrirGrafico(void) {
         return 1;
     }
     InitWindow(JANELA_L, JANELA_A, "PokéBattle: O Caso do Laboratório");
+    if (!IsWindowReady()) {
+        return 0;
+    }
     SetExitKey(KEY_NULL);
     SetTargetFPS(60);
     alvo = LoadRenderTexture(VIRT_L, VIRT_A);
     SetTextureFilter(alvo.texture, TEXTURE_FILTER_POINT);
-    carregarFonte();
-    prepararSom();
+    carregarAssets();
     grafico_ok = 1;
     return 1;
 }
@@ -1269,380 +525,1837 @@ static void fecharGrafico(void) {
     if (!grafico_ok) {
         return;
     }
-    soltarSom();
-    if (fonte_ok) {
-        UnloadFont(fonte);
-        fonte_ok = 0;
-    }
+    liberarAssets();
     UnloadRenderTexture(alvo);
     CloseWindow();
     grafico_ok = 0;
 }
 
-static void comecarQuadro(void) {
-    BeginTextureMode(alvo);
-    ClearBackground(NOITE);
+static void clique(void) {
+    if (vis.som_ok) {
+        PlaySound(vis.som_clique);
+    }
 }
 
-static void fecharQuadro(void) {
-    desenharFade();
-    EndTextureMode();
-    apresentar();
+static float larguraTexto(const char *texto, float tamanho) {
+    if (texto == NULL) {
+        return 0.0f;
+    }
+    if (tamanho > 8.0f && fonte_titulo_ok) {
+        return MeasureTextEx(fonte_titulo, texto, tamanho, ESPACO_FONTE).x;
+    }
+    if (fonte_ok) {
+        return MeasureTextEx(fonte, texto, tamanho, ESPACO_FONTE).x;
+    }
+    return (float)strlen(texto) * tamanho;
 }
 
-static void visitarDex(const Pokemon *pokemon, void *contexto) {
-    ListaDex *lista = (ListaDex *)contexto;
+static void textoAte(const char *origem, float x, float y, float maximo, Color cor) {
+    char buf[64];
+    int cortes = 0;
 
-    if (lista == NULL || pokemon == NULL || lista->n >= 24) {
+    copiarTexto(buf, sizeof buf, origem == NULL ? "" : origem);
+    while (buf[0] != '\0' && larguraTexto(buf, FONTE_PX) > maximo && cortes < 40) {
+        int fim = 0;
+        int anterior = 0;
+        while (buf[fim] != '\0') {
+            anterior = fim;
+            fim = avancarPonto(buf, fim);
+        }
+        buf[anterior] = '\0';
+        cortes++;
+    }
+    texto(buf, x, y, FONTE_PX, cor);
+}
+
+static void texto(const char *conteudo, float x, float y, float tamanho, Color cor) {
+    if (conteudo == NULL) {
         return;
     }
-    snprintf(lista->linhas[lista->n], sizeof lista->linhas[0], "#%03d %s",
-             pokemon->numero, pokemon->nome);
-    lista->n++;
+    if (tamanho > 8.0f && fonte_titulo_ok) {
+        DrawTextEx(fonte_titulo, conteudo, (Vector2){x, y}, tamanho, ESPACO_FONTE, cor);
+        return;
+    }
+    if (fonte_ok) {
+        DrawTextEx(fonte, conteudo, (Vector2){x, y}, tamanho, ESPACO_FONTE, cor);
+        return;
+    }
+    DrawText(conteudo, (int)x, (int)y, (int)tamanho, cor);
 }
 
-static int cliqueGolpe(const Pokemon *eu) {
+static void caixa(int x, int y, int w, int h, Color miolo) {
+    DrawRectangle(x, y, w, h, BLACK);
+    if (w > 4 && h > 4) {
+        DrawRectangle(x + 2, y + 2, w - 4, h - 4, miolo);
+        DrawRectangle(x + 2, y + h - 4, w - 4, 2, (Color){180, 180, 170, 255});
+    }
+}
+
+static Color corBarra(float razao) {
+    if (razao > 0.5f) {
+        return (Color){64, 200, 88, 255};
+    }
+    if (razao > 0.2f) {
+        return (Color){240, 208, 64, 255};
+    }
+    return (Color){220, 56, 48, 255};
+}
+
+static Color corTipo(Tipo tipo) {
+    switch (tipo) {
+    case TIPO_FOGO: return (Color){224, 96, 48, 255};
+    case TIPO_AGUA: return (Color){64, 128, 224, 255};
+    case TIPO_ELETRICO: return (Color){240, 200, 48, 255};
+    case TIPO_GRAMA: return (Color){88, 184, 72, 255};
+    case TIPO_GELO: return (Color){128, 216, 216, 255};
+    case TIPO_LUTADOR: return (Color){176, 64, 48, 255};
+    case TIPO_VENENO: return (Color){160, 72, 168, 255};
+    case TIPO_TERRA: return (Color){196, 168, 80, 255};
+    case TIPO_VOADOR: return (Color){144, 168, 232, 255};
+    case TIPO_PSIQUICO: return (Color){216, 80, 136, 255};
+    case TIPO_INSETO: return (Color){160, 176, 48, 255};
+    case TIPO_PEDRA: return (Color){176, 160, 80, 255};
+    case TIPO_FANTASMA: return (Color){104, 80, 152, 255};
+    case TIPO_DRAGAO: return (Color){96, 80, 200, 255};
+    case TIPO_NORMAL:
+    case TIPO_NENHUM:
+    default:
+        return (Color){160, 160, 144, 255};
+    }
+}
+
+static int avancarPonto(const char *texto, int indice) {
+    unsigned char c;
+
+    if (texto[indice] == '\0') {
+        return indice;
+    }
+    c = (unsigned char)texto[indice];
+    if ((c & 0x80) == 0) {
+        return indice + 1;
+    }
+    if ((c & 0xE0) == 0xC0 && texto[indice + 1] != '\0') {
+        return indice + 2;
+    }
+    if ((c & 0xF0) == 0xE0 && texto[indice + 1] != '\0' && texto[indice + 2] != '\0') {
+        return indice + 3;
+    }
+    if (texto[indice + 1] != '\0' && texto[indice + 2] != '\0' && texto[indice + 3] != '\0') {
+        return indice + 4;
+    }
+    return indice + 1;
+}
+
+static void prefixo(const char *origem, int bytes, char *destino, size_t capacidade) {
+    int i = 0;
+
+    if (capacidade == 0) {
+        return;
+    }
+    while (origem[i] != '\0' && i < bytes && (size_t)i + 1 < capacidade) {
+        destino[i] = origem[i];
+        i++;
+    }
+    destino[i] = '\0';
+}
+
+static void quebrar(const char *origem, char linhas[][48], int *quantidade, int maximo, float largura) {
+    char palavra[48];
+    int i = 0;
+    int n = 0;
+    char atual[48];
+
+    atual[0] = '\0';
+    *quantidade = 0;
+    if (origem == NULL) {
+        return;
+    }
+    while (origem[i] != '\0' && n < maximo) {
+        int p = 0;
+        int prox;
+
+        while (origem[i] == ' ') {
+            i++;
+        }
+        if (origem[i] == '\0') {
+            break;
+        }
+        while (origem[i] != '\0' && origem[i] != ' ' && p + 1 < (int)sizeof palavra) {
+            prox = avancarPonto(origem, i);
+            while (i < prox && p + 1 < (int)sizeof palavra) {
+                palavra[p++] = origem[i++];
+            }
+        }
+        palavra[p] = '\0';
+        if (atual[0] == '\0') {
+            copiarTexto(atual, sizeof atual, palavra);
+        } else {
+            char tentativa[160];
+            size_t ia = 0;
+            size_t ip = 0;
+
+            while (atual[ia] != '\0' && ia < 47) {
+                tentativa[ia] = atual[ia];
+                ia++;
+            }
+            tentativa[ia] = ' ';
+            while (palavra[ip] != '\0' && ia + 1 + ip < 120) {
+                tentativa[ia + 1 + ip] = palavra[ip];
+                ip++;
+            }
+            tentativa[ia + 1 + ip] = '\0';
+            if (larguraTexto(tentativa, FONTE_PX) <= largura) {
+                copiarTexto(atual, sizeof atual, tentativa);
+            } else {
+                copiarTexto(linhas[n], 48, atual);
+                n++;
+                copiarTexto(atual, sizeof atual, palavra);
+            }
+        }
+    }
+    if (atual[0] != '\0' && n < maximo) {
+        copiarTexto(linhas[n], 48, atual);
+        n++;
+    }
+    *quantidade = n;
+}
+
+static const char *textoBatalha(void) {
+    if (vis.fila_n <= 0 || vis.fila_i < 0 || vis.fila_i >= vis.fila_n) {
+        return "";
+    }
+    return vis.fila[vis.fila_i];
+}
+
+static void revelarTexto(float dt, const char *conteudo) {
+    int total;
+
+    if (conteudo == NULL) {
+        conteudo = "";
+    }
+    total = (int)strlen(conteudo);
+    if (vis.texto_completo || vis.bytes >= total) {
+        vis.bytes = total;
+        vis.texto_completo = 1;
+        return;
+    }
+    vis.acum += dt;
+    while (vis.acum > 0.028f && vis.bytes < total) {
+        vis.acum -= 0.028f;
+        vis.bytes = avancarPonto(conteudo, vis.bytes);
+    }
+    if (vis.bytes >= total) {
+        vis.texto_completo = 1;
+    }
+}
+
+static void completarTexto(const char *conteudo) {
+    vis.bytes = conteudo == NULL ? 0 : (int)strlen(conteudo);
+    vis.texto_completo = 1;
+}
+
+static void desenharMensagem(const char *conteudo, int x, int y, int w, int h) {
+    char visivel[TEXTO_SALA_MAX];
+    char linhas[6][48];
+    int n = 0;
     int i;
 
-    if (eu == NULL) {
-        return -1;
+    caixa(x, y, w, h, (Color){248, 248, 240, 255});
+    prefixo(conteudo == NULL ? "" : conteudo, vis.bytes, visivel, sizeof visivel);
+    quebrar(visivel, linhas, &n, 4, (float)w - 12.0f);
+    for (i = 0; i < n; i++) {
+        texto(linhas[i], (float)x + 6.0f, (float)y + 6.0f + (float)i * 10.0f, FONTE_PX, BLACK);
     }
-    for (i = 0; i < eu->qtd_golpes && i < 4; i++) {
-        int coluna = i % 2;
-        int fileira = i / 2;
-        int x = 4 + coluna * 190;
-        int y = 160 + fileira * 26;
-        Vector2 mouse = mouseVirtual();
-        Rectangle ret = {(float)x, (float)y, 186.0f, 24.0f};
-        if (CheckCollisionPointRec(mouse, ret) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-            return i;
-        }
-        if (IsKeyPressed(KEY_ONE + i) || IsKeyPressed(KEY_KP_1 + i)) {
-            return i;
-        }
+    if (vis.texto_completo && ((int)(vis.tempo * 3.0f) % 2) == 0) {
+        int ax = x + w - 14;
+        int ay = y + h - 12;
+        DrawRectangle(ax, ay, 6, 2, BLACK);
+        DrawRectangle(ax + 2, ay + 2, 2, 2, BLACK);
     }
-    return -1;
 }
 
-static void zerarVisual(void) {
-    memset(&vis, 0, sizeof vis);
-    vis.fade = 1.0f;
-    vis.hp_eu = 1.0f;
-    vis.hp_opp = 1.0f;
+static void filaLimpar(void) {
+    vis.fila_n = 0;
+    vis.fila_i = 0;
+    vis.bytes = 0;
+    vis.texto_completo = 0;
+    vis.acum = 0.0f;
 }
 
-static void atualizarRelogio(float dt) {
-    vis.tempo += dt;
-    if (vis.fade > 0.0f) {
-        vis.fade -= dt * 1.6f;
-        if (vis.fade < 0.0f) {
-            vis.fade = 0.0f;
-        }
+static void filaPor(const char *mensagem) {
+    if (mensagem == NULL || mensagem[0] == '\0' || vis.fila_n >= MAX_FILA) {
+        return;
     }
-    avancarTexto(dt);
-    atualizarParticulas(dt);
-    consumirFilaSePronta(dt);
+    copiarTexto(vis.fila[vis.fila_n], LOG_MAX, mensagem);
+    vis.fila_n++;
 }
 
-int executarInterfaceRaylib(void) {
-    Caso caso;
-    Tela tela = TELA_MENU;
-    ListaDex dex;
-    int resultado = 0;
-    int vivo = 1;
+static void narrarUi(void *contexto, const char *mensagem) {
+    (void)contexto;
+    filaPor(mensagem);
+}
 
-    if (!iniciarCaso(&caso)) {
-        fprintf(stderr, "Não foi possível carregar a Pokédex.\n");
+static void abrirFala(const char *mensagem) {
+    copiarTexto(vis.fala, sizeof vis.fala, mensagem == NULL ? "" : mensagem);
+    vis.fala_aberta = 1;
+    vis.bytes = 0;
+    vis.texto_completo = 0;
+    vis.acum = 0.0f;
+}
+
+static const char **mapaDa(const char *nome) {
+    if (nome == NULL) {
+        return MAPA_LAB;
+    }
+    if (strcmp(nome, "Pátio") == 0) return MAPA_PATIO;
+    if (strcmp(nome, "Câmara fria") == 0) return MAPA_FRIA;
+    if (strcmp(nome, "Tanque") == 0) return MAPA_TANQUE;
+    if (strcmp(nome, "Oficina") == 0) return MAPA_OFICINA;
+    if (strcmp(nome, "Jaula") == 0) return MAPA_JAULA;
+    if (strcmp(nome, "Arquivo") == 0) return MAPA_ARQUIVO;
+    if (strcmp(nome, "Sala do chefe") == 0) return MAPA_CHEFE;
+    return MAPA_LAB;
+}
+
+static char tileEm(const char **mapa, int x, int y) {
+    if (mapa == NULL || y < 0 || y >= MAPA_A || x < 0 || x >= MAPA_L) {
+        return '#';
+    }
+    if (mapa[y] == NULL || (int)strlen(mapa[y]) <= x) {
+        return '#';
+    }
+    return mapa[y][x];
+}
+
+static int solido(char simbolo, const NoSala *sala) {
+    if (simbolo == '#' || simbolo == 'M' || simbolo == 'C' || simbolo == 'B' ||
+        simbolo == 'R' || simbolo == 'S' || simbolo == 'V' || simbolo == 'P' ||
+        simbolo == 'H' || simbolo == '~' || simbolo == 'D') {
         return 1;
     }
-    memset(&dex, 0, sizeof dex);
-    zerarVisual();
-    abrirGrafico();
-
-    while (vivo && !WindowShouldClose()) {
-        float dt = GetFrameTime();
-        NoSala *sala;
-        int i;
-
-        atualizarRelogio(dt);
-        atualizarBarras(&caso, dt);
-
-        if (IsKeyPressed(KEY_ESCAPE)) {
-            if (vis.caderno) {
-                vis.caderno = 0;
-            } else if (tela != TELA_MENU) {
-                tela = TELA_MENU;
-                vis.fade = 0.7f;
-            }
-        }
-        if (tela == TELA_SALA && IsKeyPressed(KEY_N)) {
-            vis.caderno = !vis.caderno;
-        }
-
-        comecarQuadro();
-        if (tela == TELA_MENU) {
-            desenharMenu();
-            if (botao("NOVO JOGO", 112, 146, 160, 18, AZUL) || IsKeyPressed(KEY_ONE) || IsKeyPressed(KEY_KP_1)) {
-                if (comecarCaso(&caso)) {
-                    memset(&vis.fila, 0, sizeof vis.fila);
-                    vis.fila_n = 0;
-                    vis.caderno = 0;
-                    resultado = 0;
-                    tela = TELA_SALA;
-                    vis.fade = 0.8f;
-                    tocar(vis.som_clique);
-                }
-            }
-            if (botao("AJUDA", 28, 170, 100, 18, AZUL) || IsKeyPressed(KEY_TWO)) {
-                tela = TELA_AJUDA;
-                vis.fade = 0.5f;
-            }
-            if (botao("POKEDEX", 140, 170, 100, 18, AZUL) || IsKeyPressed(KEY_THREE)) {
-                dex.n = 0;
-                percorrerEmOrdem(&caso.nucleo.arvore, visitarDex, &dex);
-                tela = TELA_POKEDEX;
-                vis.fade = 0.5f;
-            }
-            if (botao("SAIR", 252, 170, 100, 18, VERMELHO) || IsKeyPressed(KEY_FOUR)) {
-                vivo = 0;
-            }
-        } else if (tela == TELA_AJUDA) {
-            desenharAjuda();
-            if (botao("VOLTAR", 8, 192, 72, 16, AZUL)) {
-                tela = TELA_MENU;
-            }
-        } else if (tela == TELA_POKEDEX) {
-            desenharPokedex(&dex);
-            if (botao("VOLTAR", 300, 192, 72, 16, AZUL)) {
-                tela = TELA_MENU;
-            }
-        } else if (tela == TELA_SALA) {
-            sala = salaAtual(&caso.salas);
-            if (sala != NULL && vis.ultimo_resolvido == 0 && sala->resolvido && sala->habilidade != HAB_NENHUMA) {
-                soltarParticulas(188, 70, sala->habilidade);
-            }
-            vis.ultimo_resolvido = (sala != NULL && sala->resolvido) ? 1 : 0;
-            desenharSala(&caso);
-            if (vis.caderno) {
-                desenharCaderno(&caso);
-            }
-            i = 4;
-            if (sala != NULL && !sala->resolvido) {
-                char rotulo[32];
-                snprintf(rotulo, sizeof rotulo, "%s", nomeHabilidade(sala->habilidade));
-                if (botao(rotulo, i, 188, 72, 16, AZUL) || IsKeyPressed(KEY_E)) {
-                    casoUsarHabilidade(&caso);
-                }
-                i += 76;
-            }
-            if (caso.captura_disponivel) {
-                if (botao("CAPTURAR", i, 188, 80, 16, (Color){40, 90, 48, 255}) || IsKeyPressed(KEY_C)) {
-                    if (casoCapturar(&caso)) {
-                        tocar(vis.som_clique);
-                    }
-                }
-                i += 84;
-            }
-            if (sala != NULL && sala->prox != NULL && sala->resolvido && sala->prox->desbloqueada &&
-                (!sala->inicia_batalha || sala->batalha_concluida)) {
-                if (botao("AVANCAR", i, 188, 72, 16, AZUL) || IsKeyPressed(KEY_D)) {
-                    casoAvancar(&caso);
-                    vis.ultimo_resolvido = 0;
-                }
-                i += 76;
-            }
-            if (sala != NULL && sala->ant != NULL) {
-                if (botao("VOLTAR", i, 188, 64, 16, AZUL) || IsKeyPressed(KEY_A)) {
-                    casoVoltar(&caso);
-                    vis.ultimo_resolvido = 0;
-                }
-            }
-            if (sala != NULL && sala->inicia_batalha && !sala->batalha_concluida) {
-                const char *rotulo = sala->e_chefe ? "GIOVANNI" : "LUTAR";
-                if (botao(rotulo, 280, 188, 96, 16, VERMELHO) || IsKeyPressed(KEY_B)) {
-                    if (casoIniciarBatalha(&caso)) {
-                        vis.fila_n = 0;
-                        vis.hp_pronto = 0;
-                        enfileirarTexto(caso.oponente_atual.fala);
-                        tela = TELA_BATALHA;
-                        vis.fade = 1.0f;
-                        vis.entrada = 0.0f;
-                    }
-                }
-            }
-        } else if (tela == TELA_BATALHA) {
-            const Pokemon *eu = obterAtivo(&caso.nucleo.time);
-            int golpe;
-
-            desenharBatalha(&caso);
-            golpe = cliqueGolpe(eu);
-            if (golpe >= 0) {
-                SaidaBatalha saida;
-                int codigo;
-
-                vis.fila_n = 0;
-                saida.narrar = narrarCombate;
-                saida.contexto = NULL;
-                saida.log = &caso.nucleo.log;
-                codigo = casoExecutarGolpe(&caso, golpe, &saida);
-                vis.hp_pronto = 1;
-                if (codigo == 0) {
-                    if (caso.caso_encerrado) {
-                        resultado = 1;
-                        tela = TELA_FIM;
-                        vis.fade = 1.0f;
-                    } else {
-                        tela = TELA_SALA;
-                        vis.fade = 0.6f;
-                    }
-                } else if (codigo < 0 && codigo != -2) {
-                    resultado = -1;
-                    tela = TELA_FIM;
-                    vis.fade = 1.0f;
-                }
-            }
-        } else if (tela == TELA_FIM) {
-            desenharFim(resultado > 0);
-            if (resultado <= 0 && (botao("DE NOVO", 40, 140, 80, 16, AZUL))) {
-                if (casoIniciarBatalha(&caso)) {
-                    vis.fila_n = 0;
-                    vis.hp_pronto = 0;
-                    tela = TELA_BATALHA;
-                }
-            }
-            if (botao("MENU", 140, 140, 64, 16, AZUL)) {
-                tela = TELA_MENU;
-            }
-        }
-        fecharQuadro();
+    if ((simbolo == 'I' || simbolo == 'F') && (sala == NULL || !sala->resolvido)) {
+        return 1;
     }
-
-    fecharGrafico();
-    encerrarCaso(&caso);
     return 0;
 }
 
-static void irAteOChefe(Caso *caso) {
-    int seguranca = 0;
+static int portaAberta(const NoSala *sala) {
+    if (sala == NULL || sala->prox == NULL) {
+        return 0;
+    }
+    if (!sala->resolvido || !sala->prox->desbloqueada) {
+        return 0;
+    }
+    if (sala->inicia_batalha && !sala->batalha_concluida) {
+        return 0;
+    }
+    return 1;
+}
 
-    while (!caso->caso_encerrado && seguranca < 40) {
-        NoSala *sala = salaAtual(&caso->salas);
-        int luta = 1;
-        int golpes = 0;
+static int numeroEncontro(const char *nome) {
+    if (nome == NULL) {
+        return 0;
+    }
+    if (strcmp(nome, "Pátio") == 0) return 4;
+    if (strcmp(nome, "Tanque") == 0) return 7;
+    if (strcmp(nome, "Jaula") == 0) return 65;
+    return 0;
+}
 
-        if (sala == NULL) {
-            return;
+static void blitTile(int coluna, int linha, int x, int y) {
+    Rectangle origem;
+    Rectangle destino;
+
+    if (!tiles_ok) {
+        DrawRectangle(x, y, TILE, TILE, (Color){96, 72, 48, 255});
+        return;
+    }
+    origem = (Rectangle){(float)coluna * 17.0f, (float)linha * 17.0f, 16.0f, 16.0f};
+    destino = (Rectangle){(float)x, (float)y, 16.0f, 16.0f};
+    DrawTexturePro(tileset, origem, destino, (Vector2){0.0f, 0.0f}, 0.0f, WHITE);
+}
+
+static void entrarNaSala(void) {
+    NoSala *sala = salaAtual(&caso_jogo.salas);
+    const char **mapa;
+    int y;
+    int px;
+    int py;
+
+    if (sala == NULL) {
+        return;
+    }
+    mapa = mapaDa(sala->nome);
+    copiarTexto(mundo.sala, sizeof mundo.sala, sala->nome);
+    mundo.tx = 10;
+    mundo.ty = 4;
+    if (solido(tileEm(mapa, mundo.tx, mundo.ty), sala)) {
+        for (y = 1; y < MAPA_A - 1; y++) {
+            if (!solido(tileEm(mapa, 10, y), sala)) {
+                mundo.ty = y;
+                break;
+            }
         }
-        if (sala->e_chefe) {
-            casoIniciarBatalha(caso);
-            return;
-        }
-        if (!sala->resolvido) {
-            casoUsarHabilidade(caso);
-        }
+    }
+    mundo.de_x = mundo.tx;
+    mundo.de_y = mundo.ty;
+    mundo.para_x = mundo.tx;
+    mundo.para_y = mundo.ty;
+    mundo.anda = 1.0f;
+    mundo.movendo = 0;
+    mundo.dir = 0;
+    px = mundo.tx;
+    py = mundo.ty - 2;
+    if (solido(tileEm(mapa, px, py), sala)) {
+        py = mundo.ty - 1;
+    }
+    if (solido(tileEm(mapa, px, py), sala)) {
+        px = mundo.tx;
+        py = mundo.ty + 1;
+    }
+    if (solido(tileEm(mapa, px, py), sala)) {
+        px = mundo.tx;
+        py = mundo.ty;
+    }
+    mundo.pika_x = px;
+    mundo.pika_y = py;
+    mundo.pika_de_x = px;
+    mundo.pika_de_y = py;
+    mundo.pika_anda = 1.0f;
+    mundo.pika_dir = 0;
+    mundo.estava_encontro = (tileEm(mapa, mundo.tx, mundo.ty) == 'E' ||
+                             tileEm(mapa, mundo.tx, mundo.ty) == 'G');
+    vis.leu_puzzle = 0;
+    vis.fala_aberta = 0;
+    vis.caderno = 0;
+}
+
+static void tentarPorta(void) {
+    NoSala *sala = salaAtual(&caso_jogo.salas);
+
+    if (sala == NULL) {
+        return;
+    }
+    if (!casoAvancar(&caso_jogo)) {
         if (sala->inicia_batalha && !sala->batalha_concluida) {
-            if (!casoIniciarBatalha(caso)) {
-                return;
-            }
-            while (luta == 1 && golpes < 60) {
-                const Pokemon *eu = obterAtivo(&caso->nucleo.time);
-                const Pokemon *opp = obterAtivo(&caso->oponente_atual.time);
-                luta = casoExecutarGolpe(caso, escolherGolpeAdversario(eu, opp), NULL);
-                golpes++;
-            }
-            if (caso->captura_disponivel) {
-                casoCapturar(caso);
-            }
+            abrirFala("Ainda há um Pokémon no caminho.");
+        } else {
+            abrirFala("A porta está trancada.");
         }
-        if (!casoAvancar(caso)) {
-            return;
-        }
-        seguranca++;
+        return;
+    }
+    clique();
+    entrarNaSala();
+}
+
+static void comecarTransicao(void) {
+    vis.transicao = 1;
+    vis.trans_t = 0.0f;
+}
+
+static void prepararBatalha(void) {
+    const Pokemon *eu = obterAtivo(&caso_jogo.nucleo.time);
+    const Pokemon *op = obterAtivo(&caso_jogo.oponente_atual.time);
+
+    filaLimpar();
+    vis.fase = BAT_ENTRADA;
+    vis.entrada = 0.0f;
+    vis.cursor = 0;
+    vis.captura_t = 0.0f;
+    vis.captura_feita = 0;
+    vis.resultado = 1;
+    vis.vitoria = 0;
+    vis.flash_eu = 0.0f;
+    vis.flash_opp = 0.0f;
+    vis.tremor_eu = 0.0f;
+    vis.tremor_opp = 0.0f;
+    vis.queda_eu = 0;
+    vis.queda_opp = 0;
+    if (eu != NULL && eu->hp_max > 0) {
+        vis.hp_eu = (float)eu->hp_atual / (float)eu->hp_max;
+        vis.ultimo_eu = eu->numero;
+    }
+    if (op != NULL && op->hp_max > 0) {
+        vis.hp_opp = (float)op->hp_atual / (float)op->hp_max;
+        vis.ultimo_opp = op->numero;
+    }
+    if (caso_jogo.oponente_atual.fala[0] != '\0') {
+        filaPor(caso_jogo.oponente_atual.fala);
+    } else if (op != NULL) {
+        char linha[LOG_MAX];
+        snprintf(linha, sizeof linha, "Um %s selvagem apareceu!", op->nome);
+        filaPor(linha);
+    } else {
+        filaPor("A luta começou.");
     }
 }
 
-static void quadroSala(Caso *caso, int caderno, const char *arquivo) {
-    vis.fade = 0.0f;
-    vis.texto_completo = 1;
-    vis.caderno = caderno;
-    comecarQuadro();
-    desenharSala(caso);
-    if (caderno) {
-        desenharCaderno(caso);
+static void tentarBatalha(void) {
+    NoSala *sala = salaAtual(&caso_jogo.salas);
+
+    if (sala == NULL) {
+        return;
     }
-    if (salaAtual(&caso->salas) != NULL && !salaAtual(&caso->salas)->resolvido) {
-        botao("CHOQUE", 4, 192, 72, 16, AZUL);
+    if (sala->batalha_concluida) {
+        abrirFala(sala->texto_resolvido);
+        return;
+    }
+    if (!casoIniciarBatalha(&caso_jogo)) {
+        abrirFala("Não há luta aqui.");
+        return;
+    }
+    clique();
+    comecarTransicao();
+}
+
+static void tentarPuzzle(char simbolo) {
+    NoSala *sala = salaAtual(&caso_jogo.salas);
+
+    if (sala == NULL) {
+        return;
+    }
+    if (simbolo != 'P' && simbolo != 'I' && simbolo != 'F') {
+        return;
+    }
+    if (sala->resolvido) {
+        abrirFala(sala->texto_resolvido);
+        return;
+    }
+    if (!vis.leu_puzzle) {
+        vis.leu_puzzle = 1;
+        abrirFala(sala->texto_puzzle);
+        return;
+    }
+    if (casoUsarHabilidade(&caso_jogo)) {
+        clique();
+        abrirFala(sala->texto_resolvido);
+        return;
+    }
+    abrirFala("Nenhum Pokémon do time resolve isto.");
+}
+
+static int acaoPressionada(void) {
+    return IsKeyPressed(KEY_Z) || IsKeyPressed(KEY_E) || IsKeyPressed(KEY_ENTER) ||
+           IsKeyPressed(KEY_SPACE);
+}
+
+static int voltarPressionado(void) {
+    return IsKeyPressed(KEY_X) || IsKeyPressed(KEY_BACKSPACE);
+}
+
+static int direcaoDe(int dx, int dy) {
+    if (dx > 0) return 2;
+    if (dx < 0) return 1;
+    if (dy < 0) return 3;
+    return 0;
+}
+
+static void comecarPasso(int dx, int dy) {
+    mundo.dir = direcaoDe(dx, dy);
+    mundo.de_x = mundo.tx;
+    mundo.de_y = mundo.ty;
+    mundo.para_x = mundo.tx + dx;
+    mundo.para_y = mundo.ty + dy;
+    mundo.anda = 0.0f;
+    mundo.movendo = 1;
+    mundo.pika_de_x = mundo.pika_x;
+    mundo.pika_de_y = mundo.pika_y;
+    mundo.pika_x = mundo.tx;
+    mundo.pika_y = mundo.ty;
+    mundo.pika_anda = 0.0f;
+    mundo.pika_dir = mundo.dir;
+}
+
+static void lerMovimento(float dt) {
+    NoSala *sala = salaAtual(&caso_jogo.salas);
+    const char **mapa = mapaDa(sala == NULL ? "" : sala->nome);
+    int direita;
+    int esquerda;
+    int baixo;
+    int cima;
+    int dx = 0;
+    int dy = 0;
+    int nx;
+    int ny;
+    char simbolo;
+
+    if (mundo.movendo) {
+        mundo.anda += dt / 0.16f;
+        mundo.pika_anda += dt / 0.16f;
+        if (mundo.pika_anda > 1.0f) {
+            mundo.pika_anda = 1.0f;
+        }
+        if (mundo.anda >= 1.0f) {
+            mundo.anda = 1.0f;
+            mundo.tx = mundo.para_x;
+            mundo.ty = mundo.para_y;
+            mundo.movendo = 0;
+        }
+        return;
+    }
+
+    direita = IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D);
+    esquerda = IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A);
+    baixo = IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_S);
+    cima = IsKeyDown(KEY_UP) || IsKeyDown(KEY_W);
+    if (direita && !esquerda) dx = 1;
+    else if (esquerda && !direita) dx = -1;
+    else if (baixo && !cima) dy = 1;
+    else if (cima && !baixo) dy = -1;
+    if (dx == 0 && dy == 0) {
+        return;
+    }
+    mundo.dir = direcaoDe(dx, dy);
+    nx = mundo.tx + dx;
+    ny = mundo.ty + dy;
+    simbolo = tileEm(mapa, nx, ny);
+    if (simbolo == 'D') {
+        tentarPorta();
+        return;
+    }
+    if (solido(simbolo, sala)) {
+        return;
+    }
+    comecarPasso(dx, dy);
+}
+
+static void verificarEncontro(void) {
+    NoSala *sala = salaAtual(&caso_jogo.salas);
+    const char **mapa = mapaDa(sala == NULL ? "" : sala->nome);
+    char simbolo = tileEm(mapa, mundo.tx, mundo.ty);
+    int encontro = (simbolo == 'E' || simbolo == 'G');
+
+    if (!mundo.movendo && encontro && !mundo.estava_encontro) {
+        tentarBatalha();
+    }
+    if (!mundo.movendo) {
+        mundo.estava_encontro = encontro;
+    }
+}
+
+static void interagir(void) {
+    NoSala *sala = salaAtual(&caso_jogo.salas);
+    const char **mapa = mapaDa(sala == NULL ? "" : sala->nome);
+    int fx = mundo.tx;
+    int fy = mundo.ty;
+    char a_frente;
+    char aqui;
+
+    if (mundo.dir == 0) fy++;
+    else if (mundo.dir == 3) fy--;
+    else if (mundo.dir == 1) fx--;
+    else fx++;
+    a_frente = tileEm(mapa, fx, fy);
+    aqui = tileEm(mapa, mundo.tx, mundo.ty);
+    if (a_frente == 'D') {
+        tentarPorta();
+        return;
+    }
+    if (a_frente == 'E' || a_frente == 'G' || aqui == 'E' || aqui == 'G') {
+        tentarBatalha();
+        return;
+    }
+    if (a_frente == 'P' || a_frente == 'I' || a_frente == 'F') {
+        tentarPuzzle(a_frente);
+    }
+}
+
+static int copiarHistorico(char linhas[][LOG_MAX], int maximo) {
+    char tmp[16][LOG_MAX];
+    int n = 0;
+    int i;
+    int mostrar;
+    int inicio;
+
+    while (n < 16 && desempilharLog(&caso_jogo.nucleo.log, tmp[n], LOG_MAX)) {
+        n++;
+    }
+    for (i = n - 1; i >= 0; i--) {
+        empilharLog(&caso_jogo.nucleo.log, tmp[i]);
+    }
+    mostrar = n < maximo ? n : maximo;
+    inicio = n - mostrar;
+    for (i = 0; i < mostrar; i++) {
+        int crono = inicio + i;
+        copiarTexto(linhas[i], LOG_MAX, tmp[n - 1 - crono]);
+    }
+    return mostrar;
+}
+
+static void atualizarMundo(float dt) {
+    NoSala *sala;
+
+    if (vis.transicao != 0) {
+        return;
+    }
+    sala = salaAtual(&caso_jogo.salas);
+    if (sala != NULL && strcmp(sala->nome, mundo.sala) != 0) {
+        entrarNaSala();
+    }
+    if (vis.fala_aberta) {
+        revelarTexto(dt, vis.fala);
+        if (acaoPressionada() || IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            if (!vis.texto_completo) {
+                completarTexto(vis.fala);
+            } else {
+                vis.fala_aberta = 0;
+            }
+        }
+        return;
+    }
+    if (vis.caderno) {
+        if (acaoPressionada() || IsKeyPressed(KEY_N) || IsKeyPressed(KEY_ESCAPE)) {
+            vis.caderno = 0;
+        }
+        return;
+    }
+    if (IsKeyPressed(KEY_N)) {
+        vis.caderno = 1;
+        return;
+    }
+    if (acaoPressionada()) {
+        interagir();
+        return;
+    }
+    lerMovimento(dt);
+    verificarEncontro();
+}
+
+static void desenharSpriteMon(int numero, int costas, Rectangle destino, float flash) {
+    SpriteMon *sp;
+    Texture2D tex;
+    int ok;
+    Rectangle origem;
+    Color tinta = WHITE;
+
+    if (numero <= 0 || numero >= MAX_POKEMON) {
+        DrawRectangleRec(destino, (Color){240, 200, 64, 255});
+        return;
+    }
+    sp = &sprites[numero];
+    if (costas && sp->tem_costas) {
+        tex = sp->costas;
+        ok = 1;
+    } else if (sp->tem_frente) {
+        tex = sp->frente;
+        ok = 1;
     } else {
-        botao("AVANCAR", 4, 192, 72, 16, AZUL);
+        ok = 0;
+        memset(&tex, 0, sizeof tex);
     }
-    botao("CADERNO", 160, 192, 72, 16, AZUL);
-    fecharQuadro();
-    TakeScreenshot(arquivo);
+    if (!ok) {
+        DrawRectangleRec(destino, corTipo(TIPO_NORMAL));
+        return;
+    }
+    origem = (Rectangle){0.0f, 0.0f, (float)tex.width, (float)tex.height};
+    if (flash > 0.15f) {
+        tinta = (Color){255, 255, 255, 255};
+        BeginBlendMode(BLEND_ADDITIVE);
+        DrawTexturePro(tex, origem, destino, (Vector2){0.0f, 0.0f}, 0.0f, tinta);
+        EndBlendMode();
+    }
+    DrawTexturePro(tex, origem, destino, (Vector2){0.0f, 0.0f}, 0.0f, WHITE);
+}
+
+static void desenharFolha(Texture2D folha, int ok, int dir, int quadro, float x, float y) {
+    Rectangle origem;
+    Rectangle destino;
+
+    if (!ok) {
+        DrawRectangle((int)x, (int)y, 16, 24, (Color){48, 72, 148, 255});
+        return;
+    }
+    if (dir < 0) dir = 0;
+    if (dir > 3) dir = 0;
+    if (quadro < 0) quadro = 0;
+    if (quadro > 2) quadro = 2;
+    origem = (Rectangle){(float)quadro * 16.0f, (float)dir * 32.0f, 16.0f, 32.0f};
+    destino = (Rectangle){x, y, 16.0f, 32.0f};
+    DrawTexturePro(folha, origem, destino, (Vector2){0.0f, 0.0f}, 0.0f, WHITE);
+}
+
+static void desenharMapa(const NoSala *sala, int camx, int camy) {
+    const char **mapa = mapaDa(sala == NULL ? "" : sala->nome);
+    const char *nome = sala == NULL ? "" : sala->nome;
+    int x0 = camx / TILE;
+    int y0 = camy / TILE;
+    int x1 = (camx + VIRT_L) / TILE + 2;
+    int y1 = (camy + VIRT_A) / TILE + 2;
+    int x;
+    int y;
+
+    if (x0 < 0) x0 = 0;
+    if (y0 < 0) y0 = 0;
+    if (x1 > MAPA_L) x1 = MAPA_L;
+    if (y1 > MAPA_A) y1 = MAPA_A;
+
+    for (y = y0; y < y1; y++) {
+        for (x = x0; x < x1; x++) {
+            char simbolo = tileEm(mapa, x, y);
+            int px = x * TILE - camx;
+            int py = y * TILE - camy;
+            int aberto = portaAberta(sala);
+
+            if (simbolo == ',') {
+                blitTile(24, 6, px, py);
+            } else if (simbolo != '#') {
+                blitTile(24, 0, px, py);
+            }
+            if (simbolo == '#') {
+                blitTile(0, 13, px, py);
+            } else if (simbolo == 'M') {
+                blitTile(2, 13, px, py);
+            } else if (simbolo == 'C' || simbolo == 'R') {
+                blitTile(22, 8, px, py);
+            } else if (simbolo == 'B' || (simbolo == 'P' && strcmp(nome, "Arquivo") == 0)) {
+                blitTile(5, 13, px, py);
+            } else if (simbolo == 'S' || simbolo == 'P') {
+                blitTile(16, 14, px, py);
+            } else if (simbolo == 'V') {
+                blitTile(16, 0, px, py);
+            } else if (simbolo == 'D') {
+                blitTile(aberto ? 13 : 5, aberto ? 9 : 9, px, py);
+            } else if (simbolo == 'H') {
+                DrawRectangle(px + 4, py, 3, TILE, (Color){48, 52, 64, 255});
+                DrawRectangle(px + 10, py, 3, TILE, (Color){48, 52, 64, 255});
+            } else if (simbolo == '~') {
+                DrawRectangle(px, py, TILE, TILE, (Color){36, 110, 180, 220});
+                DrawRectangle(px, py + 4, TILE, 2, (Color){180, 220, 255, 140});
+            } else if (simbolo == 'I' && (sala == NULL || !sala->resolvido)) {
+                DrawRectangle(px + 1, py + 1, 14, 14, (Color){186, 230, 240, 230});
+                DrawRectangleLines(px + 1, py + 1, 14, 14, (Color){80, 140, 170, 255});
+            } else if (simbolo == 'F' && (sala == NULL || !sala->resolvido)) {
+                int ch = ((int)(vis.tempo * 8.0f) + x + y) % 2;
+                DrawRectangle(px + 3, py + 4 + ch, 10, 10, (Color){220, 72, 24, 255});
+                DrawRectangle(px + 5, py + 2 + ch, 6, 6, (Color){255, 196, 48, 255});
+            }
+        }
+    }
+}
+
+static void desenharMundo(void) {
+    NoSala *sala = salaAtual(&caso_jogo.salas);
+    const char **mapa = mapaDa(sala == NULL ? "" : sala->nome);
+    float jx;
+    float jy;
+    float t = mundo.movendo ? mundo.anda : 1.0f;
+    float tp = mundo.pika_anda;
+    float pix;
+    float piy;
+    float px;
+    float py;
+    int camx;
+    int camy;
+    int maxx = MAPA_L * TILE - VIRT_L;
+    int maxy = MAPA_A * TILE - VIRT_A;
+    int quadro = 0;
+    int x;
+    int y;
+    int numero;
+
+    if (tp > 1.0f) tp = 1.0f;
+    jx = ((float)mundo.de_x + (float)(mundo.para_x - mundo.de_x) * t) * TILE;
+    jy = ((float)mundo.de_y + (float)(mundo.para_y - mundo.de_y) * t) * TILE;
+    pix = ((float)mundo.pika_de_x + (float)(mundo.pika_x - mundo.pika_de_x) * tp) * TILE;
+    piy = ((float)mundo.pika_de_y + (float)(mundo.pika_y - mundo.pika_de_y) * tp) * TILE;
+    camx = (int)jx - VIRT_L / 2 + TILE / 2;
+    camy = (int)jy - VIRT_A / 2 + TILE;
+    if (maxx < 0) maxx = 0;
+    if (maxy < 0) maxy = 0;
+    if (camx < 0) camx = 0;
+    if (camy < 0) camy = 0;
+    if (camx > maxx) camx = maxx;
+    if (camy > maxy) camy = maxy;
+
+    desenharMapa(sala, camx, camy);
+    if (sala != NULL && strcmp(sala->nome, "Laboratório") == 0 && !sala->resolvido) {
+        DrawRectangle(0, 0, VIRT_L, 28, (Color){0, 0, 16, 150});
+        DrawRectangle(0, 0, 18, VIRT_A, (Color){0, 0, 16, 120});
+        DrawRectangle(VIRT_L - 18, 0, 18, VIRT_A, (Color){0, 0, 16, 120});
+    }
+    if (sala != NULL && strcmp(sala->nome, "Câmara fria") == 0) {
+        DrawRectangle(0, 0, VIRT_L, VIRT_A, (Color){140, 190, 220, 40});
+    }
+    if (sala != NULL && strcmp(sala->nome, "Sala do chefe") == 0) {
+        DrawRectangle(0, 0, VIRT_L, VIRT_A, (Color){80, 0, 0, 28});
+    }
+
+    if (mundo.movendo) {
+        quadro = mundo.anda < 0.5f ? 1 : 2;
+    }
+    px = jx - (float)camx;
+    py = jy - (float)camy - 16.0f;
+    {
+        float fx = pix - (float)camx - 8.0f;
+        float fy = piy - (float)camy - 16.0f;
+        if (piy <= jy) {
+            DrawEllipse((int)fx + 16, (int)fy + 30, 8.0f, 3.0f, (Color){0, 0, 0, 70});
+            desenharSpriteMon(25, 0, (Rectangle){fx, fy, 32.0f, 32.0f}, 0.0f);
+        }
+        DrawEllipse((int)px + 8, (int)py + 30, 7.0f, 3.0f, (Color){0, 0, 0, 70});
+        desenharFolha(detetive_tex, detetive_ok, mundo.dir, quadro, px, py);
+        if (piy > jy) {
+            DrawEllipse((int)fx + 16, (int)fy + 30, 8.0f, 3.0f, (Color){0, 0, 0, 70});
+            desenharSpriteMon(25, 0, (Rectangle){fx, fy, 32.0f, 32.0f}, 0.0f);
+        }
+    }
+
+    numero = numeroEncontro(sala == NULL ? "" : sala->nome);
+    for (y = 0; y < MAPA_A; y++) {
+        for (x = 0; x < MAPA_L; x++) {
+            char simbolo = tileEm(mapa, x, y);
+            float ex = (float)(x * TILE - camx);
+            float ey = (float)(y * TILE - camy) - 16.0f;
+
+            if (simbolo == 'E' && numero != 0 && sala != NULL && !sala->batalha_concluida) {
+                DrawEllipse((int)ex + 8, (int)ey + 30, 8.0f, 3.0f, (Color){0, 0, 0, 70});
+                desenharSpriteMon(numero, 0, (Rectangle){ex - 8.0f, ey, 32.0f, 32.0f}, 0.0f);
+            }
+            if (simbolo == 'G' && (sala == NULL || !sala->batalha_concluida)) {
+                desenharFolha(giovanni_ow, giovanni_ow_ok, 0, 0, ex, ey);
+            }
+        }
+    }
+
+    if (sala != NULL && !vis.fala_aberta) {
+        float lw = larguraTexto(sala->nome, FONTE_PX);
+        caixa(2, 2, (int)lw + 12, 16, (Color){16, 20, 32, 230});
+        texto(sala->nome, 8.0f, 6.0f, FONTE_PX, (Color){248, 248, 236, 255});
+    }
+    if (vis.fala_aberta) {
+        desenharMensagem(vis.fala, 0, 112, VIRT_L, 48);
+    }
+    if (vis.caderno) {
+        char linhas[8][LOG_MAX];
+        int n;
+        int i;
+        NoSala *cursor;
+
+        DrawRectangle(0, 0, VIRT_L, VIRT_A, (Color){0, 0, 0, 90});
+        caixa(16, 12, 208, 136, (Color){236, 224, 184, 255});
+        texto("CADERNO", 24.0f, 18.0f, FONTE_PX, (Color){80, 48, 24, 255});
+        n = copiarHistorico(linhas, 6);
+        for (i = 0; i < n; i++) {
+            char curto[22];
+            prefixo(linhas[i], 21, curto, sizeof curto);
+            texto(curto, 24.0f, 34.0f + (float)i * 10.0f, FONTE_PX, (Color){40, 32, 24, 255});
+        }
+        cursor = caso_jogo.salas.inicio;
+        i = 0;
+        while (cursor != NULL && i < 4) {
+            texto(cursor->nome, 24.0f, 100.0f + (float)i * 10.0f, FONTE_PX,
+                  cursor->resolvido ? (Color){32, 96, 48, 255} : (Color){120, 48, 32, 255});
+            if (cursor == caso_jogo.salas.atual) {
+                break;
+            }
+            cursor = cursor->prox;
+            i++;
+        }
+    }
+}
+
+static int ppBase(int indice) {
+    const int bases[] = {35, 25, 15, 10};
+    if (indice < 0) indice = 0;
+    if (indice > 3) indice = 3;
+    return bases[indice];
+}
+
+static void garantirPp(const Pokemon *pokemon) {
+    int slot;
+    int i;
+
+    if (pokemon == NULL) {
+        return;
+    }
+    slot = posicaoDoAtivo(&caso_jogo.nucleo.time);
+    if (slot < 0 || slot >= 6 || vis.pp_init[slot]) {
+        return;
+    }
+    for (i = 0; i < 4; i++) {
+        vis.pp[slot][i] = i < pokemon->qtd_golpes ? ppBase(i) : 0;
+    }
+    vis.pp_init[slot] = 1;
+}
+
+static void animarBarra(float *mostrado, float alvo, float dt, int *queda, float *flash, float *tremor) {
+    if (alvo > *mostrado + 0.004f) {
+        *mostrado = alvo;
+        *queda = 0;
+        return;
+    }
+    if (*mostrado > alvo + 0.004f) {
+        if (!*queda) {
+            *flash = 0.22f;
+            *tremor = 0.32f;
+            *queda = 1;
+            if (vis.som_ok) {
+                PlaySound(vis.som_acerto);
+            }
+        }
+        *mostrado -= dt * 0.7f;
+        if (*mostrado < alvo) {
+            *mostrado = alvo;
+        }
+    } else {
+        *queda = 0;
+    }
+}
+
+static void desenharBarraHp(int x, int y, int w, float razao) {
+    int cheia = (int)((float)(w - 2) * razao);
+
+    if (cheia < 0) cheia = 0;
+    if (cheia > w - 2) cheia = w - 2;
+    DrawRectangle(x, y, w, 6, BLACK);
+    DrawRectangle(x + 1, y + 1, w - 2, 4, (Color){48, 48, 48, 255});
+    if (cheia > 0) {
+        DrawRectangle(x + 1, y + 1, cheia, 4, corBarra(razao));
+    }
+}
+
+static void desenharCaixaHp(const Pokemon *pokemon, float razao, int x, int y, int w, int mostrar_numeros) {
+    char nivel[16];
+    char pontos[24];
+    int atual;
+
+    if (pokemon == NULL) {
+        return;
+    }
+    caixa(x, y, w, mostrar_numeros ? 40 : 32, (Color){248, 248, 240, 255});
+    snprintf(nivel, sizeof nivel, "Nv%d", pokemon->nivel);
+    textoAte(pokemon->nome, (float)x + 6.0f, (float)y + 4.0f,
+             (float)w - larguraTexto(nivel, FONTE_PX) - 16.0f, BLACK);
+    texto(nivel, (float)x + (float)w - larguraTexto(nivel, FONTE_PX) - 6.0f, (float)y + 4.0f, FONTE_PX, BLACK);
+    texto("HP", (float)x + 6.0f, (float)y + 16.0f, FONTE_PX, (Color){216, 168, 48, 255});
+    desenharBarraHp(x + 24, y + 18, w - 32, razao);
+    if (mostrar_numeros && pokemon->hp_max > 0) {
+        atual = (int)(razao * (float)pokemon->hp_max + 0.5f);
+        if (atual < 0) atual = 0;
+        if (atual > pokemon->hp_max) atual = pokemon->hp_max;
+        snprintf(pontos, sizeof pontos, "%d/%d", atual, pokemon->hp_max);
+        texto(pontos, (float)x + (float)w - larguraTexto(pontos, FONTE_PX) - 6.0f,
+              (float)y + 26.0f, FONTE_PX, BLACK);
+    }
+}
+
+static void sairParaMundo(void) {
+    tela = TELA_SALA;
+    vis.transicao = 0;
+    vis.trans_t = 0.0f;
+    vis.fase = BAT_ENTRADA;
+    vis.resultado = 1;
+    vis.captura_feita = 0;
+    mundo.estava_encontro = 1;
+    mundo.movendo = 0;
+    mundo.anda = 1.0f;
+}
+
+static void avancarFilaBatalha(void) {
+    if (!vis.texto_completo) {
+        completarTexto(textoBatalha());
+        return;
+    }
+    if (vis.fila_i + 1 < vis.fila_n) {
+        vis.fila_i++;
+        vis.bytes = 0;
+        vis.texto_completo = 0;
+        vis.acum = 0.0f;
+        return;
+    }
+    if (vis.resultado == 0 && caso_jogo.captura_disponivel && !vis.captura_feita) {
+        vis.fase = BAT_CAPTURA;
+        vis.captura_t = 0.0f;
+        return;
+    }
+    if (vis.resultado == 0 && caso_jogo.caso_encerrado) {
+        vis.fase = BAT_FIM;
+        vis.vitoria = 1;
+        abrirFala("Giovanni recua. O caso está encerrado.");
+        vis.texto_completo = 0;
+        vis.bytes = 0;
+        return;
+    }
+    if (vis.resultado == 0) {
+        sairParaMundo();
+        return;
+    }
+    if (vis.resultado < 0 && !caso_jogo.em_batalha) {
+        vis.fase = BAT_FIM;
+        vis.vitoria = 0;
+        abrirFala("Seu time desmaiou.");
+        vis.texto_completo = 0;
+        vis.bytes = 0;
+        return;
+    }
+    vis.fase = BAT_COMANDO;
+}
+
+static void usarGolpe(int indice) {
+    Pokemon *eu = obterAtivo(&caso_jogo.nucleo.time);
+    SaidaBatalha saida;
+    int slot;
+    int resultado;
+
+    if (eu == NULL || indice < 0 || indice >= eu->qtd_golpes) {
+        return;
+    }
+    garantirPp(eu);
+    slot = posicaoDoAtivo(&caso_jogo.nucleo.time);
+    if (slot >= 0 && slot < 6 && vis.pp[slot][indice] <= 0) {
+        filaLimpar();
+        filaPor("Não há PP para esse golpe!");
+        vis.fase = BAT_TEXTO;
+        vis.resultado = 1;
+        return;
+    }
+    filaLimpar();
+    saida.narrar = narrarUi;
+    saida.contexto = NULL;
+    saida.log = &caso_jogo.nucleo.log;
+    resultado = casoExecutarGolpe(&caso_jogo, indice, &saida);
+    if (resultado == -2) {
+        filaPor("O golpe falhou.");
+        resultado = 1;
+    }
+    if (slot >= 0 && slot < 6 && vis.pp[slot][indice] > 0) {
+        vis.pp[slot][indice]--;
+    }
+    vis.resultado = resultado;
+    vis.fase = BAT_TEXTO;
+    if (vis.fila_n == 0) {
+        filaPor("...");
+    }
+    clique();
+}
+
+static void atualizarBatalha(float dt) {
+    const Pokemon *eu = obterAtivo(&caso_jogo.nucleo.time);
+    const Pokemon *op = NULL;
+    float alvo_eu = vis.hp_eu;
+    float alvo_opp = 0.0f;
+
+    if (caso_jogo.oponente_carregado) {
+        op = obterAtivo(&caso_jogo.oponente_atual.time);
+    }
+    if (eu != NULL && eu->hp_max > 0) {
+        alvo_eu = (float)eu->hp_atual / (float)eu->hp_max;
+        if (eu->numero != vis.ultimo_eu) {
+            vis.ultimo_eu = eu->numero;
+            vis.entrada = 0.35f;
+        }
+    }
+    if (op != NULL && op->hp_max > 0) {
+        alvo_opp = (float)op->hp_atual / (float)op->hp_max;
+        if (op->numero != vis.ultimo_opp) {
+            vis.ultimo_opp = op->numero;
+            vis.entrada = 0.35f;
+        }
+    }
+    animarBarra(&vis.hp_eu, alvo_eu, dt, &vis.queda_eu, &vis.flash_eu, &vis.tremor_eu);
+    animarBarra(&vis.hp_opp, alvo_opp, dt, &vis.queda_opp, &vis.flash_opp, &vis.tremor_opp);
+    if (vis.flash_eu > 0.0f) vis.flash_eu -= dt;
+    if (vis.flash_opp > 0.0f) vis.flash_opp -= dt;
+    if (vis.tremor_eu > 0.0f) vis.tremor_eu -= dt;
+    if (vis.tremor_opp > 0.0f) vis.tremor_opp -= dt;
+    if (vis.flash_eu < 0.0f) vis.flash_eu = 0.0f;
+    if (vis.flash_opp < 0.0f) vis.flash_opp = 0.0f;
+    if (vis.entrada < 1.0f) {
+        vis.entrada += dt / 0.4f;
+        if (vis.entrada > 1.0f) vis.entrada = 1.0f;
+    }
+
+    if (vis.fase == BAT_ENTRADA) {
+        if (vis.entrada >= 1.0f || acaoPressionada()) {
+            vis.entrada = 1.0f;
+            vis.fase = BAT_TEXTO;
+        }
+        return;
+    }
+    if (vis.fase == BAT_CAPTURA) {
+        vis.captura_t += dt;
+        if (vis.captura_t > 1.7f && !vis.captura_feita) {
+            char msg[LOG_MAX];
+            int ok;
+            snprintf(msg, sizeof msg, "%s foi capturado!", caso_jogo.captura_pendente.nome);
+            ok = casoCapturar(&caso_jogo);
+            vis.captura_feita = 1;
+            filaLimpar();
+            filaPor(ok ? msg : "O time está cheio.");
+            vis.resultado = 0;
+            vis.fase = BAT_TEXTO;
+        }
+        return;
+    }
+    if (vis.fase == BAT_FIM) {
+        revelarTexto(dt, vis.fala);
+        if (acaoPressionada()) {
+            if (!vis.texto_completo) {
+                completarTexto(vis.fala);
+            } else {
+                tela = TELA_MENU;
+            }
+        }
+        return;
+    }
+    if (vis.fase == BAT_TEXTO) {
+        revelarTexto(dt, textoBatalha());
+        if (acaoPressionada() || IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            avancarFilaBatalha();
+        }
+        return;
+    }
+    if (vis.fase == BAT_COMANDO) {
+        if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D)) vis.cursor = (vis.cursor + 1) % 4;
+        if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A)) vis.cursor = (vis.cursor + 3) % 4;
+        if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) vis.cursor = (vis.cursor + 2) % 4;
+        if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) vis.cursor = (vis.cursor + 2) % 4;
+        if (acaoPressionada()) {
+            if (vis.cursor == 0) {
+                vis.fase = BAT_GOLPES;
+                vis.cursor = 0;
+            } else if (vis.cursor == 1) {
+                filaLimpar();
+                filaPor("A bolsa está vazia.");
+                vis.fase = BAT_TEXTO;
+                vis.resultado = 1;
+            } else if (vis.cursor == 2) {
+                vis.fase = BAT_TIME;
+                vis.cursor_time = posicaoDoAtivo(&caso_jogo.nucleo.time);
+                if (vis.cursor_time < 0) vis.cursor_time = 0;
+            } else {
+                filaLimpar();
+                filaPor("Não dá para fugir!");
+                vis.fase = BAT_TEXTO;
+                vis.resultado = 1;
+            }
+            clique();
+        }
+        return;
+    }
+    if (vis.fase == BAT_GOLPES) {
+        if (eu != NULL) {
+            garantirPp(eu);
+        }
+        if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D)) vis.cursor = (vis.cursor % 2 == 0) ? vis.cursor + 1 : vis.cursor - 1;
+        if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A)) vis.cursor = (vis.cursor % 2 == 1) ? vis.cursor - 1 : vis.cursor + 1;
+        if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S) || IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
+            vis.cursor = (vis.cursor + 2) % 4;
+        }
+        if (voltarPressionado()) {
+            vis.fase = BAT_COMANDO;
+            vis.cursor = 0;
+            return;
+        }
+        if (acaoPressionada()) {
+            usarGolpe(vis.cursor);
+        }
+        return;
+    }
+    if (vis.fase == BAT_TIME) {
+        int n = tamanhoTime(&caso_jogo.nucleo.time);
+        if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
+            if (n > 0) vis.cursor_time = (vis.cursor_time + 1) % n;
+        }
+        if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
+            if (n > 0) vis.cursor_time = (vis.cursor_time + n - 1) % n;
+        }
+        if (voltarPressionado()) {
+            vis.fase = BAT_COMANDO;
+            return;
+        }
+        if (acaoPressionada() && n > 0) {
+            const Pokemon *escolhido = pokemonNaPosicao(&caso_jogo.nucleo.time, vis.cursor_time);
+            if (escolhido == NULL || escolhido->hp_atual <= 0) {
+                filaLimpar();
+                filaPor("Este Pokémon desmaiou.");
+                vis.fase = BAT_TEXTO;
+                vis.resultado = 1;
+            } else if (definirAtivoPorPosicao(&caso_jogo.nucleo.time, vis.cursor_time)) {
+                char msg[LOG_MAX];
+                snprintf(msg, sizeof msg, "Você enviou %s!", escolhido->nome);
+                filaLimpar();
+                filaPor(msg);
+                vis.fase = BAT_TEXTO;
+                vis.resultado = 1;
+                vis.entrada = 0.4f;
+                clique();
+            }
+        }
+    }
+}
+
+static void desenharPlataforma(int cx, int cy, float rx, float ry, Color clara, Color escura) {
+    DrawEllipse(cx, cy, rx + 4.0f, ry + 3.0f, escura);
+    DrawEllipse(cx, cy, rx, ry, clara);
+}
+
+static void desenharBatalha(void) {
+    NoSala *sala = salaAtual(&caso_jogo.salas);
+    const Pokemon *eu = obterAtivo(&caso_jogo.nucleo.time);
+    const Pokemon *op = NULL;
+    int chefe = sala != NULL && sala->e_chefe;
+    int numero_opp = 0;
+    float entrada = vis.entrada;
+    float deslize = (1.0f - entrada) * 56.0f;
+    float sx_eu = 0.0f;
+    float sx_opp = 0.0f;
+    Rectangle jogador;
+    Rectangle inimigo;
+    Color ceu;
+    Color chao;
+    Color plat_c;
+    Color plat_e;
+    const char *comandos[] = {"LUTAR", "BOLSA", "POKéMON", "FUGIR"};
+    int i;
+
+    if (caso_jogo.oponente_carregado) {
+        op = obterAtivo(&caso_jogo.oponente_atual.time);
+        if (op != NULL) numero_opp = op->numero;
+    } else if (caso_jogo.captura_disponivel || vis.fase == BAT_CAPTURA) {
+        numero_opp = caso_jogo.captura_pendente.numero;
+    }
+    if (vis.tremor_eu > 0.0f) sx_eu = sinf(vis.tremor_eu * 90.0f) * 3.0f;
+    if (vis.tremor_opp > 0.0f) sx_opp = sinf(vis.tremor_opp * 90.0f) * 3.0f;
+
+    if (chefe) {
+        ceu = (Color){120, 36, 40, 255};
+        chao = (Color){72, 24, 28, 255};
+        plat_c = (Color){150, 64, 64, 255};
+        plat_e = (Color){60, 16, 20, 255};
+    } else {
+        ceu = (Color){176, 216, 168, 255};
+        chao = (Color){88, 168, 80, 255};
+        plat_c = (Color){128, 196, 96, 255};
+        plat_e = (Color){40, 104, 48, 255};
+    }
+    DrawRectangle(0, 0, VIRT_L, 52, ceu);
+    DrawRectangle(0, 52, VIRT_L, 60, chao);
+    DrawRectangle(0, 100, VIRT_L, 12, chefe ? (Color){48, 16, 20, 255} : (Color){56, 128, 56, 255});
+    desenharPlataforma(168, 58, 42.0f, 12.0f, plat_c, plat_e);
+    desenharPlataforma(58, 100, 48.0f, 13.0f, plat_c, plat_e);
+
+    jogador = (Rectangle){6.0f - deslize + sx_eu, 40.0f, 64.0f, 64.0f};
+    if (eu != NULL) {
+        desenharSpriteMon(eu->numero, 1, jogador, vis.flash_eu);
+    }
+    if (chefe && giovanni_bat_ok && vis.fase != BAT_CAPTURA) {
+        Rectangle g = {176.0f + deslize, 0.0f, 64.0f, 64.0f};
+        DrawTexturePro(giovanni_batalha,
+                       (Rectangle){0, 0, (float)giovanni_batalha.width, (float)giovanni_batalha.height},
+                       g, (Vector2){0, 0}, 0.0f, WHITE);
+    }
+    inimigo = (Rectangle){148.0f + deslize + sx_opp, 2.0f, 64.0f, 64.0f};
+    if (chefe) {
+        inimigo.x = 112.0f + deslize + sx_opp;
+        inimigo.y = 6.0f;
+    }
+    if (vis.fase == BAT_CAPTURA && vis.captura_t > 0.55f) {
+        numero_opp = 0;
+    } else if (vis.fase == BAT_CAPTURA && vis.captura_t > 0.4f) {
+        float k = 1.0f - (vis.captura_t - 0.4f) / 0.15f;
+        if (k < 0.0f) k = 0.0f;
+        inimigo.width *= k;
+        inimigo.height *= k;
+        inimigo.x += (64.0f - inimigo.width) * 0.5f;
+        inimigo.y += 64.0f - inimigo.height;
+    }
+    if (numero_opp > 0) {
+        desenharSpriteMon(numero_opp, 0, inimigo, vis.flash_opp);
+    }
+
+    if (op != NULL) {
+        desenharCaixaHp(op, vis.hp_opp, 4, 4, 136, 0);
+    } else if (vis.fase == BAT_CAPTURA) {
+        desenharCaixaHp(&caso_jogo.captura_pendente, vis.hp_opp, 4, 4, 136, 0);
+    }
+    desenharCaixaHp(eu, vis.hp_eu, 112, 64, 122, 1);
+
+    if (vis.fase == BAT_CAPTURA) {
+        float u = vis.captura_t / 0.5f;
+        float bx;
+        float by;
+        float balanco = 0.0f;
+        if (u > 1.0f) u = 1.0f;
+        bx = 28.0f + (176.0f - 28.0f) * u;
+        by = 90.0f + (46.0f - 90.0f) * u - sinf(u * 3.1415926f) * 30.0f;
+        if (vis.captura_t > 0.55f) {
+            balanco = sinf((vis.captura_t - 0.55f) * 18.0f) * 3.0f;
+            bx = 172.0f + balanco;
+            by = 40.0f;
+        }
+        if (pokebola_ok) {
+            DrawTexturePro(pokebola_tex,
+                           (Rectangle){0, 0, (float)pokebola_tex.width, (float)pokebola_tex.height},
+                           (Rectangle){bx, by, 16, 16}, (Vector2){0, 0}, 0.0f, WHITE);
+        } else {
+            DrawRectangle((int)bx, (int)by, 12, 12, RED);
+        }
+        caixa(0, 112, VIRT_L, 48, (Color){248, 248, 240, 255});
+        texto("A Poké Bola foi lançada!", 8.0f, 128.0f, FONTE_PX, BLACK);
+    } else     if (vis.fase == BAT_GOLPES && eu != NULL) {
+        int slot = posicaoDoAtivo(&caso_jogo.nucleo.time);
+        garantirPp(eu);
+        for (i = 0; i < 4; i++) {
+            int cx = (i % 2) * 120;
+            int cy = 96 + (i / 2) * 32;
+            int selecionado = (vis.cursor == i);
+            Color fundo = selecionado ? (Color){32, 32, 40, 255} : (Color){248, 248, 240, 255};
+            Color tinta = selecionado ? (Color){248, 248, 240, 255} : BLACK;
+            caixa(cx, cy, 120, 32, fundo);
+            if (i < eu->qtd_golpes) {
+                char pp[16];
+                int atual = (slot >= 0 && slot < 6) ? vis.pp[slot][i] : ppBase(i);
+                textoAte(eu->golpes[i].nome, (float)cx + 4.0f, (float)cy + 3.0f, 110.0f, tinta);
+                DrawRectangle(cx + 4, cy + 18, 6, 6, corTipo(eu->golpes[i].tipo));
+                textoAte(nomeTipo(eu->golpes[i].tipo), (float)cx + 12.0f, (float)cy + 16.0f, 64.0f, tinta);
+                snprintf(pp, sizeof pp, "%d/%d", atual, ppBase(i));
+                texto(pp, (float)cx + 120.0f - larguraTexto(pp, FONTE_PX) - 4.0f, (float)cy + 16.0f, FONTE_PX, tinta);
+            } else {
+                texto("-", (float)cx + 8.0f, (float)cy + 8.0f, FONTE_PX, tinta);
+            }
+        }
+    } else if (vis.fase == BAT_COMANDO) {
+        char pergunta[80];
+        char linhas_p[3][48];
+        int n_p = 0;
+        int k;
+        if (eu != NULL) {
+            snprintf(pergunta, sizeof pergunta, "O que %s fará?", eu->nome);
+        } else {
+            copiarTexto(pergunta, sizeof pergunta, "O que fará?");
+        }
+        caixa(0, 112, 120, 48, (Color){248, 248, 240, 255});
+        quebrar(pergunta, linhas_p, &n_p, 3, 108.0f);
+        for (k = 0; k < n_p; k++) {
+            texto(linhas_p[k], 6.0f, 118.0f + (float)k * 10.0f, FONTE_PX, BLACK);
+        }
+        for (i = 0; i < 4; i++) {
+            int coluna = i % 2;
+            int cx = 120 + coluna * 64;
+            int cy = 112 + (i / 2) * 24;
+            int largura = coluna == 0 ? 64 : 56;
+            int selecionado = vis.cursor == i;
+            caixa(cx, cy, largura, 24, selecionado ? (Color){32, 32, 40, 255} : (Color){248, 248, 240, 255});
+            textoAte(comandos[i], (float)cx + 4.0f, (float)cy + 8.0f, (float)largura - 8.0f,
+                     selecionado ? (Color){248, 248, 240, 255} : BLACK);
+        }
+    } else if (vis.fase == BAT_FIM) {
+        desenharMensagem(vis.fala, 0, 112, VIRT_L, 48);
+    } else {
+        desenharMensagem(textoBatalha(), 0, 112, VIRT_L, 48);
+    }
+
+    if (vis.fase == BAT_TIME) {
+        int n = tamanhoTime(&caso_jogo.nucleo.time);
+        caixa(28, 16, 184, 128, (Color){248, 248, 240, 255});
+        texto("POKéMON", 36.0f, 22.0f, FONTE_PX, BLACK);
+        for (i = 0; i < n && i < 4; i++) {
+            const Pokemon *membro = pokemonNaPosicao(&caso_jogo.nucleo.time, i);
+            float razao = 0.0f;
+            Color tinta = (vis.cursor_time == i) ? (Color){180, 32, 32, 255} : BLACK;
+            if (membro == NULL) continue;
+            if (membro->hp_max > 0) razao = (float)membro->hp_atual / (float)membro->hp_max;
+            texto(membro->nome, 36.0f, 40.0f + (float)i * 24.0f, FONTE_PX, tinta);
+            desenharBarraHp(120, 42 + i * 24, 80, razao);
+        }
+    }
+}
+
+static Rectangle botaoMenu(int indice) {
+    return (Rectangle){118.0f, 46.0f + (float)indice * 22.0f, 110.0f, 18.0f};
+}
+
+static void desenharMenu(void) {
+    const char *rotulos[] = {"NOVO JOGO", "COMO JOGAR", "POKEDEX", "SAIR"};
+    int i;
+
+    DrawRectangle(0, 0, VIRT_L, VIRT_A, (Color){16, 28, 72, 255});
+    DrawRectangle(0, 96, VIRT_L, 64, (Color){12, 48, 36, 255});
+    desenharPlataforma(48, 108, 36.0f, 10.0f, (Color){72, 140, 64, 255}, (Color){24, 64, 32, 255});
+    desenharSpriteMon(25, 0, (Rectangle){16, 40, 64, 64}, 0.0f);
+    {
+        const char *titulo = "PokéBattle";
+        const char *subtitulo = "O Caso do Laboratório";
+        float lt = larguraTexto(titulo, 16.0f);
+        float ls = larguraTexto(subtitulo, FONTE_PX);
+        if (lt > 224.0f) lt = 224.0f;
+        if (ls > 224.0f) ls = 224.0f;
+        texto(titulo, (240.0f - lt) * 0.5f, 6.0f, 16.0f, (Color){255, 214, 64, 255});
+        texto(subtitulo, (240.0f - ls) * 0.5f, 26.0f, FONTE_PX, (Color){220, 220, 210, 255});
+    }
+    for (i = 0; i < 4; i++) {
+        Rectangle b = botaoMenu(i);
+        int selecionado = vis.menu_cursor == i;
+        caixa((int)b.x, (int)b.y, (int)b.width, (int)b.height,
+              selecionado ? (Color){255, 214, 64, 255} : (Color){248, 248, 240, 255});
+        texto(rotulos[i], b.x + 6.0f, b.y + 5.0f, FONTE_PX, BLACK);
+    }
+}
+
+static void desenharAjuda(void) {
+    caixa(8, 8, 224, 144, (Color){248, 248, 240, 255});
+    texto("COMO JOGAR", 16.0f, 16.0f, FONTE_PX, BLACK);
+    texto("Setas ou WASD andam", 16.0f, 36.0f, FONTE_PX, BLACK);
+    texto("uma célula por vez.", 16.0f, 48.0f, FONTE_PX, BLACK);
+    texto("Z interage. N caderno.", 16.0f, 64.0f, FONTE_PX, BLACK);
+    texto("Na luta: LUTAR, BOLSA,", 16.0f, 84.0f, FONTE_PX, BLACK);
+    texto("POKéMON e FUGIR.", 16.0f, 96.0f, FONTE_PX, BLACK);
+    texto("X volta. Esc menu.", 16.0f, 116.0f, FONTE_PX, BLACK);
+    texto("Z para fechar", 16.0f, 136.0f, FONTE_PX, (Color){80, 80, 80, 255});
+}
+
+static void visitarPk(const Pokemon *pokemon, void *contexto) {
+    ColetaPk *coleta = contexto;
+    if (pokemon != NULL && coleta->n < 32) {
+        coleta->itens[coleta->n++] = pokemon;
+    }
+}
+
+static void desenharPokedex(void) {
+    ColetaPk coleta;
+    int i;
+    int fim;
+
+    memset(&coleta, 0, sizeof coleta);
+    percorrerEmOrdem(&caso_jogo.nucleo.arvore, visitarPk, &coleta);
+    DrawRectangle(0, 0, VIRT_L, VIRT_A, (Color){20, 28, 48, 255});
+    caixa(8, 8, 224, 144, (Color){248, 248, 240, 255});
+    texto("POKEDEX", 16.0f, 14.0f, FONTE_PX, BLACK);
+    if (vis.pokedex_topo < 0) vis.pokedex_topo = 0;
+    if (vis.pokedex_topo > coleta.n - 1 && coleta.n > 0) vis.pokedex_topo = coleta.n - 1;
+    fim = vis.pokedex_topo + 5;
+    if (fim > coleta.n) fim = coleta.n;
+    for (i = vis.pokedex_topo; i < fim; i++) {
+        const Pokemon *pokemon = coleta.itens[i];
+        char linha[64];
+        int y = 32 + (i - vis.pokedex_topo) * 22;
+        if (pokemon == NULL) continue;
+        if (sprites[pokemon->numero].tem_icone) {
+            DrawTexturePro(sprites[pokemon->numero].icone,
+                           (Rectangle){0, 0, (float)sprites[pokemon->numero].icone.width,
+                                       (float)sprites[pokemon->numero].icone.height},
+                           (Rectangle){16, (float)y - 2, 20, 16}, (Vector2){0, 0}, 0.0f, WHITE);
+        }
+        snprintf(linha, sizeof linha, "%03d %s", pokemon->numero, pokemon->nome);
+        texto(linha, 40.0f, (float)y, FONTE_PX, BLACK);
+    }
+}
+
+static void desenharTudo(void) {
+    BeginTextureMode(alvo);
+    ClearBackground(BLACK);
+    if (tela == TELA_MENU) desenharMenu();
+    else if (tela == TELA_AJUDA) desenharAjuda();
+    else if (tela == TELA_POKEDEX) desenharPokedex();
+    else if (tela == TELA_SALA) desenharMundo();
+    else desenharBatalha();
+    if (vis.transicao != 0) {
+        int altura = (int)(vis.trans_t * (float)(VIRT_A / 2));
+        if (vis.transicao == 1 && vis.trans_t < 0.18f) {
+            unsigned char alfa = (unsigned char)(255.0f * (1.0f - vis.trans_t / 0.18f));
+            DrawRectangle(0, 0, VIRT_L, VIRT_A, (Color){255, 255, 255, alfa});
+        }
+        DrawRectangle(0, 0, VIRT_L, altura, BLACK);
+        DrawRectangle(0, VIRT_A - altura, VIRT_L, altura, BLACK);
+    }
+    EndTextureMode();
+}
+
+static void apresentar(const char *png) {
+    Rectangle origem = {0.0f, 0.0f, (float)VIRT_L, -(float)VIRT_A};
+    Rectangle destino = {0.0f, 0.0f, (float)JANELA_L, (float)JANELA_A};
+
+    BeginDrawing();
+    ClearBackground(BLACK);
+    DrawTexturePro(alvo.texture, origem, destino, (Vector2){0.0f, 0.0f}, 0.0f, WHITE);
+    EndDrawing();
+    if (png != NULL) {
+        TakeScreenshot(png);
+    }
+}
+
+static void atualizarTransicao(float dt) {
+    if (vis.transicao == 1) {
+        vis.trans_t += dt / 0.42f;
+        if (vis.trans_t >= 1.0f) {
+            vis.trans_t = 1.0f;
+            vis.transicao = 2;
+            tela = TELA_BATALHA;
+            prepararBatalha();
+        }
+    } else if (vis.transicao == 2) {
+        vis.trans_t -= dt / 0.32f;
+        if (vis.trans_t <= 0.0f) {
+            vis.trans_t = 0.0f;
+            vis.transicao = 0;
+        }
+    }
+}
+
+static int pontoNoRetangulo(Rectangle r, Vector2 p) {
+    return p.x >= r.x && p.y >= r.y && p.x < r.x + r.width && p.y < r.y + r.height;
+}
+
+static void atualizarMenu(void) {
+    Vector2 mouse = {(float)GetMouseX() / (float)ESCALA, (float)GetMouseY() / (float)ESCALA};
+    int i;
+
+    if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) vis.menu_cursor = (vis.menu_cursor + 1) % 4;
+    if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) vis.menu_cursor = (vis.menu_cursor + 3) % 4;
+    for (i = 0; i < 4; i++) {
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && pontoNoRetangulo(botaoMenu(i), mouse)) {
+            vis.menu_cursor = i;
+            break;
+        }
+    }
+    if (IsKeyPressed(KEY_ONE)) vis.menu_cursor = 0;
+    if (IsKeyPressed(KEY_TWO)) vis.menu_cursor = 1;
+    if (IsKeyPressed(KEY_THREE)) vis.menu_cursor = 2;
+    if (IsKeyPressed(KEY_FOUR)) vis.menu_cursor = 3;
+
+    if (acaoPressionada() || (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && i < 4 && pontoNoRetangulo(botaoMenu(vis.menu_cursor), mouse))) {
+        clique();
+        if (vis.menu_cursor == 0) {
+            if (comecarCaso(&caso_jogo)) {
+                zerarVisual();
+                entrarNaSala();
+                tela = TELA_SALA;
+            }
+        } else if (vis.menu_cursor == 1) {
+            tela = TELA_AJUDA;
+        } else if (vis.menu_cursor == 2) {
+            tela = TELA_POKEDEX;
+        } else {
+            tela = TELA_MENU;
+            /* Sair é tratado no laço, olhando o cursor. */
+            vis.vitoria = -1;
+        }
+    }
+}
+
+static void atualizar(float dt) {
+    if (dt > 0.05f) dt = 0.05f;
+    vis.tempo += dt;
+    atualizarTransicao(dt);
+    if (vis.transicao == 1) {
+        return;
+    }
+    if (tela == TELA_MENU) {
+        atualizarMenu();
+    } else if (tela == TELA_AJUDA || tela == TELA_POKEDEX) {
+        if (tela == TELA_POKEDEX) {
+            if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) vis.pokedex_topo++;
+            if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) vis.pokedex_topo--;
+        }
+        if (acaoPressionada() || IsKeyPressed(KEY_ESCAPE) || voltarPressionado()) {
+            tela = TELA_MENU;
+        }
+    } else if (tela == TELA_SALA) {
+        if (IsKeyPressed(KEY_ESCAPE) && !vis.fala_aberta && !vis.caderno) {
+            tela = TELA_MENU;
+            return;
+        }
+        atualizarMundo(dt);
+    } else if (tela == TELA_BATALHA) {
+        atualizarBatalha(dt);
+    }
+}
+
+int executarInterfaceRaylib(void) {
+    if (!abrirGrafico()) {
+        fprintf(stderr, "Não foi possível abrir a janela.\n");
+        return 1;
+    }
+    if (!iniciarCaso(&caso_jogo)) {
+        fecharGrafico();
+        return 1;
+    }
+    caso_ok = 1;
+    zerarVisual();
+    tela = TELA_MENU;
+
+    while (!WindowShouldClose() && vis.vitoria != -1) {
+        atualizar(GetFrameTime());
+        desenharTudo();
+        apresentar(NULL);
+    }
+
+    encerrarCaso(&caso_jogo);
+    caso_ok = 0;
+    fecharGrafico();
+    return 0;
+}
+
+static int lutarAteVencer(void) {
+    int luta = 1;
+    int golpes = 0;
+
+    if (!caso_jogo.em_batalha && !casoIniciarBatalha(&caso_jogo)) {
+        return 0;
+    }
+    while (luta == 1 && golpes < 60) {
+        const Pokemon *eu = obterAtivo(&caso_jogo.nucleo.time);
+        const Pokemon *op = obterAtivo(&caso_jogo.oponente_atual.time);
+        int golpe;
+
+        if (eu == NULL || op == NULL) {
+            return 0;
+        }
+        golpe = escolherGolpeAdversario(eu, op);
+        luta = casoExecutarGolpe(&caso_jogo, golpe, NULL);
+        golpes++;
+    }
+    if (luta != 0) {
+        return 0;
+    }
+    return 1;
+}
+
+static int irAteOChefe(void) {
+    int passos = 0;
+
+    while (passos < 16) {
+        NoSala *sala = salaAtual(&caso_jogo.salas);
+
+        if (sala == NULL) {
+            return 0;
+        }
+        if (strcmp(sala->nome, "Sala do chefe") == 0) {
+            return casoIniciarBatalha(&caso_jogo);
+        }
+        if (!sala->resolvido && !casoUsarHabilidade(&caso_jogo)) {
+            return 0;
+        }
+        if (sala->inicia_batalha && !sala->batalha_concluida) {
+            if (!lutarAteVencer()) {
+                return 0;
+            }
+            if (caso_jogo.captura_disponivel && !casoCapturar(&caso_jogo)) {
+                return 0;
+            }
+        }
+        if (!casoAvancar(&caso_jogo)) {
+            return 0;
+        }
+        passos++;
+    }
+    return 0;
 }
 
 int capturarTelasDemonstracao(void) {
-    Caso caso;
-    Caso chefe;
+    NoSala *sala;
 
-    if (!iniciarCaso(&caso) || !comecarCaso(&caso)) {
-        fprintf(stderr, "Não foi possível montar o caso para as capturas.\n");
+    if (!abrirGrafico()) {
+        return 1;
+    }
+    if (!iniciarCaso(&caso_jogo)) {
+        fecharGrafico();
+        return 1;
+    }
+    caso_ok = 1;
+    zerarVisual();
+    tela = TELA_MENU;
+    desenharTudo();
+    apresentar("captura_menu.png");
+
+    if (!comecarCaso(&caso_jogo)) {
+        encerrarCaso(&caso_jogo);
+        fecharGrafico();
         return 1;
     }
     zerarVisual();
-    vis.fade = 0.0f;
-    abrirGrafico();
+    entrarNaSala();
+    tela = TELA_SALA;
+    desenharTudo();
+    apresentar("captura_sala.png");
 
-    comecarQuadro();
-    desenharMenu();
-    botao("NOVO JOGO", 112, 146, 160, 18, AZUL);
-    botao("AJUDA", 28, 170, 100, 18, AZUL);
-    botao("POKEDEX", 140, 170, 100, 18, AZUL);
-    botao("SAIR", 252, 170, 100, 18, VERMELHO);
-    fecharQuadro();
-    TakeScreenshot("captura_menu.png");
-
-    quadroSala(&caso, 0, "captura_sala.png");
-    casoUsarHabilidade(&caso);
-    soltarParticulas(188, 70, HAB_ELETRICA);
-    quadroSala(&caso, 0, "captura_puzzle.png");
-    quadroSala(&caso, 1, "captura_caderno.png");
-
-    casoAvancar(&caso);
-    if (casoIniciarBatalha(&caso)) {
-        const Pokemon *eu = obterAtivo(&caso.nucleo.time);
-        vis.fade = 0.0f;
-        vis.texto_completo = 1;
-        vis.hp_pronto = 0;
-        atualizarBarras(&caso, 0.016f);
-        vis.entrada = 1.0f;
-        enfileirarTexto(caso.oponente_atual.fala);
-        vis.bytes_texto = (int)strlen(vis.texto);
-        comecarQuadro();
-        desenharBatalha(&caso);
-        fecharQuadro();
-        TakeScreenshot("captura_batalha.png");
-        (void)eu;
+    sala = salaAtual(&caso_jogo.salas);
+    if (sala != NULL) {
+        const char **mapa = mapaDa(sala->nome);
+        int x;
+        int y;
+        for (y = 0; y < MAPA_A; y++) {
+            for (x = 0; x < MAPA_L; x++) {
+                if (tileEm(mapa, x, y) == 'P' && y + 2 < MAPA_A - 1) {
+                    mundo.tx = x;
+                    mundo.ty = y + 2;
+                    mundo.de_x = mundo.tx;
+                    mundo.de_y = mundo.ty;
+                    mundo.para_x = mundo.tx;
+                    mundo.para_y = mundo.ty;
+                    mundo.dir = 3;
+                    mundo.pika_x = mundo.tx + 1;
+                    mundo.pika_y = mundo.ty;
+                    mundo.pika_de_x = mundo.pika_x;
+                    mundo.pika_de_y = mundo.pika_y;
+                }
+            }
+        }
+        abrirFala(sala->texto_puzzle);
     }
-    encerrarCaso(&caso);
+    vis.texto_completo = 1;
+    vis.bytes = 400;
+    desenharTudo();
+    apresentar("captura_puzzle.png");
+    vis.fala_aberta = 0;
 
-    if (iniciarCaso(&chefe) && comecarCaso(&chefe)) {
-        irAteOChefe(&chefe);
-        vis.fade = 0.0f;
-        vis.texto_completo = 1;
-        vis.hp_pronto = 0;
-        vis.fila_n = 0;
-        atualizarBarras(&chefe, 0.016f);
-        vis.entrada = 1.0f;
-        vis.tremor = 0.0f;
-        enfileirarTexto(chefe.oponente_atual.fala);
-        vis.bytes_texto = (int)strlen(vis.texto);
-        comecarQuadro();
-        desenharBatalha(&chefe);
-        fecharQuadro();
-        TakeScreenshot("captura_boss.png");
-        encerrarCaso(&chefe);
+    if (!casoUsarHabilidade(&caso_jogo) || !casoAvancar(&caso_jogo)) {
+        fprintf(stderr, "Não chegou ao pátio para a batalha.\n");
+        encerrarCaso(&caso_jogo);
+        fecharGrafico();
+        return 1;
     }
+    entrarNaSala();
+    if (!casoIniciarBatalha(&caso_jogo)) {
+        fprintf(stderr, "A batalha do pátio não começou.\n");
+        encerrarCaso(&caso_jogo);
+        fecharGrafico();
+        return 1;
+    }
+    tela = TELA_BATALHA;
+    prepararBatalha();
+    vis.entrada = 1.0f;
+    vis.fase = BAT_COMANDO;
+    vis.transicao = 0;
+    desenharTudo();
+    apresentar("captura_batalha.png");
 
+    if (!lutarAteVencer()) {
+        fprintf(stderr, "A batalha de demonstração não terminou em vitória.\n");
+        encerrarCaso(&caso_jogo);
+        fecharGrafico();
+        return 1;
+    }
+    vis.fase = BAT_CAPTURA;
+    vis.captura_t = 0.25f;
+    vis.entrada = 1.0f;
+    vis.hp_opp = 0.0f;
+    vis.transicao = 0;
+    desenharTudo();
+    apresentar("captura_captura.png");
+
+    if (caso_jogo.captura_disponivel) {
+        casoCapturar(&caso_jogo);
+    }
+    if (!irAteOChefe()) {
+        fprintf(stderr, "Não chegou na luta do Giovanni.\n");
+        encerrarCaso(&caso_jogo);
+        fecharGrafico();
+        return 1;
+    }
+    tela = TELA_BATALHA;
+    prepararBatalha();
+    vis.entrada = 1.0f;
+    vis.fase = BAT_TEXTO;
+    vis.texto_completo = 1;
+    vis.bytes = 400;
+    vis.transicao = 0;
+    desenharTudo();
+    apresentar("captura_boss.png");
+
+    encerrarCaso(&caso_jogo);
+    caso_ok = 0;
     fecharGrafico();
     return 0;
 }

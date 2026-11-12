@@ -2,7 +2,9 @@
 
 Pesquisa feita antes de redesenhar a janela. Nada aqui entra na regra do jogo: dano, salas, fila e ordenação continuam onde estavam. A lista diz o que foi olhado e o que a tela aproveitou.
 
-Os sprites dos Pokémon **não** foram copiados dos jogos nem da PokéAPI. São silhuetas em pixel desenhadas no código (`src/ui_raylib.c`), para o projeto não depender de arte protegida. Se no futuro entrar um PNG oficial, ele fica em `assets/`, com origem, aviso de uso acadêmico e um desenho reserva quando o arquivo não existir.
+Os sprites dos Pokémon estão em `assets/pokemon/`. Foram baixados da [PokéAPI](https://pokeapi.co), geração III FireRed/LeafGreen (`sprites.versions['generation-iii']['firered-leafgreen']`, frente e costas), com o sprite padrão da API se esse arquivo faltar, mais o ícone da geração VII. A arte é da Nintendo e da Game Freak. O uso aqui é acadêmico, o jogo não acessa a rede, e o crédito está no README. `dados.txt` guarda nome, tipos e stats base oficiais; a batalha segue os números afinados de `src/dados_pokemon.c`.
+
+O chão é o tileset **Roguelike Indoor** do Kenney, 16×16, CC0 (`assets/tiles/kenney_indoor.png`, licença em `LICENSE-kenney-indoor.txt`). O espelho usado no download foi o repositório [ETdoFresh/kenney.nl](https://github.com/ETdoFresh/kenney.nl), porque o site kenney.nl recusou o pedido automático. O detetive, o Giovanni e a Poké Bola em `assets/personagens/` foram desenhados para este projeto.
 
 ## Batalha no estilo GBA/DS
 
@@ -15,7 +17,7 @@ Os sprites dos Pokémon **não** foram copiados dos jogos nem da PokéAPI. São 
 - [Pokemon Style Typewriter Dialogue — CodePen / repositório](https://codepen.io/scythianwizard/pen/oNVrGoy) e [old-pokemon-jrpg-style-message-box](https://github.com/scythianwizard/old-pokemon-jrpg-style-message-box)
   Letra por letra, estilo Gold/Silver. Aproveitado: a caixa revela o texto aos poucos; um clique completa a frase antes de deixar escolher outro golpe.
 - [Pixel Dialogue — DVR Labs](https://dvrdesign.com/labs/retro-dialogue)
-  Cena desenhada num buffer pequeno e ampliada em escala inteira, com suavização desligada. É o mesmo princípio da render texture virtual (384×216) com `TEXTURE_FILTER_POINT`.
+  Cena desenhada num buffer pequeno e ampliada em escala inteira, com suavização desligada. É o mesmo princípio da render texture virtual (240×160, o GBA) com `TEXTURE_FILTER_POINT`.
 - [Battle Transition — ParticleFX Studio](https://particlefx.studio/effects/battle-transition)
   Flash e barras pretas no estilo Game Boy na entrada da luta. Aproveitado de forma simples: os Pokémon entram deslizando nas plataformas e a tela faz um fade, sem spritesheet externo.
 - [GBC Modern UI + Battle Arena — Anima_nel, itch.io](https://anima-nel.itch.io/modern-rpg-ui)
@@ -34,8 +36,8 @@ Os sprites dos Pokémon **não** foram copiados dos jogos nem da PokéAPI. São 
 
 ## Pixel art, fonte e raylib
 
-- [Kenney fonts — OpenGameArt](https://opengameart.org/content/kenney-fonts) e [UI Pack — OpenGameArt](https://opengameart.org/content/ui-pack)
-  CC0. Não entrou arquivo do Kenney nesta etapa; a licença serviu de critério. A fonte usada é outra, também livre, porque lê melhor em português com acento.
+- [Kenney — Roguelike Indoor](https://kenney.nl) (pacote CC0, espelho [ETdoFresh/kenney.nl](https://github.com/ETdoFresh/kenney.nl/tree/master/roguelikeindoor_updated))
+  Tiles de 16×16 com margem de 1 px. Entrou o chão, o balcão, a estante, o monitor e a porta. A licença está em `assets/tiles/LICENSE-kenney-indoor.txt`.
 - [Press Start 2P — Google Fonts / OFL](https://fonts.google.com/specimen/Press+Start+2P)
   Fonte pixel de Cody "codyan" Boisclair, licença OFL. Arquivo em `assets/fontes/PressStart2P-Regular.ttf`, texto da licença em `assets/fontes/OFL-PressStart2P.txt`. Crédito não é opcional: o nome "Press Start 2P" é reservado.
 - [raylib — core_smooth_pixelperfect.c](https://github.com/raysan5/raylib/blob/master/examples/core/core_smooth_pixelperfect.c)
@@ -47,6 +49,6 @@ Os sprites dos Pokémon **não** foram copiados dos jogos nem da PokéAPI. São 
 
 ## O que ficou de fora de propósito
 
-- Sprites oficiais de Pokémon e áudio de Kenney. O som de clique e de acerto é uma onda quadrada gerada no código, sem arquivo.
+- Áudio do Kenney. O som de clique e de acerto é uma onda quadrada gerada no código, sem arquivo. Os sprites oficiais entraram só como PNG local, com o aviso de uso acadêmico no README.
 - Pacotes pagos ou com cláusula que impeça o zip da disciplina.
 - Tremor e vermelho fora da luta do Giovanni e do instante do dano. No resto da exploração a câmera fica quieta.

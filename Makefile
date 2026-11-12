@@ -41,7 +41,7 @@ DEPS      := $(OBJS:.o=.d) $(OBJ_DIR)/testar_estruturas.d
 TARGET    := $(BIN_DIR)/pokebattle
 TEST_BIN  := $(BIN_DIR)/testar_estruturas
 
-.PHONY: all teste sanitizar memcheck clean
+.PHONY: all teste sanitizar memcheck clean assets
 
 all: $(TARGET)
 
@@ -62,6 +62,11 @@ third_party/raylib/src/libraylib.a:
 
 $(BIN_DIR) $(OBJ_DIR):
 	mkdir -p $@
+
+# Baixa sprites e o dados.txt da PokéAPI para assets/pokemon/.
+# O jogo em si não faz HTTP; este alvo é só para refazer os arquivos.
+assets:
+	./tools/baixar_assets.sh
 
 # A janela não entra no teste automático. --simular joga o caso sem raylib na tela.
 teste: $(TARGET) $(TEST_BIN)

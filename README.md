@@ -65,19 +65,24 @@ bin/pokebattle.exe
 
 O `pkg-config` deve enxergar a raylib. Sem ele, o script `scripts/baixar_raylib.sh` também funciona dentro do MSYS2, desde que os headers de OpenGL estejam instalados.
 
-Rode o programa a partir da pasta do projeto, para achar `assets/fontes/`. Sem a fonte, a janela cai na fonte padrão da raylib.
+Rode o programa a partir da pasta do projeto, para achar `assets/`. Sem a fonte, a janela cai na fonte padrão da raylib. Os sprites já estão no repositório; `make assets` só baixa de novo.
+
+```bash
+make assets   # opcional: refaz assets/pokemon/ pela PokéAPI
+```
 
 ## Controles
 
-A cena é desenhada em 384×216 e ampliada em pixels inteiros.
+A cena é desenhada em 240×160 (o tamanho do GBA) e ampliada em pixels inteiros, com filtro de ponto.
 
-| Onde | Mouse | Teclado |
-| --- | --- | --- |
-| Menu | Novo jogo, Ajuda, Pokédex, Sair | 1, 2, 3, 4 |
-| Sala | Habilidade, Avançar, Voltar, Capturar, Lutar | E, D, A, C, B |
-| Caderno de pistas | — | N abre e fecha |
-| Batalha | Grade 2×2 de golpes | 1 a 4. A barra desce sozinha e fica amarela abaixo de 50% e vermelha abaixo de 20% |
-| Qualquer tela, fora do menu | — | Esc volta ao menu. No caderno, Esc só fecha o caderno |
+| Onde | Teclado |
+| --- | --- |
+| Menu | Setas e Z, ou 1, 2, 3, 4. Mouse também serve |
+| Mapa | Setas ou WASD, uma célula por vez. Z interage (painel, porta, Pokémon). N abre o caderno |
+| Batalha | Setas escolhem LUTAR, BOLSA, POKÉMON ou FUGIR. Z confirma, X volta. A grade de golpes mostra tipo e PP |
+| Qualquer tela | Esc volta ao menu. No caderno ou na fala, Esc ou Z fecha |
+
+O Pikachu anda atrás do detetive. A porta só abre depois do puzzle ou da luta. A barra de HP desce sozinha e fica amarela abaixo de 50% e vermelha abaixo de 20%.
 
 Quem age primeiro continua sendo prioridade do golpe e velocidade (insertion sort). Ataque Rápido fura a fila.
 
@@ -86,10 +91,12 @@ Quem age primeiro continua sendo prioridade do golpe e velocidade (insertion sor
 | Arquivo | O que é | Licença |
 | --- | --- | --- |
 | `assets/fontes/PressStart2P-Regular.ttf` | Fonte pixel Press Start 2P, Cody Boisclair | SIL OFL 1.1 (`assets/fontes/OFL-PressStart2P.txt`). O nome é reservado. [Google Fonts](https://fonts.google.com/specimen/Press+Start+2P) |
-| Sprites dos Pokémon em `src/ui_raylib.c` | Grades de pixel feitas no código | Originais deste projeto. Não são sprites oficiais nem da PokéAPI |
+| `assets/pokemon/` | Sprites de frente, costas e ícone, mais `dados.txt` (nome, tipos e stats base) | Arte da Nintendo / Game Freak, obtida pela [PokéAPI](https://pokeapi.co) (`sprites.versions.generation-iii.firered-leafgreen`, com fallback para o sprite padrão). Uso acadêmico neste repositório. O jogo não baixa nada ao rodar |
+| `assets/tiles/kenney_indoor.png` | Tileset de interior 16×16 | CC0, Kenney (Roguelike Indoor). Texto em `assets/tiles/LICENSE-kenney-indoor.txt`. [kenney.nl](https://kenney.nl) |
+| `assets/personagens/` | Detetive, Giovanni e Poké Bola | Pixel art feita para este projeto. Não é sprite da Nintendo |
 | Cliques e acerto | Onda quadrada gerada na hora | Sem arquivo externo |
 
-A lista do que foi olhado e do que entrou na tela está em `docs/REFERENCIAS_VISUAIS.md`. Não há arte do Kenney empacotada; a licença CC0 dele foi só o critério para o que poderia entrar.
+Os stats oficiais estão em `assets/pokemon/dados.txt`. A batalha continua com os números de `src/dados_pokemon.c`, afinados para a luta durar mais de um golpe. A lista do que a tela aproveitou está em `docs/REFERENCIAS_VISUAIS.md`.
 
 ## Onde está cada requisito
 
@@ -121,11 +128,11 @@ O caso até o Giovanni já roda na janela e no `--simular`. Ainda não é a entr
 
 ### Leo
 
-A base visual já está em `src/ui_raylib.c` (pixel, barra, typewriter, caderno, chefe). Se for mexer:
+A tela está em `src/ui_raylib.c`: mapa de 16×16, batalha no layout da FireRed, sprites locais. Se for mexer:
 
-- Não mude a resolução virtual nem troque o filtro point por bilinear.
+- Não mude a resolução virtual (240×160) nem troque o filtro point por bilinear.
 - Não desenhe fora de `ui_raylib.c` e não mova regra para dentro do desenho.
-- Sprite novo: ou grade no código, ou PNG livre em `assets/` com licença neste README e um desenho reserva se o arquivo faltar.
+- Não ponha HTTP no binário. Sprite novo entra em `assets/`, com licença neste README, e a tela precisa de um retângulo reserva se o arquivo faltar.
 - Conferir a build no Windows (MSYS2) e no macOS se tiver a máquina.
 
 ## Legado
