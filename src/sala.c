@@ -84,7 +84,9 @@ int avancarSala(ListaSalas *lista, PilhaLog *log) {
     if (lista == NULL || lista->atual == NULL || lista->atual->prox == NULL) {
         return 0;
     }
-    if (!lista->atual->resolvido || !lista->atual->prox->desbloqueada) {
+    if (!lista->atual->resolvido || !lista->atual->prox->desbloqueada ||
+        (lista->atual->luzes & lista->atual->luzes_necessarias) != lista->atual->luzes_necessarias ||
+        (lista->atual->duelo_obrigatorio && !lista->atual->duelo_concluido)) {
         return 0;
     }
     /* Sala de luta não deixa passar enquanto o confronto não acaba. */
@@ -182,6 +184,9 @@ int resolverPuzzleDaSala(ListaSalas *lista, const ListaTime *time, PilhaLog *log
     sala = lista->atual;
     if (sala->resolvido) {
         return 1;
+    }
+    if (sala->desafio.tipo != DES_NENHUM && !sala->desafio.concluido) {
+        return 0;
     }
     if (sala->habilidade == HAB_NENHUMA) {
         sala->resolvido = 1;

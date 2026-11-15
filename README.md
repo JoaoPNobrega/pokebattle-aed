@@ -78,14 +78,18 @@ A cena é desenhada em 240×160 (o tamanho do GBA) e ampliada em pixels inteiros
 | Onde | Teclado |
 | --- | --- |
 | Menu | Setas e Z, ou 1, 2, 3, 4. Mouse também serve |
-| Mapa | Setas ou WASD, uma célula por vez. Z interage (painel, porta, Pokémon). N abre o caderno |
+| Mapa | Setas ou WASD, uma célula por vez. Z interage (painel, porta, Pokémon). N abre o caderno. L liga/desliga a lanterna |
+| Documento | Após a busca na Jaula, abre em destaque com duas páginas completas. Z/seta direita avança; seta esquerda volta; X fecha. R permite reler em qualquer sala ou no caderno |
+| Puzzles | Setas/WASD escolhem ou movem. Z gira fio/aquece/examina/opera válvula. E resfria o gelo. U desfaz uma estante. R reinicia o desafio; X fecha |
+| Treino | Matos do Pátio/Tanque e escombros da Oficina/Jaula. Depois da captura obrigatória, ande quatro passos na área ou use Z nela para encontrar selvagens. Vitória rende 30 XP para cada parceiro; 60 XP sobem um nível (limite 60) |
+| Time e descanso | T escolhe o Pokémon ativo e mostra HP/XP. Z diante de bancos recupera HP e PP. V retorna à sala anterior |
 | Batalha | Setas escolhem LUTAR, BOLSA, POKÉMON ou FUGIR. Z confirma, X volta. A grade de golpes mostra tipo e PP |
 | Texto | Z avança a digitação e a próxima página |
 | Qualquer tela | Esc volta ao menu. No caderno, Esc ou Z fecha |
 
-A bolsa começa com 2 Poções (20 de HP), 1 Super Poção (50) e 3 Poké Bolas. Usar um item gasta o turno e o oponente age. A Poké Bola só pega selvagem com no máximo metade do HP, sem sorteio. Fugir do selvagem depende da velocidade vezes o número da tentativa. Do chefe, a frase é "Não dá pra fugir de um chefe!".
+A bolsa começa com 2 Poções (20 de HP), 1 Super Poção (50) e 3 Poké Bolas. Usar um item gasta o turno e o oponente age. Na batalha, a Poké Bola exige no máximo metade do HP. Depois, a captura exige cinco comandos de lançamento/contenção, também após vencer um selvagem. Siga o PNG destacado; erro de tecla ou prazo reinicia a contenção, sem perder o parceiro obrigatório. Fugir do selvagem depende da velocidade vezes o número da tentativa. Do chefe, a frase é "Não dá pra fugir de um chefe!".
 
-O Pikachu anda atrás do detetive. A porta só abre depois do puzzle ou da luta. A barra de HP desce sozinha e fica amarela abaixo de 50% e vermelha abaixo de 20%. O acerto pisca o sprite e treme. O som é uma onda gerada no código; sem placa de áudio, a luta segue muda.
+O Pikachu anda atrás do detetive. A porta exige os objetivos do setor: puzzle, dois refletores nos ambientes escuros, captura e guarda quando houver. A barra de HP desce sozinha e fica amarela abaixo de 50% e vermelha abaixo de 20%. O acerto pisca o sprite e treme. O som é uma onda gerada no código; sem placa de áudio, a luta segue muda.
 
 Quem age primeiro continua sendo prioridade do golpe e velocidade (insertion sort). Ataque Rápido fura a fila.
 
@@ -146,3 +150,20 @@ A tela está em `src/ui_raylib.c`: mapa de 16×16, batalha no layout da FireRed,
 ## Legado
 
 `src/ui_terminal.c` é o menu de texto da etapa anterior (arena até o Mewtwo). Não é a tela do jogo atual. A regra de dano, o insertion sort, a lista circular, a hash, a AVL e a matriz de tipos foram reaproveitados.
+
+O laboratório começa escuro. L alterna uma lanterna que acompanha o detetive e a direção em que olha; o painel resolvido pelo Pikachu restaura a iluminação normal. Na Jaula, capture Alakazam e use Z diante da mesa para examinar a área com a habilidade psíquica. Um fundo falso revela um documento com dicas sobre o Arquivo e Geodude; a pista fica no caderno (N), e o Arquivo só destrava após a busca. Não há inventário paralelo: o documento usa o estado do puzzle e a pilha de histórico.
+
+Capturas opcionais preservam vagas para os parceiros dos puzzles. Espécies já capturadas continuam disponíveis para treinar, sem duplicar o time. Os encontros opcionais não consomem a fila dos confrontos obrigatórios.
+
+
+## Exploração e progressão dos setores
+
+Pikachu começa no nível 26 com dois golpes, sem Trovão disponível de início. O Vigia Rocket da Câmara fria e a Engenheira Rocket da Oficina desbloqueiam os golpes seguintes, restauram o time e dão Poções/Poké Bolas. Há seis confrontos obrigatórios na fila até Giovanni, além dos treinos opcionais.
+
+Os desafios agora são espaciais e diferentes por habilidade, no estado `Desafio` de cada nó de sala (`include/desafio.h`, `src/desafio.c`). Pikachu gira uma rede 3×3 com percurso de conexões; Charmander derrete quatro travas de três camadas, gerenciando calor e evitando tubos; Squirtle opera tanques de capacidade 5 e 3 até obter A=4/B=3 antes de liberar a mangueira; Alakazam segue três ecos numa busca 5×4 na Jaula e empurra estantes numa grade 6×6 no Arquivo, com U para desfazer e R para reiniciar. `casoComandarPuzzle` valida parceiro e aplica ações; a janela só lê entradas e desenha. As barras de acertar no verde foram removidas. Não transformar esses desafios em quiz.
+
+O circuito restaura o gerador; dez refletores, dois por setor escuro, precisam ser religados no mapa com Pikachu. L alterna a lanterna. A caixa de seleção marca o objeto à frente, mostra a tecla Z em PNG e informa o objetivo restante. No topo, veja o setor e Luz 0/2, 1/2 ou 2/2. A porta só libera após completar esses objetivos.
+
+A captura não é automática: Z lança, siga as três direções e Z sela a bola. Os prazos diminuem ao longo da sequência. Um erro reinicia a contenção; você pode tentar novamente. Capturas opcionais continuam reservando vagas para os parceiros do caso.
+
+Os PNGs de teclas e guardas em `assets/ui/` são arte própria do projeto. O gerador opcional é `tools/gerar_interface.ps1`; os PNGs já acompanham o código e não precisam ser gerados para jogar. Nenhum asset de Ben 10 foi incorporado.

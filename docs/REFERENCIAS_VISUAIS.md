@@ -57,6 +57,15 @@ A Poké Bola de 16×16 em `assets/personagens/pokebola.png` foi desenhada para e
 - [raylib issue 5678 — pixel font](https://github.com/raysan5/raylib/issues/5678)
   Fonte pixel carrega no tamanho em que é desenhada (aqui, 8 px). Escalar uma fonte grande com filtro bilinear apaga o pixel.
 
+## Referências para mecânicas e progressão
+
+- [Ben 10: Savage Pursuit — acervo Browser Craft](https://browsercraft.com/game/ben-10-savage-pursuit) e [descrição de habilidades no acervo PEXY](https://pexy.io/game/ben-10-savage-pursuit/): inspiração para exigir habilidades distintas nos obstáculos e alternar exploração, encontros e acesso a setores. A adaptação mantém os parceiros Pokémon e o mapa de investigação; não copia fases nem transforma o jogo em plataforma.
+- [Ben 10: Critical Impact — NuMuKi](https://www.numuki.com/game/ben-10-critical-impact/): referência para comandos imediatos, feedback claro e uso de habilidades conforme o obstáculo. A captura passou a exigir lançamento e contenção com teclas destacadas e prazo, em vez de uma animação automática.
+- [Fireboy and Watergirl: Forest Temple — Coolmath Games](https://www.coolmathgames.com/0-fireboy-and-water-girl-in-the-forest-temple): referência para habilidades ligadas ao ambiente e objetivos que precisam ser combinados antes de abrir a saída. Aqui cada setor exige sua habilidade, os refletores locais e, em dois setores, um guarda.
+- [Regras de Sokoban — University of Alberta](https://webdocs.cs.ualberta.ca/~games/Sokoban/thegame.html): base da interação de empurrar estantes até marcas, com colisão e posição para executar cada empurrão. A grade do Arquivo foi feita para este projeto e possui reinício e desfazer.
+
+Os circuitos, grades, reservatórios, percurso e posições foram implementados no projeto. Nenhum código, áudio, PNG ou mapa desses jogos foi incorporado. `assets/ui/teclas.png` e `guardas.png` são pixel art própria, produzida pela ferramenta `tools/gerar_interface.ps1`. A fonte dos ícones usa a mesma Press Start 2P já creditada acima.
+
 ## O que ficou de fora de propósito
 
 - Áudio do Kenney. O som de clique e de acerto é uma onda quadrada gerada no código, sem arquivo. Os sprites oficiais entraram só como PNG local, com o aviso de uso acadêmico no README.

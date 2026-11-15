@@ -45,7 +45,7 @@ const char *historiaAoEntrar(const char *nome_sala) {
         return NULL;
     }
     if (strcmp(nome_sala, "Laboratório") == 0) {
-        return "O painel está morto. Sem um choque, esta sala não devolve a luz.";
+        return "Está escuro. Aperte L para ligar a lanterna. Procure o painel e use o choque do Pikachu para devolver a luz.";
     }
     if (strcmp(nome_sala, "Pátio") == 0) {
         return "O Charmander não foge. Ele viu quem apagou o laboratório.";
@@ -60,7 +60,7 @@ const char *historiaAoEntrar(const char *nome_sala) {
         return "O incêndio não parece acidente. Água apaga. Mais fogo, não.";
     }
     if (strcmp(nome_sala, "Jaula") == 0) {
-        return "O Alakazam de teste observa. A mente dele move o que a mão não move.";
+        return "O Alakazam de teste observa. Há marcas na mesa. Capture-o e investigue a área com a habilidade psíquica.";
     }
     if (strcmp(nome_sala, "Arquivo") == 0) {
         return "A estante cobre a sala do chefe. Só uma mente tira isso da frente.";
@@ -76,13 +76,13 @@ const char *historiaAoResolver(const char *nome_sala) {
         return NULL;
     }
     if (strcmp(nome_sala, "Laboratório") == 0) {
-        return "As luzes acendem. O Pikachu aponta a porta do pátio.";
+        return "O gerador voltou! Agora use Pikachu nos dois refletores do setor. Eles liberam a porta do pátio.";
     }
     if (strcmp(nome_sala, "Câmara fria") == 0) {
-        return "O gelo derrete. Do outro lado, dá para ouvir o tanque.";
+        return "As travas derreteram. Religue os refletores e enfrente o Vigia Rocket para alcançar o tanque.";
     }
     if (strcmp(nome_sala, "Oficina") == 0) {
-        return "O fogo apaga. A fumaça sobe e o caminho da jaula abre.";
+        return "A dosagem funcionou e o fogo apagou. A Engenheira Rocket ainda protege o acesso à contenção.";
     }
     if (strcmp(nome_sala, "Arquivo") == 0) {
         return "A estante desliza. Giovanni está logo adiante.";

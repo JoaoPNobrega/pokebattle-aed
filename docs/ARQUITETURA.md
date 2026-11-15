@@ -24,11 +24,11 @@ main.c
 
 ## Fluxo de uma partida
 
-1. `comecarCaso` zera o estado anterior, coloca o Pikachu no time, monta oito salas e enfileira quatro lutas, nesta ordem: Charmander, Squirtle, Alakazam de teste, Giovanni (Meowth e Geodude).
-2. A sala atual é o laboratório. O painel pede habilidade elétrica. `resolverPuzzleDaSala` percorre o time, acha o Pikachu e marca a sala como resolvida. A sala seguinte (`prox`) passa a `desbloqueada = 1`.
-3. `avancarSala` só anda se a sala atual está resolvida, se a luta dela (quando existe) já acabou, e se a próxima está desbloqueada. `voltarSala` anda para `ant` sem essas travas: o caminho de volta fica livre.
-4. No pátio, no tanque e na jaula a sala pede luta. `casoIniciarBatalha` tira o próximo treinador da fila com `proximoTreinador`. Na derrota o mesmo treinador continua carregado e o HP dos dois lados volta. Na vitória a sala marca `batalha_concluida`, a próxima destrava e, se a sala é capturável, o selvagem derrotado fica pendente.
-5. `casoCapturar` copia esse Pokémon para o fim da lista do time, com HP cheio. Sem o Charmander a câmara fria não abre. Sem o Squirtle a oficina em chamas não apaga. Sem o Alakazam a estante do arquivo não sai da frente.
+1. `comecarCaso` monta oito salas e seis confrontos na fila: Charmander (18), Vigia Rocket (Meowth 24), Squirtle (18), Engenheira Rocket (Geodude 16 e Meowth 22), Alakazam (18), Giovanni. Pikachu começa no nível 26 com dois golpes. Cada guarda vencido desbloqueia mais um golpe, restaura o time e entrega suprimentos.
+2. O laboratório começa apagado. `Desafio` guarda a rede de fios da sala; `casoComandarPuzzle` gira peças e o percurso `circuitoAlcancado` verifica conexões recíprocas. Só uma rede completa permite usar a habilidade. Gelo, reservatórios, rastros e estantes têm regras próprias no mesmo módulo, sem raylib. A simulação executa ações públicas reproduzíveis, sem burlar as travas.
+3. `avancarSala` exige puzzle concluído, ambos os refletores do setor religados, encontro obrigatório vencido, guarda derrotado quando houver e próxima sala desbloqueada. `casoAvancar` também recusa captura pendente. `voltarSala` permite revisitar setores, preservando seus estados.
+4. No pátio, no tanque e na jaula a sala pede luta. `casoIniciarBatalha` tira o próximo treinador da fila com `proximoTreinador`. Na derrota o mesmo treinador continua carregado e o HP dos dois lados volta. Na vitória a sala marca `batalha_concluida`, a próxima destrava somente se o puzzle já estiver resolvido e, se a sala é capturável, o selvagem derrotado fica pendente.
+5. `casoComandoCaptura` e `casoPrazoCaptura` informam a próxima tecla e o prazo. `casoResponderCaptura` valida lançamento e contenção: Z, três direções e Z final. Erro reinicia a sequência sem perder o parceiro necessário. Só cinco acertos liberam `casoCapturar`, que copia o Pokémon para a lista do time. O estado mora no Caso, sem temporizador ou tecla na regra.
 6. A sala do chefe tem `e_chefe`. Vencer ali liga `caso_encerrado`. A janela mostra a tela de fim. A simulação imprime `RESULTADO: VITORIA`.
 
 ## Um turno de batalha
@@ -98,3 +98,18 @@ HP de batalha: `(2 * base * nível) / 100 + nível + 10`. Ataque, defesa e veloc
 ## O que a janela não decide
 
 `src/ui_raylib.c` escolhe o retângulo e a cor. O texto do puzzle, o HP e o nome do golpe vêm do `Caso`. As falas da história vêm de `historia.c`. A bolsa e a fuga estão em `casoUsarItem` e `casoTentarFugir`: a janela só mostra a quantidade e o resultado. Usar item ou falhar a fuga chama o mesmo turno em que o jogador entra com golpe -1 e só o oponente age. Não há `rand`. A trava da porta não entra na janela.
+
+O laboratório começa escuro. L alterna uma lanterna que acompanha o detetive e a direção em que olha; o painel resolvido pelo Pikachu restaura a iluminação normal. Na Jaula, capture Alakazam e use Z diante da mesa para examinar a área com a habilidade psíquica. Um fundo falso revela um documento com dicas sobre o Arquivo e Geodude; a pista fica no caderno (N), e o Arquivo só destrava após a busca. Não há inventário paralelo: o documento usa o estado do puzzle e a pilha de histórico.
+
+Os desafios agora são espaciais e diferentes por habilidade, no estado `Desafio` de cada nó de sala (`include/desafio.h`, `src/desafio.c`). Pikachu gira uma rede 3×3 com percurso de conexões; Charmander derrete quatro travas de três camadas, gerenciando calor e evitando tubos; Squirtle opera tanques de capacidade 5 e 3 até obter A=4/B=3 antes de liberar a mangueira; Alakazam segue três ecos numa busca 5×4 na Jaula e empurra estantes numa grade 6×6 no Arquivo, com U para desfazer e R para reiniciar. `casoComandarPuzzle` valida parceiro e aplica ações; a janela só lê entradas e desenha. As barras de acertar no verde foram removidas. Não transformar esses desafios em quiz.
+
+Documento: `casoPaginaDocumento` só libera as duas páginas após resolver a Jaula. A janela abre o papel em destaque automaticamente, com páginas completas e navegação; R relê, Z avança e X fecha. O documento continua baseado no nó da Jaula e na pilha, sem inventário separado.
+
+Treino opcional: matos (g) no Pátio/Tanque e escombros (r) na Oficina/Jaula são pisáveis. A cada quatro passos na área ou ao usar Z, `casoIniciarTreino` cria um selvagem fora da fila obrigatória. Encontros obrigatórios e capturas pendentes têm prioridade. Bulbassauro, Psyduck e Geodude usam os sprites/dados já existentes. Vencer rende 30 XP a cada parceiro; 60 XP sobem um nível até 60, recalculando HP sem reviver desmaiados. Repetições dão XP, mas não duplicam espécie. Capturas opcionais reservam vagas para Charmander, Squirtle e Alakazam: nunca lotar o time impedindo o caso. Treino não muda puzzle, sala, fila nem vitória do chefe; fuga libera seu oponente. Bancos (b) restauram HP/PP; T escolhe ativo e mostra experiência; V permite voltar à sala anterior. Mesas, armários e cadeiras mantêm caminhos acessíveis.
+
+
+Há dez refletores (dois no Laboratório, Câmara fria, Oficina, Jaula e Arquivo). O gerador libera energia; `casoAcenderPonto` mantém os bits de iluminação em cada sala. Cada refletor cria uma área de luz; o setor fica plenamente iluminado quando ambos estão ligados. O HUD mostra setor, próximo objetivo, refletor selecionado e PNG da tecla. A lanterna continua em L.
+
+Os guardas da Câmara fria e da Oficina saem da mesma fila obrigatória por `casoIniciarDuelo`. Eles exigem luzes e puzzle, recusam fuga/captura e bloqueiam a saída até a vitória. Oponentes de treino continuam fora da fila e não alteram esses objetivos. Não recriar salas, capturas ou Giovanni: estender o Caso existente.
+
+`assets/ui/teclas.png` e `guardas.png` são pixel art própria, gerada por `tools/gerar_interface.ps1` (ferramenta opcional de desenvolvimento; o jogo C só lê os PNGs). Sem assets de Ben 10. Referências de mecânica em `docs/REFERENCIAS_VISUAIS.md`.

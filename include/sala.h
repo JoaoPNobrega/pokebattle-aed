@@ -18,6 +18,7 @@
 
 #include "lista_time.h"
 #include "pilha_log.h"
+#include "desafio.h"
 
 #define NOME_SALA_MAX 48
 #define TEXTO_SALA_MAX 320
@@ -42,6 +43,11 @@ typedef struct NoSala {
     int capturavel;        /* 1 = o oponente pode entrar no time depois da vitória */
     int e_chefe;           /* 1 = vencer esta luta encerra o caso */
     int batalha_concluida; /* 1 = a luta desta sala já foi ganha */
+    Desafio desafio;
+    unsigned int luzes;
+    unsigned int luzes_necessarias;
+    int duelo_obrigatorio;
+    int duelo_concluido;
     struct NoSala *prox;
     struct NoSala *ant;
 } NoSala;
@@ -100,6 +106,7 @@ int voltarSala(ListaSalas *lista, PilhaLog *log);
  * A sala atual pede uma habilidade. Se algum Pokémon do time tiver
  * essa habilidade (pelo tipo), a sala fica resolvida e a próxima,
  * se existir, é desbloqueada.
+ * Um desafio espacial ativo precisa estar concluído antes da habilidade.
  *
  * Retorno: 1 se resolveu agora ou se já estava resolvida, 0 se o
  *          time não tem a habilidade ou não há sala.

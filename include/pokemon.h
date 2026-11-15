@@ -12,6 +12,8 @@
  *
  * Esta etapa não sorteia dano. A mesma situação sempre produz o mesmo
  * número, o que deixa a defesa oral e os testes reproduzíveis.
+ * Treinos opcionais guardam XP no próprio Pokémon (30 por vitória,
+ * 60 por nível). O HP máximo é recalculado ao subir, sem reviver desmaiados.
  */
 
 #ifndef POKEMON_H
@@ -43,6 +45,7 @@ typedef struct {
     int hp_atual;
     Golpe golpes[MAX_GOLPES];
     int qtd_golpes;
+    int experiencia; /* 60 XP de treino sobem um nível, até o nível 60. */
 } Pokemon;
 
 /*

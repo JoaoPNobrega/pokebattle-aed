@@ -29,6 +29,11 @@ typedef struct {
     int super_pocoes;
     int pokebolas;
     int tentativas_fuga; /* conta as fugas desta luta, sem sorteio */
+    int treino_ativo; /* encontro opcional, não consome a fila do caso */
+    int encontros_treino;
+    int batalha_npc;
+    int captura_acertos;
+    int captura_erros;
 } Caso;
 
 /* Itens da bolsa. A quantidade mora no Caso, não na janela. */
@@ -64,6 +69,9 @@ int comecarCaso(Caso *caso);
 /*
  * casoUsarHabilidade / casoAvancar / casoVoltar
  * Atalhos que operam na sala atual e anotam o histórico.
+ * Habilidade é recusada durante a luta ou antes de vencer o encontro.
+ * Na Jaula, a busca psíquica revela um documento e registra suas dicas no log.
+ * Habilidade só conclui depois do desafio espacial da sala.
  * Retorno: 1 se a ação aconteceu, 0 se foi recusada.
  * Complexidade: O(t) na habilidade (percorre o time); O(1) ao andar.
  */
@@ -71,12 +79,54 @@ int casoUsarHabilidade(Caso *caso);
 int casoAvancar(Caso *caso);
 int casoVoltar(Caso *caso);
 
+/* casoComandarPuzzle: valida parceiro e aplica ação/alvo ao desafio da sala.
+ * Retorno: -1 inválido, 0 erro/bloqueio, 1 ação, 2 sala resolvida. O(t+v+e).
+ * Parâmetros: caso, ação do desafio e célula/válvula. t = time; v <= 36. */
+int casoComandarPuzzle(Caso *caso, AcaoDesafio acao, int alvo);
+/* casoAcenderPonto: Pikachu religa refletor 0 ou 1 após restaurar o gerador.
+ * Parâmetros: caso e ponto. Retorno: 1 aceso, 0 indisponível. O(t).
+ * O estado das luzes pertence à sala e participa da trava de avanço. */
+int casoAcenderPonto(Caso *caso, int ponto);
+/* casoIniciarDuelo: inicia o guarda da sala depois do puzzle e das luzes.
+ * Parâmetro: caso. Retorno: 1 iniciou, 0 recusado. O(t), retira da fila do caso.
+ * t = tamanho do time, se precisar escolher outro parceiro vivo. */
+int casoIniciarDuelo(Caso *caso);
+/* casoObjetivoAtual: texto curto da próxima tarefa. Não altera o estado.
+ * Parâmetro: caso. Retorno: texto estático (nunca NULL). O(1). */
+const char *casoObjetivoAtual(const Caso *caso);
+/* Captura: comandos 0=cima,1=direita,2=baixo,3=esquerda,4=Z.
+ * casoComandoCaptura/casoPrazoCaptura leem próximo comando e prazo em ms. O(1).
+ * Parâmetro: caso. Retorno: comando ou -1; prazo ou 0 se indisponível.
+ * casoResponderCaptura valida comando e tempo desde o anterior. Um erro
+ * reinicia a contenção sem perder o parceiro obrigatório. O(1).
+ * Parâmetros: caso, comando, tempo_ms. Retorno: -1 inválido,0 erro,1 acerto,2 pronto.
+ * Só cinco acertos liberam casoCapturar. Não há sorteio. */
+int casoComandoCaptura(const Caso *caso);
+int casoPrazoCaptura(const Caso *caso);
+int casoResponderCaptura(Caso *caso, int comando, int tempo_ms);
+
+/* casoPaginaDocumento: lê página 0 ou 1 do documento revelado na Jaula.
+ * Parâmetros: caso e índice da página. Retorno: texto ou NULL se indisponível.
+ * O(s), s = salas. A descoberta é o puzzle resolvido, sem inventário paralelo. */
+const char *casoPaginaDocumento(const Caso *caso, int pagina);
+
+/* casoIniciarTreino: cria encontro opcional em Pátio/Tanque/Oficina/Jaula.
+ * Exige encontro obrigatório concluído e capturado; nunca tira nós da fila.
+ * Retorno: 1 se começou, 0 se indisponível. O(t), t = tamanho do time.
+ * Grama e escombros são apenas a apresentação dessas áreas na janela. */
+int casoIniciarTreino(Caso *caso);
+
+/* casoDescansar: restaura HP fora da luta; a janela repõe os PP visuais.
+ * Parâmetro: caso. Retorno: 1 se descansou, 0 durante luta ou captura pendente.
+ * O(t), t = tamanho do time. */
+int casoDescansar(Caso *caso);
+
 /*
  * casoIniciarBatalha
  * Se a sala atual pede luta e ela ainda não foi vencida, tira o
  * próximo treinador da fila (só na primeira tentativa) e entra em batalha.
  * Retorno: 1 se a luta começou, 0 se não havia luta.
- * Complexidade: O(1).
+ * Complexidade: O(t), t = soma dos times quando restaura uma tentativa anterior.
  */
 int casoIniciarBatalha(Caso *caso);
 
@@ -91,14 +141,15 @@ int casoIniciarBatalha(Caso *caso);
  *   0  o jogador venceu
  *  -1  o jogador perdeu
  *  -2  não havia luta, ou o índice do golpe é inválido
- * Complexidade: O(g + n^2) com g <= 4 golpes e n <= 2 atores no turno.
+ * Complexidade: O(g + n^2 + t), g <= 4, n <= 2 e t = tamanho dos times.
  */
 int casoExecutarGolpe(Caso *caso, int indice_golpe, SaidaBatalha *saida);
 
 /*
  * casoCapturar
  * Copia o selvagem pendente para o fim do time, com HP cheio.
- * Só existe pendência depois de vencer uma sala marcada como capturável.
+ * Existe pendência após vitória capturável do caso ou treino com vaga permitida.
+ * Exige cinco comandos aceitos por casoResponderCaptura antes de copiar.
  *
  * Retorno: 1 se entrou no time, 0 se não havia ninguém ou o time está cheio.
  * Complexidade: O(1) (o time tem no máximo 6).
@@ -118,7 +169,7 @@ int casoQuantidadeItem(const Caso *caso, int item);
 /*
  * casoUsarItem
  * Gasta um item na luta. Poção cura 20 de HP. Super Poção cura 50.
- * Poké Bola só serve em sala capturável: pega se o HP restante
+ * Poké Bola serve em sala capturável ou treino com vaga permitida: pega se o HP restante
  * for no máximo a metade. Não há sorteio, para a defesa repetir
  * o mesmo resultado.
  *
@@ -128,7 +179,7 @@ int casoQuantidadeItem(const Caso *caso, int item);
  *
  * Retorno: o mesmo de casoExecutarGolpe (1 continua, 0 vitória,
  * -1 derrota, -2 não usou).
- * Complexidade: O(g + n^2), g <= 4 e n <= 2, quando o oponente age.
+ * Complexidade: O(g + n^2 + t), g <= 4, n <= 2, t = tamanho dos times.
  */
 int casoUsarItem(Caso *caso, int item, SaidaBatalha *saida);
 
@@ -138,9 +189,10 @@ int casoUsarItem(Caso *caso, int item, SaidaBatalha *saida);
  * sorteio: a tentativa i (1, 2, 3...) funciona quando
  * velocidade_do_jogador * i >= velocidade_do_oponente.
  * Se falhar, o oponente age.
+ * Fugir de treino libera o oponente opcional sem alterar a fila do caso.
  *
  * Retorno: 3 se fugiu, ou o código de casoExecutarGolpe.
- * Complexidade: O(g + n^2) quando o oponente chega a agir.
+ * Complexidade: O(g + n^2 + t) quando o oponente chega a agir.
  */
 int casoTentarFugir(Caso *caso, SaidaBatalha *saida);
 

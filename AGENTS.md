@@ -117,8 +117,8 @@ Declaração de IA assinada por quem vai defender, zip sem executável e o víde
 A janela desenha em 240×160 e amplia com escala inteira (4) e `TEXTURE_FILTER_POINT`. A fonte é Press Start 2P, 8 px, também com filtro point. Sem isso o pixel borra.
 
 - `make assets` roda `tools/baixar_assets.sh`, que chama `baixar_assets.py` (PokéAPI) e `baixar_personagens.py` (overworld, costas do Red, Giovanni e o tileset do laboratório). Os arquivos já estão no git. O binário só lê disco.
-- Mapa: tiles de 16×16 do Kenney (`assets/tiles/kenney_indoor.png`, CC0). O detetive anda célula a célula (setas ou WASD), com folha de 4 direções. O Pikachu segue atrás. Z age em painel, gelo, fogo, porta e encontro. A porta chama `casoAvancar`. O puzzle chama `casoUsarHabilidade`.
-- Batalha: sprite de costas embaixo à esquerda, de frente no alto à direita, plataformas ovais, caixas de HP, menu LUTAR/BOLSA/POKÉMON/FUGIR e grade de golpes com tipo e PP. BOLSA e FUGIR só mostram fala: não há item nem fuga na regra. A captura é animação em volta de `casoCapturar`.
+- Mapa: tiles de 16×16 do Kenney (`assets/tiles/kenney_indoor.png`, CC0). O detetive anda célula a célula (setas ou WASD), com folha de 4 direções. O Pikachu segue atrás. Z age em painel, gelo, fogo, porta e encontro. A porta chama `casoAvancar`. O puzzle abre um desafio próprio: `casoComandarPuzzle` aplica ações à grade e só depois da conclusão chama `casoUsarHabilidade`.
+- Batalha: sprite de costas embaixo à esquerda, de frente no alto à direita, plataformas ovais, caixas de HP, menu LUTAR/BOLSA/POKÉMON/FUGIR e grade de golpes com tipo e PP. BOLSA e FUGIR chamam as regras de itens/fuga em `caso.c`. NPCs e chefes recusam fuga e captura. A captura exige cinco comandos de lançamento/contenção antes de `casoCapturar`, com ícone PNG da tecla e prazo na tela.
 - Barra de HP: verde acima de 50%, amarela até 20%, vermelha abaixo. A cor segue o valor animado, não o HP final.
 - O texto da luta aparece letra por letra. Giovanni usa fundo vermelho. A entrada da luta fecha a tela com barras pretas.
 - O caderno (tecla N) só lê a pilha e as salas já visitadas. Não crie outro inventário paralelo.
@@ -130,3 +130,18 @@ A janela desenha em 240×160 e amplia com escala inteira (4) e `TEXTURE_FILTER_P
 ## Convenção de comentário
 
 Topo do `.c` e do `.h`: o módulo e, se houver estrutura, por que ela foi escolhida. Em cada função pública: o que faz, parâmetros, retorno, Big-O. Comente o trecho que mexe em ponteiro (remover da lista dupla, ciclo da lista do turno, rotação da AVL, inversão da pilha). Não comente o óbvio (`i++`).
+
+O laboratório começa escuro. L alterna uma lanterna que acompanha o detetive e a direção em que olha; o painel resolvido pelo Pikachu restaura a iluminação normal. Na Jaula, capture Alakazam e use Z diante da mesa para examinar a área com a habilidade psíquica. Um fundo falso revela um documento com dicas sobre o Arquivo e Geodude; a pista fica no caderno (N), e o Arquivo só destrava após a busca. Não há inventário paralelo: o documento usa o estado do puzzle e a pilha de histórico.
+
+Os desafios agora são espaciais e diferentes por habilidade, no estado `Desafio` de cada nó de sala (`include/desafio.h`, `src/desafio.c`). Pikachu gira uma rede 3×3 com percurso de conexões; Charmander derrete quatro travas de três camadas, gerenciando calor e evitando tubos; Squirtle opera tanques de capacidade 5 e 3 até obter A=4/B=3 antes de liberar a mangueira; Alakazam segue três ecos numa busca 5×4 na Jaula e empurra estantes numa grade 6×6 no Arquivo, com U para desfazer e R para reiniciar. `casoComandarPuzzle` valida parceiro e aplica ações; a janela só lê entradas e desenha. As barras de acertar no verde foram removidas. Não transformar esses desafios em quiz.
+
+Documento: `casoPaginaDocumento` só libera as duas páginas após resolver a Jaula. A janela abre o papel em destaque automaticamente, com páginas completas e navegação; R relê, Z avança e X fecha. O documento continua baseado no nó da Jaula e na pilha, sem inventário separado.
+
+Treino opcional: matos (g) no Pátio/Tanque e escombros (r) na Oficina/Jaula são pisáveis. A cada quatro passos na área ou ao usar Z, `casoIniciarTreino` cria um selvagem fora da fila obrigatória. Encontros obrigatórios e capturas pendentes têm prioridade. Bulbassauro, Psyduck e Geodude usam os sprites/dados já existentes. Vencer rende 30 XP a cada parceiro; 60 XP sobem um nível até 60, recalculando HP sem reviver desmaiados. Repetições dão XP, mas não duplicam espécie. Capturas opcionais reservam vagas para Charmander, Squirtle e Alakazam: nunca lotar o time impedindo o caso. Treino não muda puzzle, sala, fila nem vitória do chefe; fuga libera seu oponente. Bancos (b) restauram HP/PP; T escolhe ativo e mostra experiência; V permite voltar à sala anterior. Mesas, armários e cadeiras mantêm caminhos acessíveis.
+
+
+Há dez refletores (dois no Laboratório, Câmara fria, Oficina, Jaula e Arquivo). O gerador libera energia; `casoAcenderPonto` mantém os bits de iluminação em cada sala. Cada refletor cria uma área de luz; o setor fica plenamente iluminado quando ambos estão ligados. O HUD mostra setor, próximo objetivo, refletor selecionado e PNG da tecla. A lanterna continua em L.
+
+Os guardas da Câmara fria e da Oficina saem da mesma fila obrigatória por `casoIniciarDuelo`. Eles exigem luzes e puzzle, recusam fuga/captura e bloqueiam a saída até a vitória. Oponentes de treino continuam fora da fila e não alteram esses objetivos. Não recriar salas, capturas ou Giovanni: estender o Caso existente.
+
+`assets/ui/teclas.png` e `guardas.png` são pixel art própria, gerada por `tools/gerar_interface.ps1` (ferramenta opcional de desenvolvimento; o jogo C só lê os PNGs). Sem assets de Ben 10. Referências de mecânica em `docs/REFERENCIAS_VISUAIS.md`.

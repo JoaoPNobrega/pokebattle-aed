@@ -16,6 +16,7 @@
 
 #include "caso.h"
 #include "historia.h"
+#include "simulacao.h"
 #include "util.h"
 
 #include <math.h>
@@ -105,7 +106,17 @@ typedef struct {
     int transicao;
     float captura_t;
     int caderno;
-    int leu_puzzle;
+    int lanterna_ligada; /* Estado visual; a energia vem do puzzle do laboratório. */
+    int documento_aberto;
+    int documento_pagina;
+    int puzzle_aberto;
+    int cursor_puzzle;
+    float retorno_puzzle;
+    char aviso_puzzle[64];
+    int time_aberto;
+    float retorno_captura;
+    float captura_animacao;
+    int batalha_treinador;
     char paginas[6][TEXTO_SALA_MAX];
     int pagina_n;
     int pagina_i;
@@ -137,6 +148,8 @@ typedef struct {
     float pika_anda;
     int pika_dir;
     int estava_encontro;
+    int passos_area;
+    int ultimo_passo_x, ultimo_passo_y;
     char sala[NOME_SALA_MAX];
 } Mundo;
 
@@ -160,6 +173,10 @@ static Texture2D pokebola_tex;
 static Texture2D frlg_tex;
 static Texture2D pikachu_ow;
 static Texture2D costas_tex;
+static Texture2D teclas_tex;
+static Texture2D guardas_tex;
+static int teclas_ok = 0;
+static int guardas_ok = 0;
 static int detetive_ok = 0;
 static int giovanni_ow_ok = 0;
 static int giovanni_bat_ok = 0;
@@ -200,16 +217,16 @@ static Mapa MAPA_LAB = {
 static Mapa MAPA_PATIO = {
     "####################",
     "#BB..............BB#",
-    "#B................B#",
-    "#..................#",
-    "#..................#",
+    "#B.gggg......rrr..B#",
+    "#..gggg......rrr...#",
+    "#..gggg............#",
     "#.........E........#",
-    "#..................#",
+    "#..s...............#",
     "#..MM........MM....#",
     "#..MM........MM....#",
     "#..................#",
-    "#V................V#",
-    "#..................#",
+    "#V..cc......cc....V#",
+    "#...bb......bb.....#",
     "#........D.........#",
     "####################"
 };
@@ -218,15 +235,15 @@ static Mapa MAPA_FRIA = {
     "####################",
     "#M................M#",
     "#,,,,,,,,,,,,,,,,,,#",
-    "#,................,#",
-    "#,................,#",
-    "#,................,#",
-    "#,................,#",
+    "#,l.MM......MM...o,#",
+    "#,..MM............,#",
+    "#,.......cc.......,#",
+    "#,.b..............,#",
     "#,................,#",
     "#,,,,,,,,,,,,,,,,,,#",
     "#.......IIII.......#",
     "#........PP........#",
-    "#........I.........#",
+    "#........I..n......#",
     "#........D.........#",
     "####################"
 };
@@ -239,11 +256,11 @@ static Mapa MAPA_TANQUE = {
     "#..~~~~~~~~~~~~~~..#",
     "#..~~~~~~~~~~~~~~..#",
     "#........E.........#",
-    "#..................#",
-    "#..................#",
+    "#..gggg.......ggg..#",
+    "#..gggg.......ggg..#",
     "#M................M#",
-    "#..................#",
-    "#..................#",
+    "#...cc.......cc....#",
+    "#...bb.......bb....#",
     "#........D.........#",
     "####################"
 };
@@ -251,16 +268,16 @@ static Mapa MAPA_TANQUE = {
 static Mapa MAPA_OFICINA = {
     "####################",
     "#C................C#",
-    "#..................#",
+    "#.lMM........MM..o.#",
     "#M................M#",
-    "#..................#",
-    "#..................#",
-    "#..................#",
-    "#..................#",
+    "#..rrr........rrr..#",
+    "#..rrr........rrr..#",
+    "#......cc..........#",
+    "#..bb..............#",
     "#.......FFFF.......#",
     "#........FF........#",
     "#........F.........#",
-    "#..................#",
+    "#...........n......#",
     "#........D.........#",
     "####################"
 };
@@ -268,16 +285,16 @@ static Mapa MAPA_OFICINA = {
 static Mapa MAPA_JAULA = {
     "####################",
     "#HHHHHHHHHHHHHHHHHH#",
-    "#H................H#",
-    "#H................H#",
+    "#H..MM........MM..H#",
+    "#H.l............o.H#",
     "#H.......E........H#",
     "#H................H#",
     "#HHHHHHH..HHHHHHHHH#",
-    "#..................#",
-    "#..................#",
-    "#M................M#",
-    "#..................#",
-    "#..................#",
+    "#..rrr........rrr..#",
+    "#..rrr........rrr..#",
+    "#M.......P........M#",
+    "#........c.........#",
+    "#..bb..........bb..#",
     "#........D.........#",
     "####################"
 };
@@ -285,15 +302,15 @@ static Mapa MAPA_JAULA = {
 static Mapa MAPA_ARQUIVO = {
     "####################",
     "#BBBBBBBBBBBBBBBBBB#",
+    "#B..BB.......BB...B#",
+    "#B..BB.......BB...B#",
+    "#B.l............o.B#",
     "#B................B#",
     "#B................B#",
-    "#B................B#",
-    "#B................B#",
-    "#B................B#",
-    "#..................#",
-    "#..................#",
+    "#..MM........MM....#",
+    "#..cc........cc....#",
     "#M................M#",
-    "#........BB........#",
+    "#..b.....BB........#",
     "#........P.........#",
     "#........D.........#",
     "####################"
@@ -303,11 +320,11 @@ static Mapa MAPA_CHEFE = {
     "####################",
     "#M................M#",
     "#........G.........#",
-    "#..................#",
+    "#...BB.......BB....#",
     "#..................#",
     "#..C............C..#",
-    "#..................#",
-    "#..................#",
+    "#...cc.......cc....#",
+    "#...MM.......MM....#",
     "#..................#",
     "#M................M#",
     "#..................#",
@@ -338,14 +355,14 @@ static const char *LAB_COL[14] = {
     "#############",
     "#############",
     ".............",
-    "#............",
+    "#...c........",
     "#PP.....###..",
     ".PP..........",
-    ".............",
+    ".......c.....",
     ".............",
     "#####...#####",
     ".............",
-    ".............",
+    ".l.........o.",
     ".............",
     "#...........#",
     "#####DDD#####"
@@ -513,6 +530,8 @@ static void carregarAssets(void) {
     pikachu_ow = carregarPng("personagens/pikachu_overworld.png", &pikachu_ow_ok);
     costas_tex = carregarPng("personagens/detetive_costas.png", &costas_ok);
     frlg_tex = carregarPng("tiles/frlg_lab.png", &frlg_ok);
+    teclas_tex = carregarPng("ui/teclas.png", &teclas_ok);
+    guardas_tex = carregarPng("ui/guardas.png", &guardas_ok);
     carregarSpritesPokemon();
     InitAudioDevice();
     if (IsAudioDeviceReady()) {
@@ -545,6 +564,8 @@ static void liberarAssets(void) {
     liberarTextura(&pikachu_ow, &pikachu_ow_ok);
     liberarTextura(&costas_tex, &costas_ok);
     liberarTextura(&frlg_tex, &frlg_ok);
+    liberarTextura(&teclas_tex, &teclas_ok);
+    liberarTextura(&guardas_tex, &guardas_ok);
     if (fonte_ok) {
         UnloadFont(fonte);
         fonte_ok = 0;
@@ -1000,7 +1021,9 @@ static char tileEm(const char **mapa, int x, int y) {
 static int solido(char simbolo, const NoSala *sala) {
     if (simbolo == '#' || simbolo == 'M' || simbolo == 'C' || simbolo == 'B' ||
         simbolo == 'R' || simbolo == 'S' || simbolo == 'V' || simbolo == 'P' ||
-        simbolo == 'H' || simbolo == '~' || simbolo == 'D') {
+        simbolo == 'H' || simbolo == '~' || simbolo == 'D' ||
+        simbolo == 'c' || simbolo == 'b' || simbolo == 's' ||
+        simbolo == 'l' || simbolo == 'o' || simbolo == 'n') {
         return 1;
     }
     if ((simbolo == 'I' || simbolo == 'F') && (sala == NULL || !sala->resolvido)) {
@@ -1013,7 +1036,9 @@ static int portaAberta(const NoSala *sala) {
     if (sala == NULL || sala->prox == NULL) {
         return 0;
     }
-    if (!sala->resolvido || !sala->prox->desbloqueada) {
+    if (!sala->resolvido || !sala->prox->desbloqueada ||
+        (sala->luzes & sala->luzes_necessarias) != sala->luzes_necessarias ||
+        (sala->duelo_obrigatorio && !sala->duelo_concluido)) {
         return 0;
     }
     if (sala->inicia_batalha && !sala->batalha_concluida) {
@@ -1059,6 +1084,7 @@ static void entrarNaSala(void) {
     copiarTexto(mundo.sala, sizeof mundo.sala, sala->nome);
     mundo.tx = 10;
     mundo.ty = 4;
+    if (mapa == LAB_COL) { mundo.tx = 6; mundo.ty = 6; }
     if (solido(tileEm(mapa, mundo.tx, mundo.ty), sala)) {
         for (y = 1; y < MAPA_A - 1; y++) {
             if (!solido(tileEm(mapa, 10, y), sala)) {
@@ -1095,9 +1121,14 @@ static void entrarNaSala(void) {
     mundo.pika_dir = 0;
     mundo.estava_encontro = (tileEm(mapa, mundo.tx, mundo.ty) == 'E' ||
                              tileEm(mapa, mundo.tx, mundo.ty) == 'G');
-    vis.leu_puzzle = 0;
     vis.fala_aberta = 0;
     vis.caderno = 0;
+    vis.puzzle_aberto = 0;
+    vis.documento_aberto = 0;
+    vis.time_aberto = 0;
+    mundo.passos_area = 0;
+    mundo.ultimo_passo_x = mundo.tx;
+    mundo.ultimo_passo_y = mundo.ty;
 }
 
 static void tentarPorta(void) {
@@ -1110,7 +1141,7 @@ static void tentarPorta(void) {
         if (sala->inicia_batalha && !sala->batalha_concluida) {
             abrirFala("Ainda há um Pokémon no caminho.");
         } else {
-            abrirFala("A porta está trancada.");
+            abrirFala(casoObjetivoAtual(&caso_jogo));
         }
         return;
     }
@@ -1133,6 +1164,9 @@ static void prepararBatalha(void) {
     vis.cursor = 0;
     vis.captura_t = 0.0f;
     vis.captura_feita = 0;
+    vis.retorno_captura = 0.0f;
+    vis.captura_animacao = 0.0f;
+    vis.batalha_treinador = caso_jogo.batalha_npc;
     vis.resultado = 1;
     vis.vitoria = 0;
     vis.flash_eu = 0.0f;
@@ -1167,7 +1201,8 @@ static void tentarBatalha(void) {
         return;
     }
     if (sala->batalha_concluida) {
-        abrirFala(sala->texto_resolvido);
+        abrirFala(sala->resolvido ? sala->texto_resolvido :
+                  "Agora examine a mesa com o Alakazam. Use Z diante dela.");
         return;
     }
     if (!casoIniciarBatalha(&caso_jogo)) {
@@ -1176,6 +1211,26 @@ static void tentarBatalha(void) {
     }
     clique();
     comecarTransicao();
+}
+
+static void abrirDocumento(void) {
+    if (casoPaginaDocumento(&caso_jogo, 0) != NULL) {
+        vis.documento_aberto = 1;
+        vis.documento_pagina = 0;
+        vis.caderno = 0;
+        vis.fala_aberta = 0;
+        clique();
+    }
+}
+
+static void tentarTreino(int explicar) {
+    if (casoIniciarTreino(&caso_jogo)) {
+        /* O banco recupera os PP; cada novo encontro conserva o gasto atual. */
+        clique();
+        comecarTransicao();
+    } else if (explicar) {
+        abrirFala("Matos e escombros escondem selvagens. Primeiro conclua a captura desta sala; depois ande na área ou use Z para treinar.");
+    }
 }
 
 static void tentarPuzzle(char simbolo) {
@@ -1188,21 +1243,23 @@ static void tentarPuzzle(char simbolo) {
         return;
     }
     if (sala->resolvido) {
-        abrirFala(sala->texto_resolvido);
+        if (strcmp(sala->nome, "Jaula") == 0) abrirDocumento();
+        else abrirFala(sala->texto_resolvido);
         return;
     }
-    if (!vis.leu_puzzle) {
-        vis.leu_puzzle = 1;
-        abrirFala(sala->texto_puzzle);
+    if (sala->inicia_batalha && !sala->batalha_concluida) {
+        abrirFala("Primeiro, ajude o Alakazam e capture-o.");
         return;
     }
-    if (casoUsarHabilidade(&caso_jogo)) {
-        const char *fala = historiaAoResolver(sala->nome);
-        clique();
-        abrirFala(fala != NULL ? fala : sala->texto_resolvido);
+    if (!timeTemHabilidade(&caso_jogo.nucleo.time, sala->habilidade)) {
+        abrirFala("Nenhum Pokémon do time resolve isto.");
         return;
     }
-    abrirFala("Nenhum Pokémon do time resolve isto.");
+    vis.puzzle_aberto = 1;
+    vis.cursor_puzzle = sala->desafio.tipo == DES_GELO ? 4 : 0;
+    vis.retorno_puzzle = 0.0f;
+    copiarTexto(vis.aviso_puzzle, sizeof vis.aviso_puzzle, "Explore e use a habilidade.");
+    clique();
 }
 
 static int acaoPressionada(void) {
@@ -1318,6 +1375,28 @@ static void interagir(void) {
     else fx++;
     a_frente = tileEm(mapa, fx, fy);
     aqui = tileEm(mapa, mundo.tx, mundo.ty);
+    if (a_frente == 'l' || a_frente == 'o') {
+        if (casoAcenderPonto(&caso_jogo, a_frente == 'l' ? 0 : 1)) clique();
+        else abrirFala("O refletor precisa do gerador do laboratório. Reconecte o circuito com Pikachu primeiro.");
+        return;
+    }
+    if (a_frente == 'n') {
+        if (casoIniciarDuelo(&caso_jogo)) { clique(); comecarTransicao(); }
+        else abrirFala(sala != NULL && sala->duelo_concluido ? "O guarda recua. Passagem liberada." :
+                       "O guarda espera: restaure os refletores e resolva o obstáculo deste setor antes do duelo.");
+        return;
+    }
+    if (a_frente == 'b') {
+        if (casoDescansar(&caso_jogo)) {
+            memset(vis.pp_init, 0, sizeof vis.pp_init);
+            abrirFala("Uma pausa no banco. HP e PP recuperados! T abre o time para escolher quem vai treinar.");
+        }
+        return;
+    }
+    if (a_frente == 's') {
+        abrirFala("ÁREA DE TREINO. Ande nos matos ou escombros, ou use Z sobre eles. Vitória: 30 XP para cada parceiro. 60 XP sobem um nível. Bancos recuperam HP e PP.");
+        return;
+    }
     if (a_frente == 'D') {
         tentarPorta();
         return;
@@ -1328,7 +1407,9 @@ static void interagir(void) {
     }
     if (a_frente == 'P' || a_frente == 'I' || a_frente == 'F') {
         tentarPuzzle(a_frente);
+        return;
     }
+    if (a_frente == 'g' || a_frente == 'r' || aqui == 'g' || aqui == 'r') tentarTreino(1);
 }
 
 static int copiarHistorico(char linhas[][LOG_MAX], int maximo) {
@@ -1353,6 +1434,52 @@ static int copiarHistorico(char linhas[][LOG_MAX], int maximo) {
     return mostrar;
 }
 
+static void atualizarPuzzle(float dt) {
+    NoSala *sala = caso_jogo.salas.atual;
+    Desafio *d;
+    AcaoDesafio acao = ACAO_USAR;
+    int enviar = 0, dx = 0, dy = 0, resultado;
+    int colunas, total;
+    if (vis.retorno_puzzle > 0) vis.retorno_puzzle -= dt;
+    if (sala == NULL) { vis.puzzle_aberto = 0; return; }
+    d = &sala->desafio;
+    if (voltarPressionado() || IsKeyPressed(KEY_ESCAPE)) { vis.puzzle_aberto = 0; return; }
+    if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D)) dx = 1;
+    if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A)) dx = -1;
+    if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) dy = 1;
+    if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) dy = -1;
+    if (IsKeyPressed(KEY_R)) { acao = ACAO_REINICIAR; enviar = 1; }
+    else if (IsKeyPressed(KEY_U) && d->tipo == DES_ESTANTES) { acao = ACAO_DESFAZER; enviar = 1; }
+    else if (d->tipo == DES_ESTANTES && (dx || dy)) {
+        acao = dx > 0 ? ACAO_DIREITA : dx < 0 ? ACAO_ESQUERDA : dy > 0 ? ACAO_BAIXO : ACAO_CIMA;
+        enviar = 1;
+    } else if (d->tipo == DES_GELO && IsKeyPressed(KEY_E)) { acao = ACAO_RESFRIAR; enviar = 1; }
+    else {
+        colunas = d->tipo == DES_CIRCUITO ? 3 : d->tipo == DES_GELO ? 4 : d->tipo == DES_RASTRO ? 5 : 1;
+        total = d->tipo == DES_CIRCUITO ? 9 : d->tipo == DES_GELO ? 12 : d->tipo == DES_RASTRO ? 20 : 4;
+        if (dx && colunas > 1 && vis.cursor_puzzle % colunas + dx >= 0 &&
+            vis.cursor_puzzle % colunas + dx < colunas) vis.cursor_puzzle += dx;
+        if (dy && vis.cursor_puzzle + dy * colunas >= 0 && vis.cursor_puzzle + dy * colunas < total)
+            vis.cursor_puzzle += dy * colunas;
+        if (acaoPressionada()) enviar = 1;
+    }
+    if (!enviar) return;
+    resultado = casoComandarPuzzle(&caso_jogo, acao, vis.cursor_puzzle);
+    clique();
+    if (resultado == 2) {
+        const char *fala = historiaAoResolver(sala->nome);
+        vis.puzzle_aberto = 0;
+        if (d->tipo == DES_RASTRO) abrirDocumento();
+        else abrirFala(fala != NULL ? fala : sala->texto_resolvido);
+    } else {
+        copiarTexto(vis.aviso_puzzle, sizeof vis.aviso_puzzle, resultado < 0 ? "Ação indisponível." :
+                    d->tipo == DES_GELO ? "Vapor! Resfrie com E." :
+                    d->tipo == DES_AGUA ? "Dosagem errada. Recomece." :
+                    d->tipo == DES_RASTRO ? "Siga o eco mais forte." : "Bloqueado. U desfaz.");
+        vis.retorno_puzzle = resultado <= 0 ? 1.2f : 0;
+    }
+}
+
 static void atualizarMundo(float dt) {
     NoSala *sala;
 
@@ -1364,6 +1491,38 @@ static void atualizarMundo(float dt) {
         entrarNaSala();
         narrarSalaAtual();
     }
+    if (IsKeyPressed(KEY_L)) {
+        vis.lanterna_ligada = !vis.lanterna_ligada;
+        clique();
+    }
+    if (vis.documento_aberto) {
+        if (IsKeyPressed(KEY_RIGHT) || acaoPressionada()) {
+            if (vis.documento_pagina == 0) vis.documento_pagina = 1;
+            else vis.documento_aberto = 0;
+            clique();
+        } else if (IsKeyPressed(KEY_LEFT)) vis.documento_pagina = 0;
+        else if (voltarPressionado() || IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_R)) vis.documento_aberto = 0;
+        return;
+    }
+    if (vis.puzzle_aberto) {
+        atualizarPuzzle(dt);
+        return;
+    }
+    if (vis.time_aberto) {
+        int n = tamanhoTime(&caso_jogo.nucleo.time);
+        if (n > 0 && (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S))) vis.cursor_time = (vis.cursor_time + 1) % n;
+        if (n > 0 && (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W))) vis.cursor_time = (vis.cursor_time + n - 1) % n;
+        if (acaoPressionada() && n > 0) {
+            const Pokemon *escolhido = pokemonNaPosicao(&caso_jogo.nucleo.time, vis.cursor_time);
+            if (escolhido != NULL && escolhido->hp_atual > 0) {
+                definirAtivoPorPosicao(&caso_jogo.nucleo.time, vis.cursor_time);
+                vis.time_aberto = 0;
+                clique();
+            }
+        }
+        if (IsKeyPressed(KEY_T) || voltarPressionado() || IsKeyPressed(KEY_ESCAPE)) vis.time_aberto = 0;
+        return;
+    }
     if (vis.fala_aberta) {
         revelarTexto(dt, vis.fala);
         if (acaoPressionada() || IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
@@ -1372,6 +1531,7 @@ static void atualizarMundo(float dt) {
         return;
     }
     if (vis.caderno) {
+        if (IsKeyPressed(KEY_R)) { abrirDocumento(); return; }
         if (acaoPressionada() || IsKeyPressed(KEY_N) || IsKeyPressed(KEY_ESCAPE)) {
             vis.caderno = 0;
         }
@@ -1381,12 +1541,29 @@ static void atualizarMundo(float dt) {
         vis.caderno = 1;
         return;
     }
+    if (IsKeyPressed(KEY_R)) { abrirDocumento(); return; }
+    if (IsKeyPressed(KEY_T)) {
+        vis.time_aberto = 1;
+        vis.cursor_time = posicaoDoAtivo(&caso_jogo.nucleo.time);
+        return;
+    }
+    if (IsKeyPressed(KEY_V) && casoVoltar(&caso_jogo)) { entrarNaSala(); return; }
     if (acaoPressionada()) {
         interagir();
         return;
     }
     lerMovimento(dt);
     verificarEncontro();
+    if (!mundo.movendo && !vis.transicao && !vis.fala_aberta &&
+        (mundo.tx != mundo.ultimo_passo_x || mundo.ty != mundo.ultimo_passo_y)) {
+        const char **mapa = mapaDa(sala == NULL ? "" : sala->nome);
+        char simbolo = tileEm(mapa, mundo.tx, mundo.ty);
+        mundo.ultimo_passo_x = mundo.tx;
+        mundo.ultimo_passo_y = mundo.ty;
+        if (simbolo == 'g' || simbolo == 'r') {
+            if (++mundo.passos_area >= 4) { mundo.passos_area = 0; tentarTreino(0); }
+        } else mundo.passos_area = 0;
+    }
 }
 
 static void desenharSpriteMon(int numero, int costas, Rectangle destino, float flash) {
@@ -1490,6 +1667,64 @@ static void blitFrlg(int id, int x, int y) {
     DrawTexturePro(frlg_tex, origem, destino, (Vector2){0.0f, 0.0f}, 0.0f, WHITE);
 }
 
+/* Móveis têm colisão no mesmo símbolo usado para desenhar; mato e entulho são pisáveis. */
+static void desenharTecla(int indice, int x, int y) {
+    static const char *nomes[] = {"Z", "X", "E", "L", "U", "R", "^", ">", "v", "<", "T", "V"};
+    if (indice < 0 || indice >= 12) return;
+    if (teclas_ok) {
+        DrawTexturePro(teclas_tex, (Rectangle){indice * 16.0f, 0, 16, 16},
+                       (Rectangle){(float)x, (float)y, 16, 16}, (Vector2){0, 0}, 0, WHITE);
+    } else {
+        DrawRectangle(x, y, 16, 16, (Color){248, 240, 208, 255});
+        texto(nomes[indice], x + 4.0f, y + 4.0f, FONTE_PX, BLACK);
+    }
+}
+
+static void desenharGuarda(int variante, float x, float y, int escala) {
+    if (guardas_ok) {
+        DrawTexturePro(guardas_tex, (Rectangle){variante * 16.0f, 0, 16, 24},
+                       (Rectangle){x, y, 16.0f * escala, 24.0f * escala}, (Vector2){0, 0}, 0, WHITE);
+    } else DrawRectangle((int)x, (int)y, 16 * escala, 24 * escala, (Color){160, 48, 64, 255});
+}
+
+static void desenharDetalhe(char simbolo, int x, int y) {
+    int i;
+    if (simbolo == 'l' || simbolo == 'o') {
+        const NoSala *sala = caso_jogo.salas.atual;
+        int aceso = sala != NULL && (sala->luzes & (simbolo == 'l' ? 1U : 2U));
+        DrawRectangle(x + 5, y + 6, 6, 10, (Color){64, 72, 88, 255});
+        DrawRectangle(x + 1, y + 1, 14, 7, (Color){32, 40, 56, 255});
+        DrawRectangle(x + 3, y + 2, 10, 4, aceso ? (Color){255, 240, 160, 255} : (Color){112, 88, 64, 255});
+    } else if (simbolo == 'g') {
+        DrawRectangle(x, y, 16, 16, (Color){68, 112, 56, 255});
+        for (i = 0; i < 4; i++) {
+            int dx = x + 2 + i * 4;
+            DrawRectangle(dx, y + 5 + i % 2 * 4, 2, 6, (Color){136, 188, 72, 255});
+            DrawRectangle(dx - 1, y + 7 + i % 2 * 4, 4, 2, (Color){40, 88, 40, 255});
+        }
+    } else if (simbolo == 'r') {
+        DrawRectangle(x + 2, y + 9, 12, 5, (Color){80, 72, 72, 255});
+        DrawRectangle(x + 1, y + 7, 6, 5, (Color){152, 140, 120, 255});
+        DrawRectangle(x + 8, y + 4, 6, 7, (Color){120, 112, 104, 255});
+        DrawRectangle(x + 3, y + 6, 3, 2, (Color){196, 184, 160, 255});
+        DrawRectangle(x + 9, y + 3, 4, 2, (Color){196, 184, 160, 255});
+    } else if (simbolo == 'c') {
+        DrawRectangle(x + 4, y + 3, 8, 5, (Color){64, 88, 120, 255});
+        DrawRectangle(x + 3, y + 8, 10, 5, (Color){104, 144, 168, 255});
+        DrawRectangle(x + 4, y + 13, 2, 3, (Color){48, 48, 64, 255});
+        DrawRectangle(x + 10, y + 13, 2, 3, (Color){48, 48, 64, 255});
+    } else if (simbolo == 'b') {
+        DrawRectangle(x + 1, y + 2, 14, 5, (Color){88, 56, 40, 255});
+        DrawRectangle(x + 1, y + 8, 14, 4, (Color){184, 128, 64, 255});
+        DrawRectangle(x + 2, y + 12, 2, 3, (Color){56, 48, 40, 255});
+        DrawRectangle(x + 12, y + 12, 2, 3, (Color){56, 48, 40, 255});
+    } else if (simbolo == 's') {
+        DrawRectangle(x + 7, y + 6, 2, 10, (Color){88, 56, 40, 255});
+        DrawRectangle(x + 1, y + 1, 14, 9, (Color){240, 216, 144, 255});
+        DrawRectangle(x + 4, y + 4, 8, 2, (Color){72, 88, 48, 255});
+    }
+}
+
 static void desenharMapa(const NoSala *sala, int camx, int camy) {
     const char **mapa = mapaDa(sala == NULL ? "" : sala->nome);
     const char *nome = sala == NULL ? "" : sala->nome;
@@ -1511,6 +1746,7 @@ static void desenharMapa(const NoSala *sala, int camx, int camy) {
         for (y = y0; y < y1; y++) {
             for (x = x0; x < x1; x++) {
                 blitFrlg(LAB_META[y][x], x * TILE - camx, y * TILE - camy);
+                desenharDetalhe(tileEm(mapa, x, y), x * TILE - camx, y * TILE - camy);
             }
         }
         return;
@@ -1569,8 +1805,241 @@ static void desenharMapa(const NoSala *sala, int camx, int camy) {
                 DrawRectangle(px + 3, py + 4 + ch, 10, 10, (Color){220, 72, 24, 255});
                 DrawRectangle(px + 5, py + 2 + ch, 6, 6, (Color){255, 196, 48, 255});
             }
+            if (simbolo == 'P' && strcmp(nome, "Jaula") == 0) {
+                Color cor = sala->resolvido ? (Color){248, 240, 196, 255} :
+                                             (Color){176, 112, 232, 255};
+                DrawRectangle(px + 5, py + 2, 7, 9, cor);
+                DrawRectangle(px + 6, py + 4, 5, 1, (Color){72, 48, 96, 255});
+                DrawRectangle(px + 6, py + 7, 4, 1, (Color){72, 48, 96, 255});
+            }
+            desenharDetalhe(simbolo, px, py);
         }
     }
+}
+
+/* Máscara em blocos nativos: acompanha a câmera e mantém o pixel sem borrar. */
+static void desenharEscuridao(float centro_x, float centro_y, int camx, int camy) {
+    const NoSala *sala = caso_jogo.salas.atual;
+    const char **mapa = mapaDa(sala == NULL ? "" : sala->nome);
+    float lampadas_x[2] = {-1000, -1000}, lampadas_y[2] = {-1000, -1000};
+    float luz_x = centro_x, luz_y = centro_y;
+    int x, y, i;
+    if (sala == NULL || sala->luzes_necessarias == 0 ||
+        (sala->luzes & sala->luzes_necessarias) == sala->luzes_necessarias) return;
+    for (y = 0; y < alturaMapa(mapa); y++) for (x = 0; x < larguraMapa(mapa); x++) {
+        char simbolo = tileEm(mapa, x, y);
+        if (simbolo == 'l' || simbolo == 'o') {
+            i = simbolo == 'l' ? 0 : 1;
+            if (sala->luzes & (1U << i)) { lampadas_x[i] = x * TILE - camx + 8.0f; lampadas_y[i] = y * TILE - camy + 8.0f; }
+        }
+    }
+    if (vis.lanterna_ligada) {
+        if (mundo.dir == 0) luz_y += 20;
+        else if (mundo.dir == 3) luz_y -= 20;
+        else if (mundo.dir == 1) luz_x -= 20;
+        else luz_x += 20;
+    }
+    for (y = 0; y < VIRT_A; y += 4) for (x = 0; x < VIRT_L; x += 4) {
+        float dx = x + 2.0f - luz_x, dy = y + 2.0f - luz_y;
+        float raio = vis.lanterna_ligada ? 58.0f : 13.0f;
+        float sombra = (sqrtf(dx * dx + dy * dy) - raio + 18.0f) / 18.0f;
+        for (i = 0; i < 2; i++) {
+            float local;
+            dx = x + 2.0f - lampadas_x[i]; dy = y + 2.0f - lampadas_y[i];
+            local = (sqrtf(dx * dx + dy * dy) - 74.0f + 24.0f) / 24.0f;
+            if (local < sombra) sombra = local;
+        }
+        if (sombra < 0) sombra = 0;
+        if (sombra > 1) sombra = 1;
+        DrawRectangle(x, y, 4, 4, (Color){4, 6, 16, (unsigned char)(24 + sombra * 214)});
+    }
+}
+
+static void desenharContexto(int camx, int camy) {
+    const NoSala *sala = caso_jogo.salas.atual;
+    const char **mapa = mapaDa(sala == NULL ? "" : sala->nome);
+    int x = mundo.tx, y = mundo.ty;
+    char simbolo;
+    const char *rotulo = NULL;
+    if (vis.fala_aberta || vis.caderno || vis.puzzle_aberto || vis.documento_aberto || vis.time_aberto) return;
+    if (mundo.dir == 0) y++;
+    else if (mundo.dir == 3) y--;
+    else if (mundo.dir == 1) x--;
+    else x++;
+    simbolo = tileEm(mapa, x, y);
+    if (simbolo == 'l' || simbolo == 'o') rotulo = "Pikachu: iluminar setor";
+    else if (simbolo == 'n') rotulo = sala != NULL && sala->duelo_concluido ? "Guarda derrotado" : "Desafiar guarda Rocket";
+    else if (simbolo == 'P' || simbolo == 'I' || simbolo == 'F') rotulo = "Investigar com parceiro";
+    else if (simbolo == 'E' || simbolo == 'G') rotulo = "Iniciar confronto";
+    else if (simbolo == 'D') rotulo = portaAberta(sala) ? "Entrar no próximo setor" : "Ver objetivo da porta";
+    else if (simbolo == 'b') rotulo = "Descansar: HP e PP";
+    else if (simbolo == 's') rotulo = "Ler placa de treino";
+    else if (simbolo == 'g' || simbolo == 'r') rotulo = "Procurar selvagem";
+    else if (tileEm(mapa, mundo.tx, mundo.ty) == 'g' || tileEm(mapa, mundo.tx, mundo.ty) == 'r') {
+        x = mundo.tx; y = mundo.ty; rotulo = "Procurar selvagem";
+    }
+    if (rotulo != NULL) {
+        DrawRectangleLines(x * TILE - camx - 1, y * TILE - camy - 1, 18, 18, GOLD);
+        caixa(2, 116, 236, 42, (Color){20, 28, 48, 248});
+        DrawRectangleLines(7, 121, 22, 22, GOLD);
+        desenharTecla(0, 10, 124);
+        textoAte(rotulo, 34, 122, 198, WHITE);
+        textoAte(casoObjetivoAtual(&caso_jogo), 34, 140, 198, (Color){248, 216, 104, 255});
+    } else {
+        caixa(2, 136, 236, 22, (Color){20, 28, 48, 240});
+        textoAte(casoObjetivoAtual(&caso_jogo), 8, 143, 224, (Color){248, 216, 104, 255});
+    }
+    if (sala != NULL && sala->luzes_necessarias) {
+        char luzes[32];
+        int n = !!(sala->luzes & 1U) + !!(sala->luzes & 2U);
+        snprintf(luzes, sizeof luzes, "Luz %d/2", n);
+        desenharTecla(3, 154, 3);
+        texto(luzes, 174, 7, FONTE_PX, WHITE);
+    }
+}
+
+static void desenharDocumento(void) {
+    char linhas[11][48];
+    char pagina[40];
+    int n = 0, i;
+    const char *conteudo = casoPaginaDocumento(&caso_jogo, vis.documento_pagina);
+    DrawRectangle(0, 0, VIRT_L, VIRT_A, (Color){4, 6, 16, 210});
+    DrawRectangle(14, 8, 218, 148, (Color){0, 0, 0, 150});
+    caixa(8, 4, 220, 148, (Color){248, 236, 196, 255});
+    texto("DOCUMENTO REVELADO", 20, 14, FONTE_PX, (Color){96, 40, 40, 255});
+    DrawRectangle(20, 28, 196, 1, (Color){160, 120, 80, 255});
+    quebrar(conteudo, linhas, &n, 10, 196.0f);
+    for (i = 0; i < n; i++) texto(linhas[i], 20, 35.0f + i * 10.0f, FONTE_PX, (Color){48, 40, 32, 255});
+    snprintf(pagina, sizeof pagina, "%d/2  Z: %s", vis.documento_pagina + 1,
+             vis.documento_pagina == 0 ? "próxima" : "fechar");
+    texto(pagina, 20, 138, FONTE_PX, (Color){96, 40, 40, 255});
+}
+
+static void desenharPuzzle(void) {
+    const NoSala *sala = caso_jogo.salas.atual;
+    const Desafio *d;
+    int i, x, y;
+    char linha[48];
+    const char *titulo;
+    if (sala == NULL) return;
+    d = &sala->desafio;
+    titulo = d->tipo == DES_CIRCUITO ? "PIKACHU / REDE ELETRICA" : d->tipo == DES_GELO ? "CHARMANDER / DESGELO" :
+             d->tipo == DES_AGUA ? "SQUIRTLE / HIDRAULICA" : d->tipo == DES_RASTRO ? "ALAKAZAM / INVESTIGACAO" : "ALAKAZAM / ESTANTES";
+    DrawRectangle(0, 0, VIRT_L, VIRT_A, (Color){4, 6, 16, 210});
+    caixa(4, 4, 232, 152, (Color){20, 28, 48, 255});
+    texto(titulo, 12, 13, FONTE_PX, (Color){248, 216, 104, 255});
+    if (d->tipo == DES_CIRCUITO) {
+        unsigned int vistos = circuitoAlcancado(d);
+        static const int terminais[3] = {2, 6, 8};
+        for (i = 0; i < 9; i++) {
+            int mascara = mascaraCircuito(d, i);
+            Color cor = vistos & (1U << i) ? (Color){128, 232, 144, 255} : (Color){112, 128, 160, 255};
+            x = 12 + i % 3 * 28; y = 32 + i / 3 * 28;
+            caixa(x, y, 26, 26, (Color){32, 44, 64, 255});
+            if (mascara & 1) DrawRectangle(x + 11, y + 1, 4, 13, cor);
+            if (mascara & 2) DrawRectangle(x + 12, y + 11, 13, 4, cor);
+            if (mascara & 4) DrawRectangle(x + 11, y + 12, 4, 13, cor);
+            if (mascara & 8) DrawRectangle(x + 1, y + 11, 13, 4, cor);
+            if (i == 2 || i == 6 || i == 8) {
+                DrawRectangle(x + 16, y + 16, 9, 9, (Color){20, 28, 48, 255});
+                texto(i == 2 ? "1" : i == 6 ? "2" : "3", x + 17.0f, y + 17.0f, FONTE_PX, GOLD);
+            }
+            if (i == vis.cursor_puzzle) DrawRectangleLines(x, y, 26, 26, YELLOW);
+        }
+        texto("FONTE >", 112, 36, FONTE_PX, GREEN);
+        DrawRectangle(6, 43, 6, 4, GREEN);
+        for (i = 0; i < 3; i++) {
+            snprintf(linha, sizeof linha, "Terminal %d", i + 1);
+            texto(linha, 112, 58.0f + i * 18, FONTE_PX, vistos & (1U << terminais[i]) ? GREEN : GRAY);
+        }
+        texto("Ligue os 3 terminais.", 12, 121, FONTE_PX, WHITE);
+    } else if (d->tipo == DES_GELO) {
+        for (i = 0; i < 12; i++) {
+            int tubo = i == 1 || i == 2 || i == 8 || i == 11;
+            x = 12 + i % 4 * 24; y = 32 + i / 4 * 24;
+            caixa(x, y, 22, 22, tubo ? (Color){128, 64, 56, 255} : d->gelo[i] ? (Color){120, 184, 216, 255} : (Color){40, 56, 72, 255});
+            if (tubo) { DrawRectangle(x + 8, y + 2, 6, 18, (Color){200, 120, 80, 255}); }
+            if (d->gelo[i]) { snprintf(linha, sizeof linha, "%d", d->gelo[i]); texto(linha, x + 7.0f, y + 7.0f, FONTE_PX, BLACK); }
+            if (i == vis.cursor_puzzle) DrawRectangleLines(x, y, 22, 22, YELLOW);
+        }
+        texto("TUBOS", 118, 34, FONTE_PX, (Color){232, 136, 96, 255});
+        texto("são frágeis!", 118, 46, FONTE_PX, WHITE);
+        snprintf(linha, sizeof linha, "Calor %d", d->calor); texto(linha, 118, 64, FONTE_PX, WHITE);
+        DrawRectangle(118, 78, 100, 8, (Color){64, 72, 88, 255});
+        DrawRectangle(118, 78, d->calor, 8, d->calor >= 75 ? RED : ORANGE);
+        desenharTecla(2, 118, 92); texto("Esfriar", 138, 96, FONTE_PX, WHITE);
+        texto("Derreta as 4 travas.", 12, 121, FONTE_PX, WHITE);
+    } else if (d->tipo == DES_AGUA) {
+        static const char *botoes[4] = {"Encher A", "A -> B", "Drenar B", "Mangueira"};
+        caixa(16, 34, 36, 68, (Color){32, 48, 64, 255});
+        caixa(72, 58, 36, 44, (Color){32, 48, 64, 255});
+        DrawRectangle(20, 98 - d->tanque_a * 12, 28, d->tanque_a * 12, (Color){64, 152, 216, 255});
+        DrawRectangle(76, 98 - d->tanque_b * 12, 28, d->tanque_b * 12, (Color){64, 152, 216, 255});
+        for (i = 0; i < 4; i++) {
+            caixa(128, 32 + i * 20, 96, 18, vis.cursor_puzzle == i ? (Color){248, 216, 104, 255} : (Color){216, 224, 232, 255});
+            texto(botoes[i], 134, 37.0f + i * 20, FONTE_PX, BLACK);
+        }
+        snprintf(linha, sizeof linha, "A %d/5", d->tanque_a); texto(linha, 12, 108, FONTE_PX, WHITE);
+        snprintf(linha, sizeof linha, "B %d/3", d->tanque_b); texto(linha, 70, 108, FONTE_PX, WHITE);
+        texto("Mangueira: A=4 e B=3.", 12, 121, FONTE_PX, WHITE);
+    } else if (d->tipo == DES_RASTRO) {
+        int distancia = distanciaRastro(d, vis.cursor_puzzle);
+        for (i = 0; i < 20; i++) {
+            x = 12 + i % 5 * 21; y = 31 + i / 5 * 21;
+            caixa(x, y, 19, 19, d->examinados & (1U << i) ? (Color){104, 72, 144, 255} : (Color){40, 48, 72, 255});
+            if (i == vis.cursor_puzzle) { DrawRectangleLines(x, y, 19, 19, YELLOW); DrawCircle(x + 9, y + 9, 3, (Color){176, 144, 232, 255}); }
+        }
+        texto("ECO", 128, 36, FONTE_PX, (Color){200, 160, 248, 255});
+        texto(distancia == 0 ? "AQUI!" : distancia < 2 ? "FORTE" : distancia < 4 ? "MEDIO" : "FRACO", 128, 52, FONTE_PX, WHITE);
+        snprintf(linha, sizeof linha, "Pistas %d/3", d->rastros); texto(linha, 128, 76, FONTE_PX, WHITE);
+        texto("Siga o eco e examine.", 12, 121, FONTE_PX, WHITE);
+    } else {
+        int marcas = !!(d->caixas & (1UL << 10)) + !!(d->caixas & (1UL << 28));
+        for (i = 0; i < 36; i++) {
+            x = 12 + i % 6 * 15; y = 28 + i / 6 * 15;
+            DrawRectangle(x, y, 14, 14, paredeEstantes(i) ? (Color){104, 112, 128, 255} : (Color){40, 48, 64, 255});
+            if (i == 10 || i == 28) DrawRectangleLines(x + 2, y + 2, 10, 10, GOLD);
+            if (i < 32 && (d->caixas & (1UL << i))) {
+                DrawRectangle(x + 2, y + 2, 10, 10, (Color){136, 88, 56, 255});
+                DrawRectangle(x + 3, y + 4, 8, 2, GOLD);
+                DrawRectangle(x + 3, y + 8, 8, 2, GOLD);
+            }
+            if (i == d->operador) DrawCircle(x + 7, y + 7, 5, (Color){184, 136, 232, 255});
+        }
+        texto("Empurre", 120, 34, FONTE_PX, WHITE);
+        texto("2 estantes.", 120, 46, FONTE_PX, WHITE);
+        texto("Não puxe!", 120, 64, FONTE_PX, (Color){232, 160, 128, 255});
+        snprintf(linha, sizeof linha, "Marcas %d/2", marcas); texto(linha, 120, 88, FONTE_PX, GOLD);
+        snprintf(linha, sizeof linha, "Movimentos: %d", d->movimentos); texto(linha, 12, 121, FONTE_PX, WHITE);
+    }
+    if (vis.retorno_puzzle > 0) {
+        DrawRectangle(8, 119, 224, 14, (Color){20, 28, 48, 255});
+        textoAte(vis.aviso_puzzle, 12, 121, 212, GOLD);
+    }
+    for (i = 0; i < 4; i++) desenharTecla(6 + i, 12 + i * 17, 136);
+    desenharTecla(d->tipo == DES_ESTANTES ? 4 : 0, 90, 136);
+    texto(d->tipo == DES_ESTANTES ? "desfaz" : "agir", 108, 140, FONTE_PX, WHITE);
+    desenharTecla(5, 164, 136);
+    desenharTecla(1, 210, 136);
+}
+
+static void desenharTimeExploracao(void) {
+    const NoTime *no;
+    int i = 0;
+    DrawRectangle(0, 0, VIRT_L, VIRT_A, (Color){4, 6, 16, 190});
+    caixa(8, 4, 224, 152, (Color){248, 248, 232, 255});
+    texto("TIME / ESCOLHA O ATIVO", 16, 14, FONTE_PX, BLACK);
+    for (no = caso_jogo.nucleo.time.inicio; no != NULL; no = no->prox, i++) {
+        char nome[64], pontos[64];
+        int y = 30 + i * 17;
+        if (i == vis.cursor_time) DrawRectangle(12, y - 1, 216, 17, (Color){248, 224, 136, 255});
+        snprintf(nome, sizeof nome, "%s Nv%d", no->pokemon.nome, no->pokemon.nivel);
+        snprintf(pontos, sizeof pontos, "%d/%d HP  XP %d/60", no->pokemon.hp_atual,
+                 no->pokemon.hp_max, no->pokemon.experiencia);
+        texto(nome, 18, (float)y, FONTE_PX, BLACK);
+        texto(pontos, 18, y + 8.0f, FONTE_PX, (Color){64, 80, 96, 255});
+    }
+    texto("Z escolhe / X volta", 16, 140, FONTE_PX, BLACK);
 }
 
 static void desenharMundo(void) {
@@ -1662,22 +2131,40 @@ static void desenharMundo(void) {
             if (simbolo == 'G' && (sala == NULL || !sala->batalha_concluida)) {
                 desenharFolha(giovanni_ow, giovanni_ow_ok, 0, 0, ex, ey);
             }
+            if (simbolo == 'n' && sala != NULL) {
+                desenharGuarda(strcmp(sala->nome, "Oficina") == 0, ex, ey + 8, 1);
+                if (!sala->duelo_concluido) texto("!", ex + 4, ey - 2, FONTE_PX, GOLD);
+            }
         }
     }
 
+    /* A máscara cobre apenas o mundo; falas, caderno e controles ficam legíveis. */
+    desenharEscuridao(px + 8.0f, py + 20.0f, camx, camy);
     if (sala != NULL && !vis.fala_aberta) {
         float lw = larguraTexto(sala->nome, FONTE_PX);
         caixa(2, 2, (int)lw + 12, 16, (Color){16, 20, 32, 230});
         texto(sala->nome, 8.0f, 6.0f, FONTE_PX, (Color){248, 248, 236, 255});
+        {
+            int indice = indiceDaSala(sala);
+            char setor[24];
+            snprintf(setor, sizeof setor, "SETOR %d/8", indice + 1);
+            caixa(2, 21, 92, 14, (Color){16, 20, 32, 230});
+            texto(setor, 8, 24, FONTE_PX, (Color){192, 208, 232, 255});
+        }
     }
+    desenharContexto(camx, camy);
     if (vis.fala_aberta) {
         desenharMensagem(vis.fala, 0, 112, VIRT_L, 48);
     }
+    if (vis.documento_aberto) { desenharDocumento(); return; }
+    if (vis.puzzle_aberto) { desenharPuzzle(); return; }
+    if (vis.time_aberto) { desenharTimeExploracao(); return; }
     if (vis.caderno) {
         char linhas[8][LOG_MAX];
         int n;
         int i;
         NoSala *cursor;
+        const NoLog *pista;
 
         DrawRectangle(0, 0, VIRT_L, VIRT_A, (Color){0, 0, 0, 90});
         caixa(16, 12, 208, 136, (Color){236, 224, 184, 255});
@@ -1687,6 +2174,22 @@ static void desenharMundo(void) {
             char curto[22];
             prefixo(linhas[i], 21, curto, sizeof curto);
             texto(curto, 24.0f, 34.0f + (float)i * 10.0f, FONTE_PX, (Color){40, 32, 24, 255});
+        }
+        /* A pista completa vem da pilha existente, sem inventário duplicado. */
+        pista = caso_jogo.nucleo.log.topo;
+        while (pista != NULL && strncmp(pista->texto, "Documento:", 10) != 0) {
+            pista = pista->prox;
+        }
+        if (pista != NULL) {
+            char dicas[5][48];
+            int quantidade = 0;
+            quebrar(pista->texto, dicas, &quantidade, 5, 192.0f);
+            for (i = 0; i < quantidade; i++) {
+                texto(dicas[i], 24, 96.0f + i * 10.0f, FONTE_PX,
+                      (Color){72, 40, 96, 255});
+            }
+            texto("R: ler documento", 24, 140, FONTE_PX, (Color){96, 40, 40, 255});
+            return;
         }
         cursor = caso_jogo.salas.inicio;
         i = 0;
@@ -1828,6 +2331,7 @@ static void avancarFilaBatalha(void) {
         return;
     }
     if (vis.resultado == 0) {
+        if (vis.batalha_treinador) memset(vis.pp_init, 0, sizeof vis.pp_init);
         sairParaMundo();
         return;
     }
@@ -1925,17 +2429,33 @@ static void atualizarBatalha(float dt) {
         return;
     }
     if (vis.fase == BAT_CAPTURA) {
+        int comando = -1, resultado = -1;
         vis.captura_t += dt;
-        if (vis.captura_t > 1.7f && !vis.captura_feita) {
-            char msg[LOG_MAX];
-            int ok;
-            snprintf(msg, sizeof msg, "%s foi capturado!", caso_jogo.captura_pendente.nome);
-            ok = casoCapturar(&caso_jogo);
-            vis.captura_feita = 1;
-            filaLimpar();
-            filaPor(ok ? msg : "O time está cheio.");
-            vis.resultado = 0;
-            vis.fase = BAT_TEXTO;
+        vis.captura_animacao += dt;
+        if (vis.captura_feita) {
+            if (vis.captura_t > 1.0f) {
+                char msg[LOG_MAX];
+                snprintf(msg, sizeof msg, "%s foi capturado!", caso_jogo.captura_pendente.nome);
+                filaLimpar(); filaPor(msg);
+                vis.resultado = 0; vis.fase = BAT_TEXTO;
+            }
+            return;
+        }
+        if (vis.retorno_captura > 0) { vis.retorno_captura -= dt; vis.captura_t = 0; return; }
+        if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) comando = 0;
+        else if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D)) comando = 1;
+        else if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) comando = 2;
+        else if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A)) comando = 3;
+        else if (acaoPressionada()) comando = 4;
+        if (caso_jogo.captura_acertos > 0 && vis.captura_t * 1000 > casoPrazoCaptura(&caso_jogo)) {
+            resultado = casoResponderCaptura(&caso_jogo, casoComandoCaptura(&caso_jogo), (int)(vis.captura_t * 1000));
+        } else if (comando >= 0) resultado = casoResponderCaptura(&caso_jogo, comando, (int)(vis.captura_t * 1000));
+        if (resultado >= 0) {
+            vis.captura_t = 0;
+            clique();
+            if (caso_jogo.captura_acertos <= 1) vis.captura_animacao = 0;
+            if (resultado == 0) vis.retorno_captura = 0.8f;
+            if (resultado == 2) vis.captura_feita = casoCapturar(&caso_jogo);
         }
         return;
     }
@@ -2078,6 +2598,7 @@ static void desenharBatalha(void) {
     const Pokemon *eu = obterAtivo(&caso_jogo.nucleo.time);
     const Pokemon *op = NULL;
     int chefe = sala != NULL && sala->e_chefe;
+    int treinador = chefe || vis.batalha_treinador;
     int numero_opp = 0;
     int intro = vis.fase == BAT_ENTRADA;
     float t_intro = intro ? vis.entrada : 1.0f;
@@ -2113,6 +2634,11 @@ static void desenharBatalha(void) {
         chao = (Color){72, 24, 28, 255};
         plat_c = (Color){150, 64, 64, 255};
         plat_e = (Color){60, 16, 20, 255};
+    } else if (vis.batalha_treinador) {
+        ceu = (Color){88, 104, 160, 255};
+        chao = (Color){56, 64, 112, 255};
+        plat_c = (Color){144, 152, 200, 255};
+        plat_e = (Color){32, 40, 80, 255};
     } else {
         ceu = (Color){176, 216, 168, 255};
         chao = (Color){88, 168, 80, 255};
@@ -2136,13 +2662,14 @@ static void desenharBatalha(void) {
     x_poke = -48.0f * (1.0f - sai) + (8.0f + sx_eu) * sai;
     x_gio = 210.0f * (1.0f - entra) + 148.0f * entra;
     x_gio = x_gio + (250.0f - x_gio) * sai;
-    x_inimigo = chefe
+    x_inimigo = treinador
         ? (-20.0f * (1.0f - sai) + (136.0f + sx_opp) * sai)
         : (210.0f * (1.0f - entra) + (148.0f + sx_opp) * entra);
     if (sai > 0.2f && sai < 0.75f) quadro_costas = 3;
 
     if (intro && sai < 0.98f) {
         desenharCostas(quadro_costas, x_costas, 40.0f);
+        if (vis.batalha_treinador) desenharGuarda(strcmp(sala->nome, "Oficina") == 0, x_gio, -4, 3);
         if (chefe && giovanni_bat_ok) {
             DrawTexturePro(giovanni_batalha,
                            (Rectangle){0, 0, (float)giovanni_batalha.width, (float)giovanni_batalha.height},
@@ -2154,17 +2681,17 @@ static void desenharBatalha(void) {
         desenharSpriteMon(eu->numero, 1, jogador, vis.flash_eu);
     }
     inimigo = (Rectangle){x_inimigo, chefe ? 6.0f : 2.0f, 64.0f, 64.0f};
-    if (vis.fase == BAT_CAPTURA && vis.captura_t > 0.55f) {
+    if (vis.fase == BAT_CAPTURA && (vis.captura_feita || (caso_jogo.captura_acertos > 0 && vis.captura_animacao > 0.55f))) {
         numero_opp = 0;
-    } else if (vis.fase == BAT_CAPTURA && vis.captura_t > 0.4f) {
-        float k = 1.0f - (vis.captura_t - 0.4f) / 0.15f;
+    } else if (vis.fase == BAT_CAPTURA && caso_jogo.captura_acertos > 0 && vis.captura_animacao > 0.4f) {
+        float k = 1.0f - (vis.captura_animacao - 0.4f) / 0.15f;
         if (k < 0.0f) k = 0.0f;
         inimigo.width *= k;
         inimigo.height *= k;
         inimigo.x += (64.0f - inimigo.width) * 0.5f;
         inimigo.y += 64.0f - inimigo.height;
     }
-    if (numero_opp > 0 && (!intro || (chefe ? sai > 0.02f : entra > 0.08f))) {
+    if (numero_opp > 0 && (!intro || (treinador ? sai > 0.02f : entra > 0.08f))) {
         desenharSpriteMon(numero_opp, 0, inimigo, vis.flash_opp);
     }
 
@@ -2176,27 +2703,34 @@ static void desenharBatalha(void) {
     desenharCaixaHp(eu, vis.hp_eu, 112, 64, 122, 1);
 
     if (vis.fase == BAT_CAPTURA) {
-        float u = vis.captura_t / 0.5f;
-        float bx;
-        float by;
-        float balanco = 0.0f;
-        if (u > 1.0f) u = 1.0f;
-        bx = 28.0f + (176.0f - 28.0f) * u;
-        by = 90.0f + (46.0f - 90.0f) * u - sinf(u * 3.1415926f) * 30.0f;
-        if (vis.captura_t > 0.55f) {
-            balanco = sinf((vis.captura_t - 0.55f) * 18.0f) * 3.0f;
-            bx = 172.0f + balanco;
-            by = 40.0f;
+        int comando = casoComandoCaptura(&caso_jogo);
+        int indice = comando >= 0 && comando < 4 ? 6 + comando : 0;
+        float u = vis.captura_animacao / 0.5f;
+        float bx, by;
+        float prazo = (float)casoPrazoCaptura(&caso_jogo) / 1000.0f;
+        float restante = prazo > 0 ? 1 - vis.captura_t / prazo : 1;
+        if (u > 1) u = 1;
+        if (restante < 0) restante = 0;
+        bx = 28 + 148 * u;
+        by = 90 - 44 * u - sinf(u * 3.1415926f) * 30;
+        if (vis.captura_animacao > 0.55f) { bx = 172 + sinf(vis.captura_animacao * 18) * 3; by = 40; }
+        if (caso_jogo.captura_acertos > 0 || vis.captura_feita) {
+            if (pokebola_ok) DrawTexturePro(pokebola_tex, (Rectangle){0, 0, (float)pokebola_tex.width, (float)pokebola_tex.height},
+                                          (Rectangle){bx, by, 16, 16}, (Vector2){0, 0}, 0, WHITE);
+            else DrawRectangle((int)bx, (int)by, 12, 12, RED);
+        } else DrawRectangleLines(146, 0, 66, 64, GOLD);
+        caixa(0, 106, VIRT_L, 54, (Color){20, 28, 48, 255});
+        texto(vis.captura_feita ? "CAPTURA CONCLUIDA!" : vis.retorno_captura > 0 ? "ESCAPOU! TENTE DE NOVO." :
+              caso_jogo.captura_acertos == 0 ? "LANCE A POKE BOLA" : "CONTENHA O SELVAGEM!", 8, 114, FONTE_PX, GOLD);
+        for (i = 0; i < 5; i++) DrawRectangle(8 + i * 16, 128, 12, 5,
+                            i < caso_jogo.captura_acertos ? GREEN : (Color){64, 72, 96, 255});
+        if (caso_jogo.captura_acertos > 0 && !vis.captura_feita) {
+            DrawRectangle(8, 137, 174, 4, (Color){64, 72, 96, 255});
+            DrawRectangle(8, 137, (int)(174 * restante), 4, restante < 0.3f ? RED : GREEN);
         }
-        if (pokebola_ok) {
-            DrawTexturePro(pokebola_tex,
-                           (Rectangle){0, 0, (float)pokebola_tex.width, (float)pokebola_tex.height},
-                           (Rectangle){bx, by, 16, 16}, (Vector2){0, 0}, 0.0f, WHITE);
-        } else {
-            DrawRectangle((int)bx, (int)by, 12, 12, RED);
-        }
-        caixa(0, 112, VIRT_L, 48, (Color){248, 248, 240, 255});
-        texto("A Poké Bola foi lançada!", 8.0f, 128.0f, FONTE_PX, BLACK);
+        texto("Siga a tecla destacada.", 8, 148, FONTE_PX, WHITE);
+        DrawRectangleLines(200, 126, 28, 28, GOLD);
+        desenharTecla(indice, 206, 132);
     } else     if (vis.fase == BAT_GOLPES && eu != NULL) {
         int slot = posicaoDoAtivo(&caso_jogo.nucleo.time);
         garantirPp(eu);
@@ -2311,13 +2845,15 @@ static void desenharMenu(void) {
 static void desenharAjuda(void) {
     caixa(8, 8, 224, 144, (Color){248, 248, 240, 255});
     texto("COMO JOGAR", 16.0f, 16.0f, FONTE_PX, BLACK);
-    texto("Setas ou WASD andam", 16.0f, 36.0f, FONTE_PX, BLACK);
-    texto("uma célula por vez.", 16.0f, 48.0f, FONTE_PX, BLACK);
-    texto("Z interage. N caderno.", 16.0f, 64.0f, FONTE_PX, BLACK);
-    texto("Na luta: LUTAR, BOLSA,", 16.0f, 84.0f, FONTE_PX, BLACK);
-    texto("POKéMON e FUGIR.", 16.0f, 96.0f, FONTE_PX, BLACK);
-    texto("Z avança o texto.", 16.0f, 112.0f, FONTE_PX, BLACK);
-    texto("X volta. Esc menu.", 16.0f, 124.0f, FONTE_PX, BLACK);
+    texto("Setas/WASD: andar", 16.0f, 32.0f, FONTE_PX, BLACK);
+    texto("Z: agir  X: cancelar", 16.0f, 44.0f, FONTE_PX, BLACK);
+    texto("L: lanterna  N: caderno", 16.0f, 56.0f, FONTE_PX, BLACK);
+    texto("R: documento  T: time", 16.0f, 68.0f, FONTE_PX, BLACK);
+    texto("V: sala anterior", 16.0f, 80.0f, FONTE_PX, BLACK);
+    texto("Matos/escombros: treino", 16.0f, 92.0f, FONTE_PX, BLACK);
+    texto("Bancos: recuperar time", 16.0f, 104.0f, FONTE_PX, BLACK);
+    texto("Puzzles: R reinicia", 16.0f, 116.0f, FONTE_PX, BLACK);
+    texto("U desfaz estante. X sai", 16.0f, 128.0f, FONTE_PX, BLACK);
     texto("Z para fechar", 16.0f, 136.0f, FONTE_PX, (Color){80, 80, 80, 255});
 }
 
@@ -2415,6 +2951,8 @@ static void apresentar(const char *png) {
     DrawTexturePro(alvo.texture, origem, destino, (Vector2){0.0f, 0.0f}, 0.0f, WHITE);
     EndDrawing();
     if (png != NULL) {
+        /* Repete o quadro para a leitura após a troca dos buffers no Windows. */
+        apresentar(NULL);
         TakeScreenshot(png);
     }
 }
@@ -2498,7 +3036,8 @@ static void atualizar(float dt) {
             tela = TELA_MENU;
         }
     } else if (tela == TELA_SALA) {
-        if (IsKeyPressed(KEY_ESCAPE) && !vis.fala_aberta && !vis.caderno) {
+        if (IsKeyPressed(KEY_ESCAPE) && !vis.fala_aberta && !vis.caderno &&
+            !vis.documento_aberto && !vis.puzzle_aberto && !vis.time_aberto) {
             tela = TELA_MENU;
             return;
         }
@@ -2577,6 +3116,11 @@ static int lutarAteVencer(void) {
     return 1;
 }
 
+/* A demonstração envia tentativas válidas à mesma regra usada pelo teclado. */
+static int resolverDemonstracao(void) {
+    return simularPuzzleAtual(&caso_jogo);
+}
+
 static int irAteOChefe(void) {
     int passos = 0;
 
@@ -2587,18 +3131,58 @@ static int irAteOChefe(void) {
             return 0;
         }
         if (strcmp(sala->nome, "Sala do chefe") == 0) {
+            casoDescansar(&caso_jogo);
             return casoIniciarBatalha(&caso_jogo);
-        }
-        if (!sala->resolvido && !casoUsarHabilidade(&caso_jogo)) {
-            return 0;
         }
         if (sala->inicia_batalha && !sala->batalha_concluida) {
             if (!lutarAteVencer()) {
                 return 0;
             }
-            if (caso_jogo.captura_disponivel && !casoCapturar(&caso_jogo)) {
+            if (caso_jogo.captura_disponivel && !simularCaptura(&caso_jogo)) {
                 return 0;
             }
+        }
+        if (!sala->resolvido) {
+            const char *arquivo = sala->habilidade == HAB_FOGO ? "captura_calor.png" :
+                                  sala->habilidade == HAB_AGUA ? "captura_reservatorios.png" : sala->desafio.tipo == DES_ESTANTES ? "captura_estantes.png" : "captura_rastros.png";
+            entrarNaSala();
+            tela = TELA_SALA;
+            vis.puzzle_aberto = 1;
+            vis.cursor_puzzle = sala->desafio.tipo == DES_GELO ? 4 : 0;
+            vis.retorno_puzzle = 0;
+            desenharTudo();
+            apresentar(arquivo);
+            vis.puzzle_aberto = 0;
+            if (!resolverDemonstracao()) return 0;
+        }
+        if (sala->luzes_necessarias) {
+            casoAcenderPonto(&caso_jogo, 0);
+            casoAcenderPonto(&caso_jogo, 1);
+        }
+        if (sala->duelo_obrigatorio && !sala->duelo_concluido) {
+            casoDescansar(&caso_jogo);
+            if (!casoIniciarDuelo(&caso_jogo)) return 0;
+            tela = TELA_BATALHA;
+            prepararBatalha();
+            vis.entrada = 0.35f;
+            desenharTudo();
+            apresentar(strcmp(sala->nome, "Oficina") == 0 ? "captura_engenheira.png" : "captura_vigia.png");
+            if (!lutarAteVencer()) return 0;
+        }
+        if (strcmp(sala->nome, "Jaula") == 0) {
+            entrarNaSala();
+            tela = TELA_SALA;
+            abrirDocumento();
+            desenharTudo();
+            apresentar("captura_documento.png");
+            vis.documento_pagina = 1;
+            desenharTudo();
+            apresentar("captura_documento_2.png");
+            vis.documento_aberto = 0;
+            vis.caderno = 1;
+            desenharTudo();
+            apresentar("captura_caderno.png");
+            vis.caderno = 0;
         }
         if (!casoAvancar(&caso_jogo)) {
             return 0;
@@ -2658,6 +3242,9 @@ int capturarTelasDemonstracao(void) {
     vis.salas_vistas[0] = 1;
     desenharTudo();
     apresentar("captura_sala.png");
+    vis.lanterna_ligada = 1;
+    desenharTudo();
+    apresentar("captura_lanterna.png");
     mundo.movendo = 0;
     mundo.anda = 1.0f;
     mundo.pika_anda = 1.0f;
@@ -2706,7 +3293,29 @@ int capturarTelasDemonstracao(void) {
     apresentar("captura_puzzle.png");
     vis.fala_aberta = 0;
 
-    if (!casoUsarHabilidade(&caso_jogo) || !casoAvancar(&caso_jogo)) {
+    vis.puzzle_aberto = 1;
+    vis.cursor_puzzle = 0;
+    vis.retorno_puzzle = 0;
+    desenharTudo();
+    apresentar("captura_circuito.png");
+    vis.puzzle_aberto = 0;
+    if (!resolverDemonstracao()) {
+        encerrarCaso(&caso_jogo);
+        fecharGrafico();
+        return 1;
+    }
+    desenharTudo();
+    apresentar("captura_gerador.png");
+    casoAcenderPonto(&caso_jogo, 0);
+    mundo.tx = mundo.de_x = mundo.para_x = 1;
+    mundo.ty = mundo.de_y = mundo.para_y = 9;
+    mundo.dir = 0;
+    desenharTudo();
+    apresentar("captura_refletor.png");
+    casoAcenderPonto(&caso_jogo, 1);
+    desenharTudo();
+    apresentar("captura_energia.png");
+    if (!casoAvancar(&caso_jogo)) {
         fprintf(stderr, "Não chegou ao pátio para a batalha.\n");
         encerrarCaso(&caso_jogo);
         fecharGrafico();
@@ -2769,10 +3378,36 @@ int capturarTelasDemonstracao(void) {
     vis.transicao = 0;
     desenharTudo();
     apresentar("captura_captura.png");
+    casoResponderCaptura(&caso_jogo, 4, 0);
+    vis.captura_t = 0.2f;
+    vis.captura_animacao = 0.6f;
+    desenharTudo();
+    apresentar("captura_contencao.png");
 
     if (caso_jogo.captura_disponivel) {
-        casoCapturar(&caso_jogo);
+        simularCaptura(&caso_jogo);
     }
+    entrarNaSala();
+    tela = TELA_SALA;
+    desenharTudo();
+    apresentar("captura_area_treino.png");
+    if (!casoDescansar(&caso_jogo) || !casoIniciarTreino(&caso_jogo)) {
+        encerrarCaso(&caso_jogo);
+        fecharGrafico();
+        return 1;
+    }
+    tela = TELA_BATALHA;
+    prepararBatalha();
+    vis.fase = BAT_COMANDO;
+    vis.entrada = 1.0f;
+    desenharTudo();
+    apresentar("captura_treino.png");
+    if (!lutarAteVencer()) {
+        encerrarCaso(&caso_jogo);
+        fecharGrafico();
+        return 1;
+    }
+    if (caso_jogo.captura_disponivel) simularCaptura(&caso_jogo);
     if (!irAteOChefe()) {
         fprintf(stderr, "Não chegou na luta do Giovanni.\n");
         encerrarCaso(&caso_jogo);

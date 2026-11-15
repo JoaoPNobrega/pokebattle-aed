@@ -7,6 +7,8 @@
 
 #include "arvore_pokedex.h"
 #include "batalha.h"
+#include "caso.h"
+#include "simulacao.h"
 #include "fila_treinadores.h"
 #include "hash_pokedex.h"
 #include "lista_time.h"
@@ -360,6 +362,141 @@ static void testarSalas(void) {
     liberarListaSalas(&salas);
 }
 
+/* Cada família tem operações e falhas próprias, verificadas sem relógio ou janela. */
+static void testarDesafiosEspaciais(void) {
+    Desafio d;
+    int i;
+    iniciarDesafio(&d, DES_CIRCUITO);
+    checar(!d.concluido && circuitoAlcancado(&d) != 511U, "rede começa desconectada");
+    checar(comandarDesafio(&d, ACAO_USAR, 9) == -1, "circuito recusa célula fora da grade");
+    for (i = 0; i < 9 && !d.concluido; i++) {
+        int giros = 0;
+        while (d.rotacao[i] && giros++ < 4 && !d.concluido) comandarDesafio(&d, ACAO_USAR, i);
+    }
+    checar(d.concluido && circuitoAlcancado(&d) == 511U, "percurso real liga todos os terminais");
+    iniciarDesafio(&d, DES_GELO);
+    for (i = 0; i < 3; i++) comandarDesafio(&d, ACAO_USAR, 4);
+    checar(d.gelo[4] == 0 && d.calor == 66, "chama remove camadas e acumula calor");
+    comandarDesafio(&d, ACAO_USAR, 5);
+    checar(comandarDesafio(&d, ACAO_USAR, 5) == 0 && d.gelo[4] > 0,
+           "superaquecimento recompõe parte do gelo");
+    comandarDesafio(&d, ACAO_RESFRIAR, 0);
+    checar(d.calor == 40, "resfriar tem efeito na regra");
+    checar(comandarDesafio(&d, ACAO_USAR, 1) == 0, "atingir tubo é um erro espacial");
+    iniciarDesafio(&d, DES_AGUA);
+    checar(comandarDesafio(&d, ACAO_USAR, 3) == 0 && !d.concluido, "mangueira sem dosagem não libera porta");
+    {
+        static const int passos[] = {0,1,2,1,0,1};
+        for (i = 0; i < 6; i++) comandarDesafio(&d, ACAO_USAR, passos[i]);
+    }
+    checar(d.tanque_a == 4 && d.tanque_b == 3 && !d.concluido, "conserva volumes ao transferir água");
+    checar(comandarDesafio(&d, ACAO_USAR, 3) == 2, "mangueira usa a dosagem correta");
+    iniciarDesafio(&d, DES_RASTRO);
+    checar(distanciaRastro(&d, 2) == 0 && distanciaRastro(&d, 0) == 2, "scanner mede distância no espaço");
+    checar(comandarDesafio(&d, ACAO_USAR, 0) == 0 && d.rastros == 0, "examinar área errada não encontra pista");
+    comandarDesafio(&d, ACAO_USAR, 2);
+    checar(comandarDesafio(&d, ACAO_USAR, 2) == 0 && d.rastros == 1, "mesma pista não conta duas vezes");
+    comandarDesafio(&d, ACAO_USAR, 14);
+    checar(comandarDesafio(&d, ACAO_USAR, 17) == 2, "três rastros revelam documento");
+    iniciarDesafio(&d, DES_ESTANTES);
+    checar(comandarDesafio(&d, ACAO_DIREITA, 0) == 0 && d.operador == 13, "estante não atravessa parede");
+    comandarDesafio(&d, ACAO_BAIXO, 0);
+    checar(d.operador == 19, "operador anda sem empurrar uma estante distante");
+    checar(comandarDesafio(&d, ACAO_DESFAZER, 0) == 1 && d.operador == 13,
+           "desfazer restaura operador e caixas");
+    checar(comandarDesafio(&d, ACAO_DESFAZER, 0) == 0, "não reaplica desfazer sem estado anterior");
+    comandarDesafio(&d, ACAO_REINICIAR, 0);
+    checar(d.movimentos == 0 && d.caixas == ((1UL << 14) | (1UL << 26)), "reinício recupera configuração resolúvel");
+}
+
+static int vencerEncontroTeste(Caso *caso) {
+    int turnos = 0;
+    while (caso->em_batalha && turnos++ < 60) {
+        int golpe = escolherGolpeAdversario(obterAtivo(&caso->nucleo.time), obterAtivo(&caso->oponente_atual.time));
+        if (casoExecutarGolpe(caso, golpe, NULL) < 0) return 0;
+    }
+    return !caso->em_batalha && !caso->oponente_carregado;
+}
+
+static void testarProgressaoECaptura(void) {
+    Caso caso;
+    int setor = 0, guardas = 0, selvagens = 0;
+    if (!iniciarCaso(&caso)) { checar(0, "inicia progressão"); return; }
+    if (!comecarCaso(&caso)) { checar(0, "monta progressão"); encerrarCaso(&caso); return; }
+    checar(caso.nucleo.fila.tamanho == 6, "fila inclui quatro confrontos e dois guardas");
+    checar(obterAtivo(&caso.nucleo.time)->qtd_golpes == 2, "Pikachu começa com arsenal limitado");
+    checar(!casoAcenderPonto(&caso, 0), "refletor exige gerador");
+    checar(!casoUsarHabilidade(&caso), "habilidade não ignora circuito");
+    checar(casoComandarPuzzle(&caso, ACAO_USAR, -1) == -1, "recusa alvo inválido");
+    checar(casoPaginaDocumento(&caso, 0) == NULL, "documento ainda está escondido");
+    while (!caso.caso_encerrado && setor < 8) {
+        NoSala *sala = caso.salas.atual;
+        if (sala->inicia_batalha && !sala->batalha_concluida) {
+            checar(casoDescansar(&caso), "recupera time antes de confronto");
+            checar(casoIniciarBatalha(&caso), "fila inicia encontro do setor");
+            checar(casoComandarPuzzle(&caso, ACAO_USAR, 0) == -1, "não resolve puzzle em batalha");
+            checar(vencerEncontroTeste(&caso), "vence confronto obrigatório");
+            if (caso.captura_disponivel) {
+                selvagens++;
+                checar(!casoCapturar(&caso), "animação não captura sozinha");
+                checar(!casoAvancar(&caso), "captura pendente bloqueia avanço");
+                checar(casoResponderCaptura(&caso, 0, 50) == 0 && caso.captura_acertos == 0,
+                       "comando errado reinicia contenção sem perder selvagem");
+                checar(casoResponderCaptura(&caso, 4, 0) == 1, "Z lança a bola");
+                checar(casoResponderCaptura(&caso, casoComandoCaptura(&caso), casoPrazoCaptura(&caso) + 1) == 0,
+                       "captura rejeita reação fora do prazo");
+                checar(simularCaptura(&caso), "cinco comandos corretos completam captura");
+            }
+        }
+        if (caso.caso_encerrado) break;
+        if (sala->duelo_obrigatorio) checar(!casoIniciarDuelo(&caso), "guarda exige puzzle e refletores");
+        checar(simularPuzzleAtual(&caso), "cada desafio possui solução pelas ações públicas");
+        if (sala->luzes_necessarias) {
+            checar(!casoAvancar(&caso), "puzzle sozinho não libera setor escuro");
+            checar(casoAcenderPonto(&caso, 0), "religa primeiro refletor");
+            checar(!casoAvancar(&caso), "um refletor ainda não completa setor");
+            checar(casoAcenderPonto(&caso, 1), "religa segundo refletor");
+        }
+        if (sala->duelo_obrigatorio) {
+            int bolas = caso.pokebolas;
+            checar(!casoAvancar(&caso), "guarda bloqueia saída depois do puzzle");
+            casoDescansar(&caso);
+            checar(casoIniciarDuelo(&caso), "guarda sai na ordem certa da fila");
+            checar(casoTentarFugir(&caso, NULL) == -2, "não pula guarda fugindo");
+            checar(casoUsarItem(&caso, ITEM_POKE_BOLA, NULL) == -2 && caso.pokebolas == bolas,
+                   "não captura Pokémon de NPC nem gasta bola");
+            checar(vencerEncontroTeste(&caso) && sala->duelo_concluido, "vitória libera guarda sem alterar puzzle");
+            guardas++;
+            checar(pokemonNaPosicao(&caso.nucleo.time, 0)->qtd_golpes == 2 + guardas, "guarda desbloqueia novo golpe");
+        }
+        if (strcmp(sala->nome, "Pátio") == 0) {
+            NoFila *frente = caso.nucleo.fila.frente;
+            int nivel = pokemonNaPosicao(&caso.nucleo.time, 0)->nivel;
+            int i;
+            for (i = 0; i < 2; i++) {
+                casoDescansar(&caso);
+                checar(casoIniciarTreino(&caso) && vencerEncontroTeste(&caso), "treino opcional continua funcionando");
+                if (caso.captura_disponivel) checar(simularCaptura(&caso), "captura de treino também é interativa");
+            }
+            checar(pokemonNaPosicao(&caso.nucleo.time, 0)->nivel == nivel + 1, "treinar gera progressão real de nível");
+            checar(caso.nucleo.fila.frente == frente, "treino não consome NPC da fila");
+        }
+        if (strcmp(sala->nome, "Jaula") == 0) {
+            checar(casoPaginaDocumento(&caso, 0) && casoPaginaDocumento(&caso, 1) &&
+                   !casoPaginaDocumento(&caso, 2), "documento libera duas páginas completas");
+        }
+        if (!casoAvancar(&caso)) { checar(0, "avança ao concluir objetivos do setor"); break; }
+        setor++;
+    }
+    checar(caso.caso_encerrado && guardas == 2 && selvagens == 3 && caso.nucleo.fila.tamanho == 0,
+           "progressão completa passa por três capturas, dois guardas e Giovanni");
+    checar(comecarCaso(&caso), "reinicia caso após vitória");
+    checar(!caso.salas.inicio->luzes && !caso.salas.inicio->desafio.concluido &&
+           !caso.captura_acertos && !caso.batalha_npc && caso.nucleo.fila.tamanho == 6,
+           "reinício limpa desafios, luzes, guardas e captura");
+    encerrarCaso(&caso);
+}
+
 int main(void) {
     inicializarTipos();
     testarLista();
@@ -370,6 +507,8 @@ int main(void) {
     testarOrdenacaoETurno();
     testarDano();
     testarSalas();
+    testarDesafiosEspaciais();
+    testarProgressaoECaptura();
 
     if (falhas == 0) {
         printf("Estruturas: todos os testes passaram.\n");
