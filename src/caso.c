@@ -14,6 +14,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 static int colocarEspecie(ListaTime *time, HashPokedex *pokedex, const char *nome, int nivel) {
     const Pokemon *modelo;
@@ -54,6 +55,10 @@ static int enfileirarChefe(FilaTreinadores *fila, HashPokedex *pokedex) {
         return 0;
     }
     if (!colocarEspecie(&chefe.time, pokedex, "Geodude", 20)) {
+        liberarListaTime(&chefe.time);
+        return 0;
+    }
+    if (!colocarEspecie(&chefe.time, pokedex, "Mewtwo", 14)) {
         liberarListaTime(&chefe.time);
         return 0;
     }
@@ -187,6 +192,7 @@ int iniciarCaso(Caso *caso) {
         return 0;
     }
     criarListaSalas(&caso->salas);
+    criarListaTime(&caso->reserva_pc);
     return 1;
 }
 
@@ -204,6 +210,7 @@ void encerrarCaso(Caso *caso) {
     }
     soltarOponente(caso);
     liberarListaSalas(&caso->salas);
+    liberarListaTime(&caso->reserva_pc);
     encerrarJogo(&caso->nucleo);
 }
 
@@ -214,10 +221,12 @@ int comecarCaso(Caso *caso) {
 
     soltarOponente(caso);
     liberarListaTime(&caso->nucleo.time);
+    liberarListaTime(&caso->reserva_pc);
     liberarFilaTreinadores(&caso->nucleo.fila);
     liberarPilhaLog(&caso->nucleo.log);
     liberarListaSalas(&caso->salas);
     criarListaTime(&caso->nucleo.time);
+    criarListaTime(&caso->reserva_pc);
     criarFilaTreinadores(&caso->nucleo.fila);
     criarPilhaLog(&caso->nucleo.log);
     criarListaSalas(&caso->salas);
@@ -232,10 +241,20 @@ int comecarCaso(Caso *caso) {
     caso->batalha_npc = 0;
     caso->captura_acertos = 0;
     caso->captura_erros = 0;
+    caso->area_secreta = 0;
+    caso->selos_secretos = 0;
+    caso->master_bolas = 0;
+    caso->chave_secreta = 0;
+    caso->altares_secretos = 0;
+    memset(caso->pokedex_vistos, 0, sizeof caso->pokedex_vistos);
+    caso->itens_mapa = 0;
+    caso->semente_sorteio = (unsigned int)time(NULL) ^ (unsigned int)clock();
+    if (caso->semente_sorteio == 0U) caso->semente_sorteio = 0x51A7U;
 
     if (!colocarEspecie(&caso->nucleo.time, &caso->nucleo.pokedex, "Pikachu", 26)) {
         return 0;
     }
+    caso->pokedex_vistos[25] = 1;
     obterAtivo(&caso->nucleo.time)->qtd_golpes = 2;
     if (!montarSalas(&caso->salas)) {
         return 0;
@@ -293,13 +312,81 @@ int casoAcenderPonto(Caso *caso, int ponto) {
     return 1;
 }
 
+int casoAbrirAreaSecreta(Caso *caso) {
+    NoSala *sala;
+    if (caso == NULL || caso->em_batalha || caso->captura_disponivel) return 0;
+    sala = salaAtual(&caso->salas);
+    if (sala == NULL || strcmp(sala->nome, "Arquivo") != 0 || !sala->resolvido) return 0;
+    if (!caso->chave_secreta) {
+        empilharLog(&caso->nucleo.log, "A porta lateral está trancada. Encontre a Chave do Santuário no Arquivo.");
+        return 0;
+    }
+    caso->area_secreta = 1;
+    empilharLog(&caso->nucleo.log, "Passagem lateral destrancada com a Chave do Santuário!");
+    return 1;
+}
+
+void casoSairAreaSecreta(Caso *caso) {
+    if (caso != NULL) caso->area_secreta = 0;
+}
+
+int casoObterChaveSecreta(Caso *caso) {
+    if (caso == NULL) return 0;
+    if (caso->chave_secreta) return 1;
+    caso->chave_secreta = 1;
+    empilharLog(&caso->nucleo.log, "Você encontrou a Chave do Santuário nos arquivos!");
+    return 1;
+}
+
+int casoTemChaveSecreta(const Caso *caso) {
+    return caso != NULL && caso->chave_secreta;
+}
+
+int casoAtivarAltarElemental(Caso *caso, int altar) {
+    Habilidade hab_necessaria;
+    const Pokemon *ativo;
+    if (caso == NULL || !caso->area_secreta || altar < 0 || altar > 2) return 0;
+    if (caso->altares_secretos & (1 << altar)) return 0;
+
+    if (altar == 0) hab_necessaria = HAB_FOGO;
+    else if (altar == 1) hab_necessaria = HAB_PSIQUICA;
+    else hab_necessaria = HAB_ELETRICA;
+
+    ativo = obterAtivo(&caso->nucleo.time);
+    if (ativo == NULL || (habilidadeDoPokemon(ativo) != hab_necessaria && !timeTemHabilidade(&caso->nucleo.time, hab_necessaria))) {
+        return -1;
+    }
+
+    caso->altares_secretos |= (1 << altar);
+    caso->selos_secretos++;
+
+    if (altar == 0) empilharLog(&caso->nucleo.log, "Altar do Fogo ativado com chamas.");
+    else if (altar == 1) empilharLog(&caso->nucleo.log, "Altar Psíquico ativado com telecinese.");
+    else empilharLog(&caso->nucleo.log, "Altar do Trovão ativado com eletricidade.");
+
+    if (caso->altares_secretos == 7) {
+        caso->selos_secretos = 3;
+        caso->master_bolas = 1;
+        empilharLog(&caso->nucleo.log, "Puzzle resolvido: Master Ball encontrada no pedestal sagrado!");
+        return 2;
+    }
+    return 1;
+}
+
+int casoAtivarSeloSecreto(Caso *caso, int selo) {
+    return casoAtivarAltarElemental(caso, selo);
+}
+
 const char *casoObjetivoAtual(const Caso *caso) {
     const NoSala *sala = caso == NULL ? NULL : caso->salas.atual;
     if (sala == NULL) return "Abra um novo caso.";
     if (caso->captura_disponivel) return "Finalize a captura.";
+    if (caso->area_secreta && caso->altares_secretos != 7 && caso->selos_secretos < 3) return "Santuário: ative os 3 altares elementais.";
+    if (caso->area_secreta) return "Mata secreta: procure encontros raros.";
     if (sala->inicia_batalha && !sala->batalha_concluida) return sala->e_chefe ? "Enfrente Giovanni." : "Encontre o selvagem.";
     if (sala->luzes_necessarias && sala->luzes != sala->luzes_necessarias &&
         caso->salas.inicio->resolvido) return "Religue os 2 refletores.";
+    if (strcmp(sala->nome, "Arquivo") == 0 && sala->resolvido && !caso->chave_secreta) return "Procure a Chave do Santuário.";
     if (!sala->resolvido) {
         switch (sala->desafio.tipo) {
         case DES_CIRCUITO: return "Reconecte o gerador.";
@@ -314,6 +401,15 @@ const char *casoObjetivoAtual(const Caso *caso) {
     return "Siga à próxima porta.";
 }
 
+static void marcarOponentesVistos(Caso *caso) {
+    if (caso != NULL && caso->oponente_carregado) {
+        const NoTime *no;
+        for (no = caso->oponente_atual.time.inicio; no != NULL; no = no->prox) {
+            casoMarcarVisto(caso, no->pokemon.numero);
+        }
+    }
+}
+
 int casoIniciarDuelo(Caso *caso) {
     NoSala *sala = caso == NULL ? NULL : caso->salas.atual;
     if (sala == NULL || caso->em_batalha || caso->captura_disponivel || caso->treino_ativo ||
@@ -323,6 +419,7 @@ int casoIniciarDuelo(Caso *caso) {
         if (!proximoTreinador(&caso->nucleo.fila, &caso->oponente_atual)) return 0;
         caso->oponente_carregado = 1;
     }
+    marcarOponentesVistos(caso);
     caso->batalha_npc = 1;
     caso->em_batalha = 1;
     caso->tentativas_fuga = 0;
@@ -362,7 +459,6 @@ static int podeCapturarTreino(const Caso *caso, const Pokemon *pokemon) {
 
 int casoIniciarTreino(Caso *caso) {
     NoSala *sala;
-    const char *especie;
     int nivel;
     if (caso == NULL || caso->em_batalha || caso->oponente_carregado ||
         caso->captura_disponivel || caso->caso_encerrado ||
@@ -370,19 +466,62 @@ int casoIniciarTreino(Caso *caso) {
     sala = caso->salas.atual;
     if (sala == NULL || (sala->inicia_batalha && !sala->batalha_concluida)) return 0;
     if (strcmp(sala->nome, "Pátio") == 0) {
-        especie = "Bulbassauro"; nivel = 8;
+        nivel = 8;
     } else if (strcmp(sala->nome, "Tanque") == 0) {
-        especie = "Psyduck"; nivel = 9;
+        nivel = 9;
     } else if (strcmp(sala->nome, "Oficina") == 0 || strcmp(sala->nome, "Jaula") == 0) {
-        especie = "Geodude"; nivel = 8;
+        nivel = 8;
+    } else if (strcmp(sala->nome, "Arquivo") == 0 && caso->area_secreta) {
+        nivel = 28;
     } else return 0;
-    criarTreinador(&caso->oponente_atual, "Pokémon dos arredores",
-                   "Um selvagem apareceu! Vença para ganhar 30 XP de treino.");
-    if (!colocarEspecie(&caso->oponente_atual.time, &caso->nucleo.pokedex, especie, nivel)) {
-        liberarListaTime(&caso->oponente_atual.time);
-        return 0;
+    {
+        unsigned int sorte;
+        int disponiveis[151];
+        int quantidade = 0;
+        int numero;
+        int raro = 0;
+        Pokemon preparado;
+        const Pokemon *modelo;
+        caso->semente_sorteio = caso->semente_sorteio * 1664525U + 1013904223U;
+        sorte = caso->semente_sorteio >> 16;
+        for (numero = 1; numero <= 151; numero++) {
+            int lendario = (numero >= 144 && numero <= 146) || numero == 150 || numero == 151;
+            if (!lendario && buscarPorNumero(&caso->nucleo.arvore, numero) != NULL) {
+                disponiveis[quantidade++] = numero;
+            }
+        }
+        if (quantidade == 0) return 0;
+        numero = disponiveis[sorte % (unsigned int)quantidade];
+        /* Os lendários aparecem apenas no santuário, com chances independentes. */
+        if (caso->area_secreta && sorte % 192U >= 1U && sorte % 192U <= 3U) {
+            numero = 144 + (int)(sorte % 192U) - 1; /* Articuno, Zapdos ou Moltres. */
+            raro = 1;
+        } else if (caso->area_secreta && sorte % 256U == 0U) {
+            numero = 150; /* Mewtwo: aparição lendária de 1/256. */
+            raro = 1;
+        } else if (caso->area_secreta && sorte % 64U == 0U) {
+            numero = 151; /* Mew: 1/64 no santuário secreto. */
+            raro = 1;
+        }
+        criarTreinador(&caso->oponente_atual, "Pokémon dos arredores",
+                       raro ? "Uma presença lendária surgiu!" :
+                       "Um selvagem apareceu! Vença para ganhar 30 XP de treino.");
+        modelo = buscarPorNumero(&caso->nucleo.arvore, numero);
+        if (modelo == NULL) {
+            liberarListaTime(&caso->oponente_atual.time);
+            return 0;
+        }
+        preparado = pokemonPreparar(modelo, raro ? (numero == 150 ? 30 : numero == 151 ? 22 : 28) : nivel);
+        if (!adicionarPokemon(&caso->oponente_atual.time, &preparado)) {
+            liberarListaTime(&caso->oponente_atual.time);
+            return 0;
+        }
+        /* Um segundo sorteio independente marca a variante rara para a apresentação. */
+        caso->semente_sorteio = caso->semente_sorteio * 1664525U + 1013904223U;
+        obterAtivo(&caso->oponente_atual.time)->brilhante = ((caso->semente_sorteio >> 16) % 128U == 1U);
     }
     caso->oponente_carregado = 1;
+    marcarOponentesVistos(caso);
     caso->treino_ativo = 1;
     caso->em_batalha = 1;
     caso->tentativas_fuga = 0;
@@ -440,6 +579,7 @@ int casoIniciarBatalha(Caso *caso) {
     }
 
     caso->em_batalha = 1;
+    marcarOponentesVistos(caso);
     caso->tentativas_fuga = 0;
     empilharLog(&caso->nucleo.log, "A luta começou.");
     return 1;
@@ -646,6 +786,8 @@ const char *casoNomeItem(int item) {
         return "Super Poção";
     case ITEM_POKE_BOLA:
         return "Poké Bola";
+    case ITEM_MASTER_BOLA:
+        return "Master Ball";
     default:
         return NULL;
     }
@@ -662,6 +804,8 @@ int casoQuantidadeItem(const Caso *caso, int item) {
         return caso->super_pocoes;
     case ITEM_POKE_BOLA:
         return caso->pokebolas;
+    case ITEM_MASTER_BOLA:
+        return caso->master_bolas;
     default:
         return 0;
     }
@@ -708,6 +852,26 @@ int casoUsarItem(Caso *caso, int item, SaidaBatalha *saida) {
         }
         registrarMensagem(saida, "O Pokémon escapou da Poké Bola!");
         return turnoSoDoOponente(caso, saida);
+    } else if (item == ITEM_MASTER_BOLA) {
+        Pokemon *oponente = obterAtivo(&caso->oponente_atual.time);
+        char mensagem[LOG_MAX];
+        if (caso->master_bolas <= 0 || !caso->treino_ativo || oponente == NULL ||
+            ((oponente->numero < 144 || oponente->numero > 146) &&
+             oponente->numero != 150 && oponente->numero != 151) || !podeCapturarTreino(caso, oponente)) {
+            registrarMensagem(saida, "A Master Ball fica reservada para um lendário capturável.");
+            return -2;
+        }
+        oponente->hp_atual = oponente->hp_max;
+        oponente->brilhante = obterAtivo(&caso->oponente_atual.time)->brilhante;
+        if (!adicionarPokemon(&caso->nucleo.time, oponente)) return -2;
+        caso->master_bolas--;
+        caso->em_batalha = 0;
+        caso->treino_ativo = 0;
+        snprintf(mensagem, sizeof mensagem, "Master Ball! %s foi capturado!", oponente->nome);
+        registrarMensagem(saida, mensagem);
+        empilharLog(&caso->nucleo.log, "Master Ball: Pokémon lendário capturado sem falha.");
+        soltarOponente(caso);
+        return 0;
     } else {
         return -2;
     }
@@ -796,11 +960,150 @@ int casoCapturar(Caso *caso) {
         return 0;
     }
     if (!adicionarPokemon(&caso->nucleo.time, &caso->captura_pendente)) {
-        return 0;
+        if (!adicionarPokemon(&caso->reserva_pc, &caso->captura_pendente)) {
+            return 0;
+        }
+        snprintf(msg, sizeof msg, "%s enviado para o PC (equipe cheia)!", caso->captura_pendente.nome);
+        empilharLog(&caso->nucleo.log, msg);
+        casoMarcarVisto(caso, caso->captura_pendente.numero);
+        caso->captura_disponivel = 0;
+        return 1;
     }
 
     snprintf(msg, sizeof msg, "%s entrou no time.", caso->captura_pendente.nome);
     empilharLog(&caso->nucleo.log, msg);
+    casoMarcarVisto(caso, caso->captura_pendente.numero);
     caso->captura_disponivel = 0;
     return 1;
 }
+
+void casoMarcarVisto(Caso *caso, int numero) {
+    if (caso != NULL && numero > 0 && numero < 152) {
+        caso->pokedex_vistos[numero] = 1;
+    }
+}
+
+int casoFoiVisto(const Caso *caso, int numero) {
+    if (caso == NULL || numero <= 0 || numero >= 152) return 0;
+    return caso->pokedex_vistos[numero] != 0;
+}
+
+int casoItemJaColetado(const Caso *caso, int id_item) {
+    if (caso == NULL || id_item < 0 || id_item >= 32) return 1;
+    return (caso->itens_mapa & (1U << id_item)) != 0;
+}
+
+int casoColetarItemMapa(Caso *caso, int id_item, char *mensagem, size_t tamanho) {
+    Pokemon *ativo;
+    if (caso == NULL || id_item < 0 || id_item >= 32) return 0;
+    if (caso->itens_mapa & (1U << id_item)) return 0;
+
+    caso->itens_mapa |= (1U << id_item);
+    ativo = obterAtivo(&caso->nucleo.time);
+
+    switch (id_item) {
+        case 0: /* Laboratório: Rare Candy */
+        case 2: /* Câmara fria: Rare Candy */
+        case 4: /* Oficina: Rare Candy */
+        case 6: /* Arquivo: Rare Candy */
+        case 7: /* Santuário Secreto: Rare Candy Místico */
+            if (ativo != NULL && ativo->nivel < 60) {
+                int hp_ant = ativo->hp_max;
+                ativo->nivel++;
+                ativo->hp_max = calcularHpMax(ativo->hp_base, ativo->nivel);
+                if (ativo->hp_atual > 0) ativo->hp_atual += (ativo->hp_max - hp_ant);
+                ativo->experiencia = 0;
+                if (id_item == 7) ativo->hp_atual = ativo->hp_max;
+                if (mensagem != NULL && tamanho > 0) {
+                    snprintf(mensagem, tamanho, "Você achou um RARE CANDY! %s subiu para o Nível %d!",
+                             ativo->nome, ativo->nivel);
+                }
+            } else {
+                caso->super_pocoes += 2;
+                if (mensagem != NULL && tamanho > 0) {
+                    snprintf(mensagem, tamanho, "Você achou 2 Super Poções no compartimento!");
+                }
+            }
+            break;
+        case 1: /* Pátio: Super Poção */
+            caso->super_pocoes += 2;
+            if (mensagem != NULL && tamanho > 0) {
+                snprintf(mensagem, tamanho, "Você achou 2 Super Poções de primeiros socorros!");
+            }
+            break;
+        case 3: /* Tanque: 3 Poké Bolas */
+            caso->pokebolas += 3;
+            if (mensagem != NULL && tamanho > 0) {
+                snprintf(mensagem, tamanho, "Você achou 3 Poké Bolas no compartimento aquático!");
+            }
+            break;
+        case 5: /* Jaula: 2 Poções e 1 Poké Bola */
+            caso->pocoes += 2;
+            caso->pokebolas += 1;
+            if (mensagem != NULL && tamanho > 0) {
+                snprintf(mensagem, tamanho, "Você achou suprimentos na jaula: 2 Poções e 1 Poké Bola!");
+            }
+            break;
+        default:
+            caso->pocoes += 1;
+            if (mensagem != NULL && tamanho > 0) {
+                snprintf(mensagem, tamanho, "Você achou 1 Poção útil!");
+            }
+            break;
+    }
+    return 1;
+}
+
+int casoDepositarPokemon(Caso *caso, int pos_time) {
+    const Pokemon *p;
+    Pokemon copia;
+    if (caso == NULL || caso->em_batalha) return 0;
+    if (tamanhoTime(&caso->nucleo.time) <= 1) return 0;
+    p = pokemonNaPosicao(&caso->nucleo.time, pos_time);
+    if (p == NULL) return 0;
+    copia = *p;
+    if (!adicionarPokemon(&caso->reserva_pc, &copia)) return 0;
+    removerPokemonPorPosicao(&caso->nucleo.time, pos_time);
+    if (obterAtivo(&caso->nucleo.time) == NULL) {
+        definirAtivoPorPosicao(&caso->nucleo.time, 0);
+    }
+    return 1;
+}
+
+int casoRetirarPokemon(Caso *caso, int pos_reserva) {
+    const Pokemon *p;
+    Pokemon copia;
+    if (caso == NULL || caso->em_batalha) return 0;
+    if (tamanhoTime(&caso->nucleo.time) >= MAX_TIME) return 0;
+    p = pokemonNaPosicao(&caso->reserva_pc, pos_reserva);
+    if (p == NULL) return 0;
+    copia = *p;
+    if (!adicionarPokemon(&caso->nucleo.time, &copia)) return 0;
+    removerPokemonPorPosicao(&caso->reserva_pc, pos_reserva);
+    return 1;
+}
+
+int casoTrocarOrdemTime(Caso *caso, int i, int j) {
+    if (caso == NULL) return 0;
+    return trocarPokemon(&caso->nucleo.time, i, j);
+}
+
+int casoDefinirLider(Caso *caso, int pos) {
+    if (caso == NULL || pos < 0 || pos >= tamanhoTime(&caso->nucleo.time)) return 0;
+    if (pos != 0) {
+        trocarPokemon(&caso->nucleo.time, 0, pos);
+    }
+    definirAtivoPorPosicao(&caso->nucleo.time, 0);
+    return 1;
+}
+
+int casoTamanhoReserva(const Caso *caso) {
+    if (caso == NULL) return 0;
+    return tamanhoTime(&caso->reserva_pc);
+}
+
+const Pokemon *casoPokemonReserva(const Caso *caso, int pos) {
+    if (caso == NULL) return NULL;
+    return pokemonNaPosicao(&caso->reserva_pc, pos);
+}
+

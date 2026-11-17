@@ -34,13 +34,23 @@ typedef struct {
     int batalha_npc;
     int captura_acertos;
     int captura_erros;
+    unsigned int semente_sorteio; /* encontros opcionais, lendários e shiny */
+    int area_secreta;
+    int selos_secretos;
+    int master_bolas;
+    int chave_secreta;
+    int altares_secretos;
+    unsigned char pokedex_vistos[152];
+    unsigned int itens_mapa;
+    ListaTime reserva_pc;
 } Caso;
 
 /* Itens da bolsa. A quantidade mora no Caso, não na janela. */
 #define ITEM_POCAO 0
 #define ITEM_SUPER_POCAO 1
 #define ITEM_POKE_BOLA 2
-#define ITEM_CONTAGEM 3
+#define ITEM_MASTER_BOLA 3
+#define ITEM_CONTAGEM 4
 
 /*
  * iniciarCaso
@@ -87,6 +97,29 @@ int casoComandarPuzzle(Caso *caso, AcaoDesafio acao, int alvo);
  * Parâmetros: caso e ponto. Retorno: 1 aceso, 0 indisponível. O(t).
  * O estado das luzes pertence à sala e participa da trava de avanço. */
 int casoAcenderPonto(Caso *caso, int ponto);
+/* casoAbrirAreaSecreta / casoAtivarSeloSecreto
+ * Abre o santuário após resolver o Arquivo e ativa os selos na sequência.
+ * Parâmetros: caso; selo 0..2. Retorno: 1 abertura/ação, 2 prêmio, -1 erro de ordem, 0 bloqueio.
+ * Complexidade: O(s) ao buscar a sala; O(1) por selo, s = salas.
+ */
+int casoAbrirAreaSecreta(Caso *caso);
+/* Marca a saída da área. Parâmetro: caso; retorno: nenhum; O(1). */
+void casoSairAreaSecreta(Caso *caso);
+int casoAtivarSeloSecreto(Caso *caso, int selo);
+
+/* casoObterChaveSecreta / casoTemChaveSecreta
+ * Coleta ou consulta a Chave do Santuário encontrada no Arquivo.
+ * Parâmetro: caso. Retorno: 1 se coletou/possui, 0 se indisponível. O(1).
+ */
+int casoObterChaveSecreta(Caso *caso);
+int casoTemChaveSecreta(const Caso *caso);
+
+/* casoAtivarAltarElemental
+ * Ativa altar elemental no santuário exigindo o tipo/habilidade correto:
+ * Altar 0: Fogo (HAB_FOGO), Altar 1: Psíquico (HAB_PSIQUICA), Altar 2: Trovão (HAB_ELETRICA).
+ * Retorno: 1 ativado, 2 todos ativados (Master Ball liberada), -1 tipo incorreto, 0 já ativado/erro. O(t).
+ */
+int casoAtivarAltarElemental(Caso *caso, int altar);
 /* casoIniciarDuelo: inicia o guarda da sala depois do puzzle e das luzes.
  * Parâmetro: caso. Retorno: 1 iniciou, 0 recusado. O(t), retira da fila do caso.
  * t = tamanho do time, se precisar escolher outro parceiro vivo. */
@@ -195,5 +228,35 @@ int casoUsarItem(Caso *caso, int item, SaidaBatalha *saida);
  * Complexidade: O(g + n^2 + t) quando o oponente chega a agir.
  */
 int casoTentarFugir(Caso *caso, SaidaBatalha *saida);
+
+/*
+ * casoMarcarVisto / casoFoiVisto
+ * Registra ou consulta se uma espécie foi encontrada/enfrentada pelo detetive.
+ *
+ * Complexidade: O(1).
+ */
+void casoMarcarVisto(Caso *caso, int numero);
+int casoFoiVisto(const Caso *caso, int numero);
+
+/*
+ * casoColetarItemMapa / casoItemJaColetado
+ * Coleta itens espalhados pelos setores (Rare Candies, poções e bolas).
+ *
+ * Complexidade: O(1).
+ */
+int casoColetarItemMapa(Caso *caso, int id_item, char *mensagem, size_t tamanho);
+int casoItemJaColetado(const Caso *caso, int id_item);
+
+/*
+ * Computador da Equipe (Terminal de Armazenamento Pokémon):
+ * Gerenciamento de depósito, retirada, troca de ordem e definição do líder ativo.
+ * Complexidade: O(n) na lista duplamente encadeada.
+ */
+int casoDepositarPokemon(Caso *caso, int pos_time);
+int casoRetirarPokemon(Caso *caso, int pos_reserva);
+int casoTrocarOrdemTime(Caso *caso, int i, int j);
+int casoDefinirLider(Caso *caso, int pos);
+int casoTamanhoReserva(const Caso *caso);
+const Pokemon *casoPokemonReserva(const Caso *caso, int pos);
 
 #endif

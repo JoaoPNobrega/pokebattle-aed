@@ -1,0 +1,866 @@
+INFO: Initializing raylib 5.5
+INFO: Platform backend: DESKTOP (GLFW)
+INFO: Supported raylib modules:
+INFO:     > rcore:..... loaded (mandatory)
+INFO:     > rlgl:...... loaded (mandatory)
+INFO:     > rshapes:... loaded (optional)
+INFO:     > rtextures:. loaded (optional)
+INFO:     > rtext:..... loaded (optional)
+INFO:     > rmodels:... loaded (optional)
+INFO:     > raudio:.... loaded (optional)
+INFO: DISPLAY: Device initialized successfully
+INFO:     > Display size: 1920 x 1080
+INFO:     > Screen size:  960 x 640
+INFO:     > Render size:  960 x 640
+INFO:     > Viewport offsets: 0, 0
+INFO: GLAD: OpenGL extensions loaded successfully
+INFO: GL: Supported extensions count: 230
+INFO: GL: OpenGL device information:
+INFO:     > Vendor:   Intel
+INFO:     > Renderer: Intel(R) UHD Graphics
+INFO:     > Version:  3.3.0 - Build 26.20.100.7870
+INFO:     > GLSL:     3.30 - Build 26.20.100.7870
+INFO: GL: VAO extension detected, VAO functions loaded successfully
+INFO: GL: NPOT textures extension detected, full NPOT textures supported
+INFO: GL: DXT compressed textures supported
+INFO: GL: ETC2/EAC compressed textures supported
+INFO: GL: ASTC compressed textures supported
+INFO: PLATFORM: DESKTOP (GLFW - Win32): Initialized successfully
+INFO: TEXTURE: [ID 1] Texture loaded successfully (1x1 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 1] Default texture loaded successfully
+INFO: SHADER: [ID 1] Vertex shader compiled successfully
+INFO: SHADER: [ID 2] Fragment shader compiled successfully
+INFO: SHADER: [ID 3] Program shader loaded successfully
+INFO: SHADER: [ID 3] Default shader loaded successfully
+INFO: RLGL: Render batch vertex buffers loaded successfully in RAM (CPU)
+INFO: RLGL: Render batch vertex buffers loaded successfully in VRAM (GPU)
+INFO: RLGL: Default OpenGL state initialized successfully
+INFO: TEXTURE: [ID 2] Texture loaded successfully (128x128 | GRAY_ALPHA | 1 mipmaps)
+INFO: FONT: Default font loaded successfully (224 glyphs)
+INFO: SYSTEM: Working Directory: C:\Users\leona\OneDrive\Documentos\GitHub\pokebattle-aed
+INFO: TIMER: Target time per frame: 16.667 milliseconds
+INFO: TEXTURE: [ID 3] Texture loaded successfully (240x160 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 1] Depth renderbuffer loaded successfully (32 bits)
+INFO: FBO: [ID 1] Framebuffer object created successfully
+INFO: FILEIO: [assets/fontes/PressStart2P-Regular.ttf] File loaded successfully
+INFO: TEXTURE: [ID 4] Texture loaded successfully (256x256 | GRAY_ALPHA | 1 mipmaps)
+INFO: FONT: Data loaded successfully (8 pixel size | 224 glyphs)
+INFO: FILEIO: [assets/fontes/PressStart2P-Regular.ttf] File loaded successfully
+INFO: TEXTURE: [ID 5] Texture loaded successfully (512x256 | GRAY_ALPHA | 1 mipmaps)
+INFO: FONT: Data loaded successfully (16 pixel size | 224 glyphs)
+INFO: FILEIO: [assets/tiles/kenney_indoor.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (458x305 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 6] Texture loaded successfully (458x305 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/personagens/detetive.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (48x128 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 7] Texture loaded successfully (48x128 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/personagens/giovanni_overworld.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (48x128 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 8] Texture loaded successfully (48x128 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/personagens/giovanni.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (80x80 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 9] Texture loaded successfully (80x80 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/personagens/pokebola.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (16x16 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 10] Texture loaded successfully (16x16 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/personagens/pikachu_overworld.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (96x128 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 11] Texture loaded successfully (96x128 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/personagens/detetive_costas.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (320x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 12] Texture loaded successfully (320x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/tiles/frlg_lab.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (512x416 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 13] Texture loaded successfully (512x416 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/ui/teclas.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (192x16 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 14] Texture loaded successfully (192x16 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/ui/guardas.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (32x24 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 15] Texture loaded successfully (32x24 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/1_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 16] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/1_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 17] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/1_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 18] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/2_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 19] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/2_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 20] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/2_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 21] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/3_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 22] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/3_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 23] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/3_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 24] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/4_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 25] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/4_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 26] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/4_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 27] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/5_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 28] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/5_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 29] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/5_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 30] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/6_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 31] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/6_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 32] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/6_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 33] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/7_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 34] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/7_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 35] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/7_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 36] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/8_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 37] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/8_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 38] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/8_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 39] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/9_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 40] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/9_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 41] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/9_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 42] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/10_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 43] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/10_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 44] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/10_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 45] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/11_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 46] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/11_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 47] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/11_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 48] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/12_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 49] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/12_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 50] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/12_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 51] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/13_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 52] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/13_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 53] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/13_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 54] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/14_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 55] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/14_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 56] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/14_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 57] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/15_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 58] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/15_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 59] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/15_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 60] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/16_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 61] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/16_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 62] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/16_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 63] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/17_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 64] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/17_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 65] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/17_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 66] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/18_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 67] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/18_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 68] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/18_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 69] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/19_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 70] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/19_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 71] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/19_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 72] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/20_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 73] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/20_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 74] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/20_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 75] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/21_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 76] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/21_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 77] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/21_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 78] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/22_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 79] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/22_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 80] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/22_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 81] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/23_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 82] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/23_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 83] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/23_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 84] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/24_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 85] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/24_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 86] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/24_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 87] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/25_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 88] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/25_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 89] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/25_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 90] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/26_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 91] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/26_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 92] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/26_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 93] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/27_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 94] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/27_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 95] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/27_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 96] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/28_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 97] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/28_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 98] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/28_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 99] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/29_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 100] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/29_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 101] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/29_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 102] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/30_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 103] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/30_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 104] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/30_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 105] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/31_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 106] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/31_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 107] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/31_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 108] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/32_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 109] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/32_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 110] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/32_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 111] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/33_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 112] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/33_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 113] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/33_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 114] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/34_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 115] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/34_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 116] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/34_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 117] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/35_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 118] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/35_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 119] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/35_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 120] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/36_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 121] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/36_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 122] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/36_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 123] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/37_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 124] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/37_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 125] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/37_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 126] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/38_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 127] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/38_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 128] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/38_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 129] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/39_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 130] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/39_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 131] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/39_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 132] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/40_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 133] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/40_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 134] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/40_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 135] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/41_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 136] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/41_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 137] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/41_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 138] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/42_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 139] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/42_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 140] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/42_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 141] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/43_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 142] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/43_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 143] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/43_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 144] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/44_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 145] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/44_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 146] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/44_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 147] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/45_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 148] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/45_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 149] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/45_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 150] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/46_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 151] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/46_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 152] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/46_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 153] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/47_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 154] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/47_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 155] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/47_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 156] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/48_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 157] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/48_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 158] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/48_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 159] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/49_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 160] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/49_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 161] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/49_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 162] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/50_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 163] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/50_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 164] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/50_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 165] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/51_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 166] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/51_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 167] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/51_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 168] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/52_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 169] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/52_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 170] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/52_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 171] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/53_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 172] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/53_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 173] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/53_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 174] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/54_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 175] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/54_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 176] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/54_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 177] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/55_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 178] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/55_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 179] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/55_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 180] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/56_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 181] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/56_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 182] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/56_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 183] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/57_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 184] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/57_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 185] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/57_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 186] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/58_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 187] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/58_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 188] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/58_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 189] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/59_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 190] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/59_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 191] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/59_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 192] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/60_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 193] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/60_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 194] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/60_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 195] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/61_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 196] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/61_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 197] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/61_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 198] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/62_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 199] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/62_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 200] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/62_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 201] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/63_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 202] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/63_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 203] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/63_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 204] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/64_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 205] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/64_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 206] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/64_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 207] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/65_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 208] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/65_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 209] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/65_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 210] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/66_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 211] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/66_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 212] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/66_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 213] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/67_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 214] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/67_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 215] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/67_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 216] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/68_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 217] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/68_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 218] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/68_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 219] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/69_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 220] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/69_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 221] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/69_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 222] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/70_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 223] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/70_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 224] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/70_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 225] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/71_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 226] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/71_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 227] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/71_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 228] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/72_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 229] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/72_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 230] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/72_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 231] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/73_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 232] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/73_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 233] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/73_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 234] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/74_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 235] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/74_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 236] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/74_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 237] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/75_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 238] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/75_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 239] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/75_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 240] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/76_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 241] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/76_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 242] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/76_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 243] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/77_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 244] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/77_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 245] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/77_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 246] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/78_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 247] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/78_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 248] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/78_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 249] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/79_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 250] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/79_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 251] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/94_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 252] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/94_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 253] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/94_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 254] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/95_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 255] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/95_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 256] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/95_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 257] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/130_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 258] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/130_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 259] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/130_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 260] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/143_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 261] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/143_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 262] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/143_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 263] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/145_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (16x16 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 264] Texture loaded successfully (16x16 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/145_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (16x16 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 265] Texture loaded successfully (16x16 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/145_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (16x16 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 266] Texture loaded successfully (16x16 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/149_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 267] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/149_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 268] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/149_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 269] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/150_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 270] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/150_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 271] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/150_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 272] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/151_front.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 273] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/151_back.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 274] Texture loaded successfully (64x64 | R8G8B8A8 | 1 mipmaps)
+INFO: FILEIO: [assets/pokemon/151_icon.png] File loaded successfully
+INFO: IMAGE: Data loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 275] Texture loaded successfully (40x30 | R8G8B8A8 | 1 mipmaps)
+INFO: AUDIO: Device initialized successfully
+INFO:     > Backend:       miniaudio | WASAPI
+INFO:     > Format:        32-bit IEEE Floating Point -> 32-bit IEEE Floating Point
+INFO:     > Channels:      2 -> 2
+INFO:     > Sample rate:   48000 -> 48000
+INFO:     > Periods size:  1440

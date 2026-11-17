@@ -78,16 +78,21 @@ A cena é desenhada em 240×160 (o tamanho do GBA) e ampliada em pixels inteiros
 | Onde | Teclado |
 | --- | --- |
 | Menu | Setas e Z, ou 1, 2, 3, 4. Mouse também serve |
-| Mapa | Setas ou WASD, uma célula por vez. Z interage (painel, porta, Pokémon). N abre o caderno. L liga/desliga a lanterna |
+| Mapa | Setas ou WASD, uma célula por vez. Z interage (painel, porta, itens, Pokémon). HUD minimalista com ícones rápidos [P], [M], [N], [T] e chave secreta. N abre o caderno. L liga/desliga a lanterna |
+| Itens no Mapa | Cápsulas com Pokébolas flutuantes ('*') espalhadas pelos setores guardam Rare Candies (que aumentam o nível instantaneamente até 60 e curam o parceiro) e suprimentos (Super Poções, Poké Bolas) |
+| Pokédex Dinâmica | Tecla P abre a Pokédex LCD. Pokémon não encontrados aparecem como silhuetas misteriosas com dados ocultos (???). Conforme você explora e batalha, novos registros são desbloqueados |
+| Scanner Holográfico | Antes de cada duelo, o visor Lock-On mira no Pokémon adversário com retículos neon cibernéticos, animação de varredura e leitura de atributos em tempo real |
+| Minimapa | Tecla M a qualquer instante abre o mapa tático da instalação, status dos 8 setores, passagem secreta e radar local com detetive e Pikachu |
 | Documento | Após a busca na Jaula, abre em destaque com duas páginas completas. Z/seta direita avança; seta esquerda volta; X fecha. R permite reler em qualquer sala ou no caderno |
 | Puzzles | Setas/WASD escolhem ou movem. Z gira fio/aquece/examina/opera válvula. E resfria o gelo. U desfaz uma estante. R reinicia o desafio; X fecha |
+| Santuário Secreto | No Arquivo, examine o cofre lateral ('k') para resgatar a Chave Secreta. Abra a passagem lateral leste ('S') para o Santuário e ative os 3 altares elementais (Fogo/Charmander, Psíquico/Alakazam, Choque/Pikachu) para liberar a Master Ball |
 | Treino | Matos do Pátio/Tanque e escombros da Oficina/Jaula. Depois da captura obrigatória, ande quatro passos na área ou use Z nela para encontrar selvagens. Vitória rende 30 XP para cada parceiro; 60 XP sobem um nível (limite 60) |
 | Time e descanso | T escolhe o Pokémon ativo e mostra HP/XP. Z diante de bancos recupera HP e PP. V retorna à sala anterior |
-| Batalha | Setas escolhem LUTAR, BOLSA, POKÉMON ou FUGIR. Z confirma, X volta. A grade de golpes mostra tipo e PP |
+| Batalha | Comandos com ícones dedicados (LUTAR, BOLSA, POKÉMON, FUGIR). Sprites com respiração viva ("squash & stretch"), sombras realistas e alinhamento em plataformas ovais. Oponentes Shiny possuem partículas reluzentes |
 | Texto | Z avança a digitação e a próxima página |
-| Qualquer tela | Esc volta ao menu. No caderno, Esc ou Z fecha |
+| Qualquer tela | Esc volta ao menu. No caderno, minimapa ou Pokédex, Esc, P, M ou X fecha o modal |
 
-A bolsa começa com 2 Poções (20 de HP), 1 Super Poção (50) e 3 Poké Bolas. Usar um item gasta o turno e o oponente age. Na batalha, a Poké Bola exige no máximo metade do HP. Depois, a captura exige cinco comandos de lançamento/contenção, também após vencer um selvagem. Siga o PNG destacado; erro de tecla ou prazo reinicia a contenção, sem perder o parceiro obrigatório. Fugir do selvagem depende da velocidade vezes o número da tentativa. Do chefe, a frase é "Não dá pra fugir de um chefe!".
+A bolsa começa com 2 Poções (20 de HP), 1 Super Poção (50) e 3 Poké Bolas. Encontrar cápsulas com Rare Candy no mapa permite subir de nível de forma instantânea. Usar um item gasta o turno e o oponente age. Na batalha, a Poké Bola exige no máximo metade do HP. Depois, a captura exige cinco comandos de lançamento/contenção, também após vencer um selvagem. Siga o PNG destacado; erro de tecla ou prazo reinicia a contenção, sem perder o parceiro obrigatório. A Master Ball do santuário secreto captura Mew/Mewtwo selvagens sem falha. Fugir do selvagem depende da velocidade vezes o número da tentativa. Do chefe, a frase é "Não dá pra fugir de um chefe!".
 
 O Pikachu anda atrás do detetive. A porta exige os objetivos do setor: puzzle, dois refletores nos ambientes escuros, captura e guarda quando houver. A barra de HP desce sozinha e fica amarela abaixo de 50% e vermelha abaixo de 20%. O acerto pisca o sprite e treme. O som é uma onda gerada no código; sem placa de áudio, a luta segue muda.
 
@@ -99,6 +104,7 @@ Quem age primeiro continua sendo prioridade do golpe e velocidade (insertion sor
 | --- | --- | --- |
 | `assets/fontes/PressStart2P-Regular.ttf` | Fonte pixel Press Start 2P, Cody Boisclair | SIL OFL 1.1 (`assets/fontes/OFL-PressStart2P.txt`). O nome é reservado. [Google Fonts](https://fonts.google.com/specimen/Press+Start+2P) |
 | `assets/pokemon/` | Sprites de frente, costas e ícone, mais `dados.txt` (nome, tipos e stats base) | Arte da Nintendo / Game Freak, obtida pela [PokéAPI](https://pokeapi.co) (`sprites.versions.generation-iii.firered-leafgreen`, com fallback para o sprite padrão). Uso acadêmico. O jogo não baixa nada ao rodar |
+| `assets/pokemon/145_*.png` | Zapdos em pixel art local, usado quando o asset da PokéAPI não está disponível | Arte própria do projeto; gerador opcional em `tools/gerar_zapdos.ps1` |
 | `assets/tiles/frlg_lab.png` | Chão, parede, estante, máquina e porta do laboratório da FireRed | Nintendo / Game Freak, via a decompilação [pret/pokefirered](https://github.com/pret/pokefirered) (`data/tilesets/primary/building` e `data/tilesets/secondary/lab`, mapa do laboratório do Carvalho). Uso acadêmico |
 | `assets/tiles/kenney_indoor.png` | Tileset de interior 16×16, reserva se o da FireRed faltar | CC0, Kenney (Roguelike Indoor). Texto em `assets/tiles/LICENSE-kenney-indoor.txt`. [kenney.nl](https://kenney.nl) |
 | `assets/personagens/detetive.png` e `giovanni_overworld.png` | Gentleman e Giovanni no mapa, 4 direções e 3 passos | Nintendo / Game Freak, [pret/pokefirered](https://github.com/pret/pokefirered) `graphics/object_events/pics/people/`. Uso acadêmico |
@@ -153,7 +159,7 @@ A tela está em `src/ui_raylib.c`: mapa de 16×16, batalha no layout da FireRed,
 
 O laboratório começa escuro. L alterna uma lanterna que acompanha o detetive e a direção em que olha; o painel resolvido pelo Pikachu restaura a iluminação normal. Na Jaula, capture Alakazam e use Z diante da mesa para examinar a área com a habilidade psíquica. Um fundo falso revela um documento com dicas sobre o Arquivo e Geodude; a pista fica no caderno (N), e o Arquivo só destrava após a busca. Não há inventário paralelo: o documento usa o estado do puzzle e a pilha de histórico.
 
-Capturas opcionais preservam vagas para os parceiros dos puzzles. Espécies já capturadas continuam disponíveis para treinar, sem duplicar o time. Os encontros opcionais não consomem a fila dos confrontos obrigatórios.
+Capturas opcionais preservam vagas para os parceiros dos puzzles. Espécies já capturadas continuam disponíveis para treinar, sem duplicar o time. Os encontros opcionais não consomem a fila dos confrontos obrigatórios. No Arquivo, a porta azul marcada no mapa leva ao Santuário secreto, uma área própria com mata e três selos; resolva-os na ordem do mural para receber a Master Ball. Só no santuário podem aparecer Mew (1/64), Mewtwo (1/256) ou uma das aves lendárias (1/64 no total). Qualquer encontro de treino pode ser shiny (1/128). O sorteio usa semente de relógio e não afeta a fila do caso.
 
 
 ## Exploração e progressão dos setores
@@ -167,3 +173,5 @@ O circuito restaura o gerador; dez refletores, dois por setor escuro, precisam s
 A captura não é automática: Z lança, siga as três direções e Z sela a bola. Os prazos diminuem ao longo da sequência. Um erro reinicia a contenção; você pode tentar novamente. Capturas opcionais continuam reservando vagas para os parceiros do caso.
 
 Os PNGs de teclas e guardas em `assets/ui/` são arte própria do projeto. O gerador opcional é `tools/gerar_interface.ps1`; os PNGs já acompanham o código e não precisam ser gerados para jogar. Nenhum asset de Ben 10 foi incorporado.
+
+Antes do duelo, a ficha da Pokédex permite consultar os membros do treinador e os dados de combate. Giovanni agora leva Meowth, Geodude e Mewtwo. A Pokédex junta as 23 espécies embutidas em `src/dados_pokemon.c` às linhas extras de `assets/pokemon/dados.txt`; quando os assets contêm a primeira geração completa, os encontros de treino sorteiam entre as 151 espécies. O script `tools/baixar_assets.py` foi ampliado para gerar esse catálogo completo. Neste checkout, `dados.txt` ainda tem 20 linhas de espécie, então o jogo atual carrega 23 até os assets completos serem baixados. Os encontros raros usam Mew, Mewtwo e as três aves lendárias, todas dentro da primeira geração.

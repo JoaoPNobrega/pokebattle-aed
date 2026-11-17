@@ -12,10 +12,13 @@ UNAME_S    := $(shell uname -s 2>/dev/null || echo Unknown)
 
 ifeq ($(OS),Windows_NT)
   SYS_LIBS := -lopengl32 -lgdi32 -lwinmm
+  EXE := .exe
 else ifeq ($(UNAME_S),Darwin)
   SYS_LIBS := -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo
+  EXE :=
 else
   SYS_LIBS := -lGL -lm -lpthread -ldl -lrt -lX11 -lXrandr -lXinerama -lXi -lXcursor
+  EXE :=
 endif
 
 ifeq ($(strip $(PKG_LIBS)),)
@@ -38,12 +41,15 @@ OBJS      := $(patsubst src/%.c,$(OBJ_DIR)/%.o,$(SRC))
 OBJS_TEST := $(patsubst src/%.c,$(OBJ_DIR)/%.o,$(SRC_LIB)) $(OBJ_DIR)/testar_estruturas.o
 DEPS      := $(OBJS:.o=.d) $(OBJ_DIR)/testar_estruturas.d
 
-TARGET    := $(BIN_DIR)/pokebattle
-TEST_BIN  := $(BIN_DIR)/testar_estruturas
+TARGET    := $(BIN_DIR)/pokebattle$(EXE)
+TEST_BIN  := $(BIN_DIR)/testar_estruturas$(EXE)
 
-.PHONY: all teste sanitizar memcheck clean assets
+.PHONY: all run teste sanitizar memcheck clean assets
 
 all: $(TARGET)
+
+run: $(TARGET)
+	./$(TARGET)
 
 $(TARGET): $(OBJS) $(RAYLIB_DEP) | $(BIN_DIR)
 	$(CC) $(CFLAGS) -o $@ $(OBJS) $(LDFLAGS)

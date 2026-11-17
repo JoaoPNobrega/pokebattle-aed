@@ -46,6 +46,7 @@ typedef struct {
     Golpe golpes[MAX_GOLPES];
     int qtd_golpes;
     int experiencia; /* 60 XP de treino sobem um nível, até o nível 60. */
+    int brilhante; /* Variante rara; a identidade e os atributos da espécie não mudam. */
 } Pokemon;
 
 /*

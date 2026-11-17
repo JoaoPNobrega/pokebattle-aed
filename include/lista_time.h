@@ -74,6 +74,14 @@ int adicionarPokemon(ListaTime *lista, const Pokemon *pokemon);
 int removerPokemon(ListaTime *lista, const char *nome);
 
 /*
+ * removerPokemonPorPosicao
+ * Remove o nó na posição especificada (0-indexada).
+ * Retorno: 1 se removeu, 0 se índice inválido.
+ * Complexidade: O(n).
+ */
+int removerPokemonPorPosicao(ListaTime *lista, int posicao);
+
+/*
  * trocarPokemon
  * Troca os Pokémon das posições i e j (índices começando em 0).
  * Os nós continuam no lugar; o que muda é o conteúdo. O cursor ativo

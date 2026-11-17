@@ -11,6 +11,7 @@
 #include "util.h"
 
 #include <string.h>
+#include <stdio.h>
 
 static void adicionarGolpe(Pokemon *pokemon, const char *nome, Tipo tipo, int poder, int prioridade) {
     Golpe *golpe;
@@ -50,6 +51,57 @@ static int publicar(HashPokedex *pokedex, ArvorePokedex *arvore, const Pokemon *
     if (!inserirNaArvore(arvore, pokemon)) {
         return 0;
     }
+    return 1;
+}
+
+static Tipo tipoDaApi(const char *nome) {
+    if (strcmp(nome, "normal") == 0) return TIPO_NORMAL;
+    if (strcmp(nome, "fire") == 0) return TIPO_FOGO;
+    if (strcmp(nome, "water") == 0) return TIPO_AGUA;
+    if (strcmp(nome, "electric") == 0) return TIPO_ELETRICO;
+    if (strcmp(nome, "grass") == 0) return TIPO_GRAMA;
+    if (strcmp(nome, "ice") == 0) return TIPO_GELO;
+    if (strcmp(nome, "fighting") == 0) return TIPO_LUTADOR;
+    if (strcmp(nome, "poison") == 0) return TIPO_VENENO;
+    if (strcmp(nome, "ground") == 0) return TIPO_TERRA;
+    if (strcmp(nome, "flying") == 0) return TIPO_VOADOR;
+    if (strcmp(nome, "psychic") == 0) return TIPO_PSIQUICO;
+    if (strcmp(nome, "bug") == 0) return TIPO_INSETO;
+    if (strcmp(nome, "rock") == 0) return TIPO_PEDRA;
+    if (strcmp(nome, "ghost") == 0) return TIPO_FANTASMA;
+    if (strcmp(nome, "dragon") == 0) return TIPO_DRAGAO;
+    return TIPO_NENHUM;
+}
+
+static int completarCatalogoLocal(HashPokedex *pokedex, ArvorePokedex *arvore) {
+    FILE *arquivo = fopen("assets/pokemon/dados.txt", "r");
+    char linha[256];
+    if (arquivo == NULL) arquivo = fopen("../assets/pokemon/dados.txt", "r");
+    if (arquivo == NULL) return 1; /* Mantém o cadastro embutido se os assets não estiverem no cwd. */
+    while (fgets(linha, sizeof linha, arquivo) != NULL) {
+        Pokemon pokemon;
+        char nome[NOME_MAX], tipo1[16], tipo2[16];
+        int numero, hp, ataque, defesa, especial_ataque, especial_defesa, velocidade;
+        int lidos;
+        if (linha[0] == '#') continue;
+        lidos = sscanf(linha, "%d %39s %15s %15s %d %d %d %d %d %d", &numero, nome,
+                       tipo1, tipo2, &hp, &ataque, &defesa, &especial_ataque,
+                       &especial_defesa, &velocidade);
+        if (lidos != 10 || buscarPorNumero(arvore, numero) != NULL) continue;
+        pokemon = especie(numero, nome, tipoDaApi(tipo1), tipoDaApi(tipo2), hp,
+                          especial_ataque > ataque ? especial_ataque : ataque,
+                          especial_defesa > defesa ? especial_defesa : defesa, velocidade);
+        adicionarGolpe(&pokemon, "Investida", TIPO_NORMAL, 40, 0);
+        adicionarGolpe(&pokemon, "Golpe de tipo", pokemon.tipo1, 60, 0);
+        if (pokemon.tipo2 != TIPO_NENHUM && pokemon.tipo2 != pokemon.tipo1)
+            adicionarGolpe(&pokemon, "Golpe secundário", pokemon.tipo2, 60, 0);
+        adicionarGolpe(&pokemon, "Ataque forte", pokemon.tipo1, 90, 0);
+        if (!publicar(pokedex, arvore, &pokemon)) {
+            fclose(arquivo);
+            return 0;
+        }
+    }
+    fclose(arquivo);
     return 1;
 }
 
@@ -134,7 +186,7 @@ int registrarEspecies(HashPokedex *pokedex, ArvorePokedex *arvore) {
     adicionarGolpe(&p, "Confusão", TIPO_PSIQUICO, 50, 0);
     adicionarGolpe(&p, "Feixe Psíquico", TIPO_PSIQUICO, 65, 0);
     adicionarGolpe(&p, "Psíquico", TIPO_PSIQUICO, 90, 0);
-    adicionarGolpe(&p, "Rapidez", TIPO_NORMAL, 60, 0);
+    adicionarGolpe(&p, "Bola Sombria", TIPO_FANTASMA, 80, 0);
     if (!publicar(pokedex, arvore, &p)) return 0;
 
     p = especie(68, "Machamp", TIPO_LUTADOR, TIPO_NENHUM, 90, 130, 80, 55);
@@ -179,6 +231,27 @@ int registrarEspecies(HashPokedex *pokedex, ArvorePokedex *arvore) {
     adicionarGolpe(&p, "Hiper-raio", TIPO_NORMAL, 150, 0);
     if (!publicar(pokedex, arvore, &p)) return 0;
 
+    p = especie(144, "Articuno", TIPO_GELO, TIPO_VOADOR, 90, 85, 100, 85);
+    adicionarGolpe(&p, "Raio de Gelo", TIPO_GELO, 90, 0);
+    adicionarGolpe(&p, "Rajada", TIPO_VOADOR, 40, 0);
+    adicionarGolpe(&p, "Nevasca", TIPO_GELO, 110, 0);
+    adicionarGolpe(&p, "Ataque Rápido", TIPO_NORMAL, 40, 1);
+    if (!publicar(pokedex, arvore, &p)) return 0;
+
+    p = especie(145, "Zapdos", TIPO_ELETRICO, TIPO_VOADOR, 90, 90, 85, 100);
+    adicionarGolpe(&p, "Choque do Trovão", TIPO_ELETRICO, 90, 0);
+    adicionarGolpe(&p, "Rajada", TIPO_VOADOR, 40, 0);
+    adicionarGolpe(&p, "Trovão", TIPO_ELETRICO, 110, 0);
+    adicionarGolpe(&p, "Ataque Rápido", TIPO_NORMAL, 40, 1);
+    if (!publicar(pokedex, arvore, &p)) return 0;
+
+    p = especie(146, "Moltres", TIPO_FOGO, TIPO_VOADOR, 90, 100, 90, 90);
+    adicionarGolpe(&p, "Lança-chamas", TIPO_FOGO, 90, 0);
+    adicionarGolpe(&p, "Rajada", TIPO_VOADOR, 40, 0);
+    adicionarGolpe(&p, "Rajada de Fogo", TIPO_FOGO, 110, 0);
+    adicionarGolpe(&p, "Ataque Rápido", TIPO_NORMAL, 40, 1);
+    if (!publicar(pokedex, arvore, &p)) return 0;
+
     p = especie(149, "Dragonite", TIPO_DRAGAO, TIPO_VOADOR, 91, 134, 95, 80);
     adicionarGolpe(&p, "Ataque de Asa", TIPO_VOADOR, 60, 0);
     adicionarGolpe(&p, "Garra de Dragão", TIPO_DRAGAO, 80, 0);
@@ -205,7 +278,7 @@ int registrarEspecies(HashPokedex *pokedex, ArvorePokedex *arvore) {
     adicionarGolpe(&p, "Tesoura X", TIPO_INSETO, 80, 0);
     if (!publicar(pokedex, arvore, &p)) return 0;
 
-    return 1;
+    return completarCatalogoLocal(pokedex, arvore);
 }
 
 static int incluirTreinador(FilaTreinadores *fila, HashPokedex *pokedex,

@@ -130,6 +130,38 @@ int removerPokemon(ListaTime *lista, const char *nome) {
     return 1;
 }
 
+int removerPokemonPorPosicao(ListaTime *lista, int posicao) {
+    NoTime *no;
+
+    if (lista == NULL || posicao < 0 || posicao >= lista->tamanho) {
+        return 0;
+    }
+    no = noNaPosicao(lista, posicao);
+    if (no == NULL) {
+        return 0;
+    }
+
+    if (no->ant != NULL) {
+        no->ant->prox = no->prox;
+    } else {
+        lista->inicio = no->prox;
+    }
+
+    if (no->prox != NULL) {
+        no->prox->ant = no->ant;
+    } else {
+        lista->fim = no->ant;
+    }
+
+    if (lista->ativo == no) {
+        lista->ativo = (no->prox != NULL) ? no->prox : no->ant;
+    }
+
+    free(no);
+    lista->tamanho--;
+    return 1;
+}
+
 int trocarPokemon(ListaTime *lista, int i, int j) {
     NoTime *a;
     NoTime *b;

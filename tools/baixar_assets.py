@@ -15,11 +15,8 @@ RAIZ = pathlib.Path(__file__).resolve().parents[1]
 DESTINO = RAIZ / "assets" / "pokemon"
 DESTINO.mkdir(parents=True, exist_ok=True)
 
-# Números da Pokédex usados em dados_pokemon.c
-NUMEROS = [
-    1, 3, 4, 6, 7, 9, 18, 25, 52, 54,
-    65, 68, 74, 94, 95, 130, 143, 149, 150, 151,
-]
+# Primeira geração completa (número, dados e sprites ficam locais ao jogo).
+NUMEROS = list(range(1, 152))
 
 SPRITES = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon"
 
