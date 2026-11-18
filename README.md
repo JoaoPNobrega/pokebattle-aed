@@ -8,6 +8,15 @@ O caso jogável atravessa oito salas: o painel elétrico, um Charmander selvagem
 
 Quem for alterar o código com IA deve ler o `AGENTS.md` antes. Ele também está apontado em `CLAUDE.md`, `.cursor/rules/projeto.mdc` e `.github/copilot-instructions.md`.
 
+## Baixar o jogo pronto
+
+As versões compiladas ficam em [Releases](https://github.com/JoaoPNobrega/pokebattle-aed/releases). É preciso ter acesso ao repositório.
+
+- **Windows 64 bits:** baixe o ZIP, extraia a pasta inteira e abra `PokeBattle.exe`.
+- **Mac:** baixe o ZIP `arm64` para Apple Silicon ou `x86_64` para Intel, extraia e abra `PokéBattle.app`. O app usa assinatura local, sem notarização da Apple.
+
+O fluxo **Empacotar PokéBattle** no GitHub Actions gera os ZIPs com o executável, o ícone e os arquivos do jogo. O código-fonte continua separado dos binários.
+
 ## Como compilar e rodar
 
 Precisa de gcc (ou Clang) com C11 e da raylib 5. Não há executável no repositório.

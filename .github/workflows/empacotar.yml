@@ -1,0 +1,60 @@
+name: Empacotar PokéBattle
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-2025
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: msys2/setup-msys2@ec48f7c5447b3140e2b088413ae3a55687bccb6e # v2.33.0
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            make zip unzip python
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-raylib
+            mingw-w64-ucrt-x86_64-pkgconf
+      - name: Compilar e verificar o ZIP
+        shell: msys2 {0}
+        run: bash scripts/empacotar.sh
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: pokebattle-windows
+          path: build/distribuicao/pacotes/Pokebattle-Windows-x64.zip
+          if-no-files-found: error
+
+  macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arquitetura: arm64
+          - runner: macos-15-intel
+            arquitetura: x86_64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Instalar dependências
+        run: brew install raylib pkgconf
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+      - name: Compilar e verificar o ZIP
+        run: bash scripts/empacotar.sh
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: pokebattle-macos-${{ matrix.arquitetura }}
+          path: build/distribuicao/pacotes/Pokebattle-macOS-${{ matrix.arquitetura }}.zip
+          if-no-files-found: error
