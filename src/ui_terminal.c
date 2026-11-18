@@ -714,7 +714,7 @@ static void mostrarComoJogar(void) {
 static void imprimirBanner(void) {
     printf("========================================\n");
     printf("  PokéBattle: Arena do Mewtwo\n");
-    printf("  Ode ao Cinema — CESAR School AED\n");
+    printf("  CESAR School · Algoritmos e Estruturas de Dados\n");
     printf("========================================\n");
     printf("Inspirado em Pokémon: O Filme — Mewtwo Contra-Ataca (1998).\n");
 }
