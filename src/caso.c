@@ -1,12 +1,4 @@
-/*
- * caso.c
- * ------
- * Monta o mistério e dá um passo de batalha sem saber desenhar.
- * Ver caso.h. As salas são a lista dupla; a luta reusa a fila,
- * o insertion sort e a lista circular que já existiam.
- * Etapas ficam no nó da sala. Treinos usam o oponente temporário,
- * preservando a fila das lutas obrigatórias e reservando vagas no time.
- */
+/* Caso: salas, fila de lutas e batalha */
 
 #include "caso.h"
 
@@ -448,7 +440,7 @@ static int temEspecie(const ListaTime *time, const char *nome) {
     return 0;
 }
 
-/* Reserva espaço para os parceiros do caso ou envia para a reserva do PC. */
+/* Treino só captura espécie que ainda não está no time */
 static int podeCapturarTreino(const Caso *caso, const Pokemon *pokemon) {
     if (caso == NULL || pokemon == NULL) return 0;
     if (temEspecie(&caso->nucleo.time, pokemon->nome) || temEspecie(&caso->reserva_pc, pokemon->nome)) {
@@ -493,7 +485,7 @@ int casoIniciarTreino(Caso *caso) {
         if (quantidade == 0) return 0;
         numero = disponiveis[sorte % (unsigned int)quantidade];
 
-        /* No Santuário Secreto, lendários aparecem com alta frequência: 50% ou 75% com altares ativos! */
+        /* Santuário: chance maior de lendário */
         if (caso->area_secreta) {
             unsigned int chance_lendario = (caso->altares_secretos == 7) ? 75U : 50U;
             if ((sorte % 100U) < chance_lendario) {
@@ -519,7 +511,7 @@ int casoIniciarTreino(Caso *caso) {
             liberarListaTime(&caso->oponente_atual.time);
             return 0;
         }
-        /* Um segundo sorteio independente marca a variante rara para a apresentação. */
+        /* Shiny à parte do encontro */
         caso->semente_sorteio = caso->semente_sorteio * 1664525U + 1013904223U;
         obterAtivo(&caso->oponente_atual.time)->brilhante = ((caso->semente_sorteio >> 16) % 128U == 1U);
     }
@@ -721,7 +713,7 @@ static int turnoSoDoOponente(Caso *caso, SaidaBatalha *saida) {
 
     golpe = escolherGolpeAdversario(oponente, eu);
     criarListaTurno(&ordem);
-    /* Golpe -1 tira o jogador da lista circular. Só o oponente entra. */
+    /* Golpe -1: o jogador fica fora do turno */
     definirOrdemTurno(&ordem, eu, -1, oponente, golpe);
     executarTurno(&ordem, eu, oponente, saida);
     liberarListaTurno(&ordem);

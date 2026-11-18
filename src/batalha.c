@@ -1,9 +1,4 @@
-/*
- * batalha.c
- * ---------
- * Regras da luta. Não sabe se a mensagem vai para o terminal ou para
- * uma janela: só chama o narrador e empilha o log. Ver batalha.h.
- */
+/* Regras da luta */
 
 #include "batalha.h"
 
@@ -55,7 +50,7 @@ int calcularDano(const Pokemon *atacante, const Golpe *golpe, const Pokemon *def
         def = 1;
     }
 
-    /* A divisão inteira é de propósito: o jogo clássico também arredonda para baixo. */
+    /* Divisão inteira: arredonda para baixo */
     base = (2 * nivel / 5) + 2;
     base = (base * golpe->poder * atk) / def;
     base = base / 50 + 2;
@@ -66,12 +61,7 @@ int calcularDano(const Pokemon *atacante, const Golpe *golpe, const Pokemon *def
     if (stab) {
         dano = (dano * 3) / 2;
     }
-    /*
-     * O /2 não faz parte da fórmula clássica. Sem ele, Hidro Bomba de
-     * um nível 50 apaga o time inteiro de um treinador mais fraco e a
-     * batalha deixa de mostrar turno, desmaio e troca. A efetividade
-     * continua proporcional: 2x segue sendo o dobro de 1x.
-     */
+    /* /2 extra para a luta durar mais de um golpe */
     dano = dano / 2;
     if (dano < 1) {
         dano = 1;
@@ -131,7 +121,7 @@ int definirOrdemTurno(ListaTurno *ordem,
         return 0;
     }
 
-    /* A lista do turno anterior é descartada. Os Pokémon continuam nos times. */
+    /* Monta a lista circular deste turno */
     liberarListaTurno(ordem);
 
     if (!verificarDesmaio(jogador) && golpeValido(jogador, golpe_jogador)) {
@@ -143,10 +133,7 @@ int definirOrdemTurno(ListaTurno *ordem,
         n++;
     }
 
-    /*
-     * O jogador entra primeiro no vetor. O insertion sort é estável,
-     * então empate de prioridade e velocidade deixa o jogador na frente.
-     */
+    /* Insertion sort estável: empate deixa quem entrou primeiro */
     ordenarTurnoPorInsercao(atores, n);
 
     for (i = 0; i < n; i++) {
@@ -254,10 +241,7 @@ void executarTurno(ListaTurno *ordem, Pokemon *jogador, Pokemon *oponente, Saida
         AtorTurno *ator = &no->ator;
         Pokemon *alvo = (ator->lado == LADO_JOGADOR) ? oponente : jogador;
 
-        /*
-         * Se o mais rápido derrubou o outro, o ponteiro do alvo continua
-         * válido, mas o HP zerou. verificarDesmaio barra o segundo golpe.
-         */
+        /* Desmaiado não age */
         if (!verificarDesmaio(ator->pokemon)) {
             aplicarGolpe(ator->pokemon, ator->indice_golpe, alvo, saida);
         }
@@ -403,7 +387,7 @@ int conduzirBatalha(ListaTime *time_jogador,
             snprintf(msg, sizeof msg, "Você trocou para %s!", ativo_jogador->nome);
             narrarTexto(&saida, msg);
 
-            /* Trocar gasta o turno: só o oponente age, pela mesma lista circular. */
+            /* Troca gasta o turno: só o oponente age */
             golpe_oponente = escolherGolpeAdversario(ativo_oponente, ativo_jogador);
             criarListaTurno(&ordem);
             definirOrdemTurno(&ordem, NULL, -1, ativo_oponente, golpe_oponente);
@@ -461,11 +445,7 @@ int conduzirArena(ListaTime *time_jogador,
             break;
         }
 
-        /*
-         * Copia o nome ANTES de desenfileirar. O ponteiro da frente
-         * aponta para dentro do nó; depois do proximoTreinador esse
-         * nó não existe mais.
-         */
+        /* Copia o nome antes de tirar da fila */
         copiarTexto(nome_frente, sizeof nome_frente, frente->nome);
         restantes = tamanhoFila(fila);
         snprintf(msg, sizeof msg, "Próximo da fila: %s (%d desafio(s) na fila).",

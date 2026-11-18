@@ -1,6 +1,4 @@
-# PokéBattle: O Caso do Laboratório
-# C11, sem aviso em -Wall -Wextra -Wpedantic.
-# A raylib entra por pkg-config ou por third_party/ (scripts/baixar_raylib.sh).
+# PokéBattle. C11, -Wall. Raylib por pkg-config ou third_party/.
 
 CC      := gcc
 CFLAGS  := -std=c11 -Wall -Wextra -Wpedantic -Iinclude -MMD -MP
@@ -69,12 +67,11 @@ third_party/raylib/src/libraylib.a:
 $(BIN_DIR) $(OBJ_DIR):
 	mkdir -p $@
 
-# Baixa sprites e o dados.txt da PokéAPI para assets/pokemon/.
-# O jogo em si não faz HTTP; este alvo é só para refazer os arquivos.
+# Baixa os sprites para assets/pokemon/
 assets:
 	./tools/baixar_assets.sh
 
-# A janela não entra no teste automático. --simular joga o caso sem raylib na tela.
+# Testa as estruturas e roda --simular
 teste: $(TARGET) $(TEST_BIN)
 	./$(TEST_BIN)
 	./$(TARGET) --simular

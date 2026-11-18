@@ -1,14 +1,5 @@
 #!/usr/bin/env python3
-"""Monta os sprites de pessoa e o tileset do laboratório.
-
-Fontes, todas de uso acadêmico (arte Nintendo/Game Freak):
-- overworld e tiles: decompilação pret/pokefirered
-- Giovanni na batalha: Pokémon Showdown, sprite da geração III
-- Pikachu seguidor: animações de overworld de HeartGold/SoulSilver
-  publicadas em pokeamice.com
-
-O jogo em C não baixa nada. Este script só refaz os PNG locais.
-"""
+"""Monta os sprites de pessoa e o tileset do laboratório."""
 
 import struct
 import urllib.request
@@ -37,7 +28,7 @@ def rgba_indice_zero_transparente(caminho):
         return imagem.convert("RGBA")
     imagem = imagem.convert("RGBA")
     pixels = imagem.load()
-    # O índice 0 do PNG do decomp é o fundo, não uma cor do personagem.
+    # Índice 0 é o fundo, fica transparente
     fundo = Image.open(caminho).convert("P")
     origem = fundo.load()
     for y in range(imagem.height):
@@ -55,7 +46,7 @@ def quadro(folha, indice, largura, altura, espelhar=False):
 
 
 def folha_frlg(origem, destino):
-    """A folha do decomp é uma fileira. O jogo usa 4 direções e 3 passos."""
+    """Quatro direções, três passos."""
     imagem = rgba_indice_zero_transparente(origem)
     # 0 sul parado, 3 e 4 passos ao sul, 2/7/8 oeste, 1/5/6 norte.
     linhas = [
@@ -76,12 +67,12 @@ def folha_frlg(origem, destino):
 
 
 def pikachu_seguidor():
-    """Quatro GIFs do HeartGold: baixo, cima, esquerda, direita, 4 quadros."""
+    """Pikachu seguidor: baixo, cima, esquerda, direita."""
     ordem = [1, 3, 4, 2]
     saida = Image.new("RGBA", (96, 128), (0, 0, 0, 0))
     for linha, numero in enumerate(ordem):
         gif = Image.open(PESSOAS / f"_pika_{numero}.gif")
-        # 0 parado, 1 passo, 3 o outro passo. O quadro 2 quase repete o parado.
+        # Parado, um passo e o outro passo
         for coluna, quadro_gif in enumerate((0, 1, 3)):
             gif.seek(quadro_gif)
             pedaco = gif.convert("RGBA")
@@ -91,7 +82,7 @@ def pikachu_seguidor():
 
 def costas_do_red():
     imagem = rgba_indice_zero_transparente(PESSOAS / "_red_back.png")
-    # Cinco quadros de 64×64, um em cima do outro. O jogo lê na horizontal.
+    # Cinco quadros, um em cima do outro
     saida = Image.new("RGBA", (64 * 5, 64), (0, 0, 0, 0))
     for i in range(5):
         pedaco = imagem.crop((0, i * 64, 64, i * 64 + 64))

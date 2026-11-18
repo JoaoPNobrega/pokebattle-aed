@@ -1,4 +1,4 @@
-# Ícones e guardas em pixel art do projeto. Gera PNGs locais; o jogo só lê disco.
+# Ícones e guardas em pixel art
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
 $raiz = Split-Path $PSScriptRoot -Parent

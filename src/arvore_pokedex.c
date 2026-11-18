@@ -1,17 +1,4 @@
-/*
- * arvore_pokedex.c
- * ----------------
- * AVL indexada pelo número da Pokédex.
- *
- * Fator de balanceamento = altura(esquerda) - altura(direita).
- * Fora de {-1, 0, 1} a árvore gira:
- *   +2 com filho esquerdo pendendo à esquerda  -> rotação à direita
- *   +2 com filho esquerdo pendendo à direita   -> rotação dupla (esq-dir)
- *   -2 com filho direito pendendo à direita    -> rotação à esquerda
- *   -2 com filho direito pendendo à esquerda   -> rotação dupla (dir-esq)
- *
- * A altura guardada em cada nó deixa o fator O(1).
- */
+/* AVL da Pokédex. Fator = altura(esq) - altura(dir). */
 
 #include "arvore_pokedex.h"
 
@@ -43,7 +30,7 @@ static void atualizarAltura(NoAvl *no) {
     no->altura = (esquerda > direita ? esquerda : direita) + 1;
 }
 
-/* y desce para a direita, x (filho esquerdo) sobe. */
+/* Rotação à direita */
 static NoAvl *rotacionarDireita(NoAvl *y) {
     NoAvl *x = y->esq;
     NoAvl *meio = x->dir;
@@ -55,7 +42,7 @@ static NoAvl *rotacionarDireita(NoAvl *y) {
     return x;
 }
 
-/* x desce para a esquerda, y (filho direito) sobe. */
+/* Rotação à esquerda */
 static NoAvl *rotacionarEsquerda(NoAvl *x) {
     NoAvl *y = x->dir;
     NoAvl *meio = y->esq;
@@ -67,6 +54,7 @@ static NoAvl *rotacionarEsquerda(NoAvl *x) {
     return y;
 }
 
+/* Balanceia: rotação simples ou dupla */
 static NoAvl *balancear(NoAvl *no) {
     int fb;
 
@@ -104,11 +92,7 @@ static NoAvl *criarNo(const Pokemon *pokemon) {
     return no;
 }
 
-/*
- * inseriu: 1 nó novo, 0 duplicata, -1 sem memória.
- * Em falta de memória a árvore fica como estava até o ponto da falha
- * (os nós já inseridos em chamadas anteriores continuam válidos).
- */
+/* Insere e rebalanceia na volta */
 static NoAvl *inserirRec(NoAvl *no, const Pokemon *pokemon, int *inseriu) {
     if (no == NULL) {
         NoAvl *novo = criarNo(pokemon);
@@ -171,15 +155,10 @@ static NoAvl *removerRec(NoAvl *no, int numero, int *achou) {
         if (no->esq == NULL || no->dir == NULL) {
             filho = (no->esq != NULL) ? no->esq : no->dir;
             free(no);
-            /* O pai rebalanceia na volta da recursão. */
             return filho;
         }
 
-        /*
-         * Dois filhos: o sucessor (menor da subárvore direita) ocupa
-         * o lugar, e a remoção de verdade acontece lá embaixo, onde
-         * o sucessor tem no máximo um filho.
-         */
+        /* Dois filhos: o sucessor sobe */
         {
             NoAvl *sucessor = noMinimo(no->dir);
             no->pokemon = sucessor->pokemon;

@@ -1,4 +1,4 @@
-"""Gera o ícone original de lanterna em PNG e ICO, sem dependências externas."""
+"""Gera o ícone da lanterna."""
 
 import argparse
 from pathlib import Path
@@ -16,7 +16,7 @@ CLARO = (255, 241, 185, 255)
 
 
 def cor(x, y):
-    """Devolve a cor de cada ponto na tela lógica de 32 por 32."""
+    """Cor de cada ponto do ícone."""
     canto_x = min(x, 31 - x)
     canto_y = min(y, 31 - y)
     if canto_x < 1 or canto_y < 1 or canto_x + canto_y < 5:
@@ -25,7 +25,7 @@ def cor(x, y):
         return BORDA
     if ((x, y) in {(21, 5), (24, 10), (27, 7), (27, 13)}):
         return CLARO
-    # O feixe abre na diagonal a partir da boca da lanterna.
+    # Feixe da lanterna
     if x >= 17 and 3 <= y <= 16 and x + y >= 25 and x + y <= 37:
         return ROXO if y < 7 or x + y >= 35 else AMARELO
     if 15 <= x <= 21 and 13 <= y <= 19 and 30 <= x + y <= 37:

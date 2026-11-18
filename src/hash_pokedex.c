@@ -1,9 +1,4 @@
-/*
- * hash_pokedex.c
- * --------------
- * Tabela hash com encadeamento separado. Cada balde é uma lista
- * simples. Ver hash_pokedex.h.
- */
+/* Tabela hash. Colisão fica numa lista. */
 
 #include "hash_pokedex.h"
 
@@ -45,7 +40,7 @@ void liberarHashPokedex(HashPokedex *pokedex) {
 }
 
 int funcaoHashNome(const char *nome) {
-    /* djb2. O 5381 é a semente clássica dessa função. */
+    /* Hash djb2 */
     unsigned long hash = 5381;
     const unsigned char *p;
 
@@ -78,7 +73,7 @@ int inserirNaPokedex(HashPokedex *pokedex, const Pokemon *pokemon) {
 
     no->pokemon = *pokemon;
     indice = funcaoHashNome(pokemon->nome);
-    /* Insere no começo do balde: O(1) depois de achar o índice. */
+    /* Colisão: entra no começo da lista do balde */
     no->prox = pokedex->baldes[indice];
     pokedex->baldes[indice] = no;
     pokedex->quantidade++;

@@ -1,8 +1,4 @@
-/*
- * sala.c
- * ------
- * Lista dupla das salas e a ponte tipo -> habilidade. Ver sala.h.
- */
+/* Lista dupla das salas */
 
 #include "sala.h"
 
@@ -89,7 +85,7 @@ int avancarSala(ListaSalas *lista, PilhaLog *log) {
         (lista->atual->duelo_obrigatorio && !lista->atual->duelo_concluido)) {
         return 0;
     }
-    /* Sala de luta não deixa passar enquanto o confronto não acaba. */
+    /* Luta pendente não deixa passar */
     if (lista->atual->inicia_batalha && !lista->atual->batalha_concluida) {
         return 0;
     }
@@ -214,7 +210,7 @@ int resolverPuzzleDaSala(ListaSalas *lista, const ListaTime *time, PilhaLog *log
                 break;
             }
         }
-        /* O texto longo da sala fica na tela. O log guarda só o lance. */
+        /* O log guarda só o lance */
         snprintf(msg, sizeof msg, "%s usou %s em %s.",
                  quem, nomeHabilidade(sala->habilidade), sala->nome);
     }

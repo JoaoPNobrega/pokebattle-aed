@@ -1,16 +1,4 @@
-/*
- * lista_time.c
- * ------------
- * Lista duplamente encadeada do time. O ponto que mais aparece na
- * defesa é a remoção: os dois vizinhos precisam ser religados, e o
- * caso da cabeça (ant == NULL) e o da cauda (prox == NULL) são
- * diferentes do caso do meio.
- *
- *   antes:  A <-> B <-> C
- *   remover B:
- *           A <-> C
- *   A->prox passa a ser C, C->ant passa a ser A, e o nó B é liberado.
- */
+/* Lista dupla do time */
 
 #include "lista_time.h"
 
@@ -108,7 +96,7 @@ int removerPokemon(ListaTime *lista, const char *nome) {
         return 0;
     }
 
-    /* Religa a lista em volta do nó que vai sair. */
+    /* Remove: religa ant e prox */
     if (no->ant != NULL) {
         no->ant->prox = no->prox;
     } else {
@@ -180,14 +168,7 @@ int trocarPokemon(ListaTime *lista, int i, int j) {
         return 0;
     }
 
-    /*
-     * Trocamos o conteúdo, não os nós. Religar ant/prox para trocar
-     * dois nós (principalmente se forem vizinhos) é fácil de errar e
-     * não muda o que o jogador vê. A cirurgia de ponteiros fica na
-     * remoção, que realmente tira um nó da lista.
-     * O cursor acompanha o Pokémon: depois da troca ele aponta para
-     * o nó que agora guarda aquele Pokémon.
-     */
+    /* Troca o Pokémon, não o nó */
     tmp = a->pokemon;
     a->pokemon = b->pokemon;
     b->pokemon = tmp;
@@ -361,6 +342,6 @@ void ordenarTime(ListaTime *lista) {
         n++;
     }
 
-    /* O mais rápido passa a ser o líder e o cursor. */
+    /* O mais rápido vira o líder */
     lista->ativo = lista->inicio;
 }

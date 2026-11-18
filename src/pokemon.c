@@ -1,9 +1,4 @@
-/*
- * pokemon.c
- * ---------
- * Contas de atributo e a cópia de uma espécie para o nível da luta.
- * Ver pokemon.h.
- */
+/* Atributos no nível da luta */
 
 #include "pokemon.h"
 
@@ -18,7 +13,7 @@ int calcularHpMax(int hp_base, int nivel) {
     if (hp_base < 1) {
         hp_base = 1;
     }
-    /* Fórmula clássica de HP, sem IV e sem EV. */
+    /* HP clássico, sem IV e sem EV */
     hp = (2 * hp_base * nivel) / 100 + nivel + 10;
     return hp < 1 ? 1 : hp;
 }

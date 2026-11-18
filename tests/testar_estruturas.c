@@ -1,9 +1,4 @@
-/*
- * testar_estruturas.c
- * -------------------
- * Testa as estruturas e as regras sem passar pelo menu.
- * Não substitui o --simular: aqui o foco é ponteiro, ordem e dano.
- */
+/* Testes das estruturas, sem janela */
 
 #include "arvore_pokedex.h"
 #include "batalha.h"
@@ -80,7 +75,7 @@ static void testarLista(void) {
     checar(retrocederAtivo(&time), "retroceder");
     checar(posicaoDoAtivo(&time) == 0, "cursor voltou");
 
-    /* Do fim, avançar circula para o início. */
+    /* Do fim volta ao início */
     definirAtivoPorPosicao(&time, 2);
     avancarAtivo(&time);
     checar(posicaoDoAtivo(&time) == 0, "avanco circular");
@@ -192,7 +187,7 @@ static void testarArvore(void) {
         Pokemon p = especieSimples(i, "N", i);
         checar(inserirNaArvore(&arvore, &p), "insere sequencial");
     }
-    /* 1, 2, 3 numa BST pura teria altura 3. A AVL gira e fica com 2. */
+    /* 1, 2, 3 em ordem: a AVL não vira lista */
     checar(alturaDaArvore(&arvore) == 2, "AVL rebalanceou 1-2-3");
 
     for (i = 4; i <= 15; i++) {
@@ -249,7 +244,7 @@ static void testarOrdenacaoETurno(void) {
     atores[3].pokemon = &lentos[0];
     atores[3].velocidade = 50;
     atores[3].prioridade = 0;
-    /* O terceiro e o quarto empatam em velocidade. A estabilidade mantém a ordem. */
+    /* Empate de velocidade: ordem estável */
     atores[2].lado = 2;
     atores[3].lado = 3;
 
@@ -274,7 +269,7 @@ static void testarOrdenacaoETurno(void) {
     checar(ordenarPokedex(pokedex, 4, ORDENAR_POR_NOME), "merge sort");
     checar(strcmp(pokedex[0].nome, "Bulbassauro") == 0, "nome A primeiro");
     checar(strcmp(pokedex[1].nome, "Charizard") == 0, "Charizard no meio");
-    /* Estável: os dois Charizard mantêm a ordem original (vel 100 antes de vel 10). */
+    /* Merge estável: os dois Charizard */
     checar(pokedex[1].velocidade == 100 && pokedex[2].velocidade == 10, "merge estável");
     checar(strcmp(pokedex[3].nome, "Pikachu") == 0, "Pikachu no fim");
 
@@ -362,7 +357,7 @@ static void testarSalas(void) {
     liberarListaSalas(&salas);
 }
 
-/* Cada família tem operações e falhas próprias, verificadas sem relógio ou janela. */
+/* Puzzles das salas */
 static void testarDesafiosEspaciais(void) {
     Desafio d;
     int i;

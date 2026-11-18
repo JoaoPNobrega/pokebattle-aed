@@ -1,10 +1,4 @@
-/*
- * dados_pokemon.c
- * ---------------
- * 20 espécies da 1ª geração e os cinco desafiantes da arena.
- * Golpes são representativos (não a lista oficial de level-up).
- * Ver dados_pokemon.h.
- */
+/* Espécies e fila da arena */
 
 #include "dados_pokemon.h"
 
@@ -77,7 +71,7 @@ static int completarCatalogoLocal(HashPokedex *pokedex, ArvorePokedex *arvore) {
     FILE *arquivo = fopen("assets/pokemon/dados.txt", "r");
     char linha[256];
     if (arquivo == NULL) arquivo = fopen("../assets/pokemon/dados.txt", "r");
-    if (arquivo == NULL) return 1; /* Mantém o cadastro embutido se os assets não estiverem no cwd. */
+    if (arquivo == NULL) return 1; /* Sem o arquivo, fica o cadastro do código */
     while (fgets(linha, sizeof linha, arquivo) != NULL) {
         Pokemon pokemon;
         char nome[NOME_MAX], tipo1[16], tipo2[16];
@@ -259,11 +253,7 @@ int registrarEspecies(HashPokedex *pokedex, ArvorePokedex *arvore) {
     adicionarGolpe(&p, "Hiper-raio", TIPO_NORMAL, 150, 0);
     if (!publicar(pokedex, arvore, &p)) return 0;
 
-    /*
-     * Mewtwo é o chefe. O ataque não usa os 154 oficiais para a luta
-     * caber em alguns turnos com um atributo só; ainda assim é o
-     * maior ofensivo da Pokédex, com cobertura de gelo e fogo.
-     */
+    /* Chefe: ataque um pouco abaixo do oficial */
     p = especie(150, "Mewtwo", TIPO_PSIQUICO, TIPO_NENHUM, 130, 120, 90, 130);
     adicionarGolpe(&p, "Psíquico", TIPO_PSIQUICO, 90, 0);
     adicionarGolpe(&p, "Bola Sombria", TIPO_FANTASMA, 80, 0);

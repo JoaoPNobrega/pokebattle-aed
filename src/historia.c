@@ -1,12 +1,4 @@
-/*
- * historia.c
- * ----------
- * Falas curtas do mistério. Não seguem Mewtwo Contra-Ataca nem
- * Detetive Pikachu à risca: o laboratório e a Equipe Rocket são
- * o cenário, e o jogador é o detetive.
- *
- * Nada aqui desenha. A caixa de texto mora na interface.
- */
+/* Falas do caso */
 
 #include "historia.h"
 

@@ -1,10 +1,4 @@
-/*
- * lista_turno.c
- * -------------
- * Lista circular do turno. O elo fim->prox == inicio é o que fecha
- * o ciclo. Na liberação o laço para quando volta ao primeiro nó;
- * comparar o ponteiro (não o conteúdo) é o que evita o laço infinito.
- */
+/* Lista circular do turno */
 
 #include "lista_turno.h"
 
@@ -55,6 +49,7 @@ int inserirFimTurno(ListaTurno *lista, const AtorTurno *ator) {
     }
     no->ator = *ator;
 
+    /* Um nó aponta para si; os outros fecham o ciclo no início */
     if (lista->inicio == NULL) {
         no->prox = no;
         lista->inicio = no;

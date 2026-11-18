@@ -1,12 +1,4 @@
-/*
- * main.c
- * ------
- * PokéBattle: O Caso do Laboratório.
- *
- * Sem argumentos, abre em tela cheia (raylib); --janela abre em janela.
- * Com --simular, joga o caso sozinho, sem janela, e devolve
- * 0 se o detetive vence o capanga, 1 se perde, 2 se nem monta o caso.
- */
+/* Abre o jogo. --simular joga sozinho. */
 
 #include "simulacao.h"
 #include "ui_raylib.h"
@@ -19,7 +11,7 @@
 #include <stdint.h>
 #include <unistd.h>
 
-/* O Finder pode abrir o app a partir de outro diretório. */
+/* No macOS, acha a pasta Resources */
 static void usarRecursosDoApp(void) {
     static const char sufixo[] = "/MacOS/pokebattle";
     static const char recursos[] = "/Resources";

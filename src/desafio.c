@@ -1,6 +1,4 @@
-/* desafio.c — Regras de circuito, calor, reservatórios, rastros e empurrar estantes.
- * Matrizes fixas representam espaço; a fila local do circuito tem no máximo nove
- * posições, sem alocação ou biblioteca de estruturas. O estado pertence à sala. */
+/* Puzzles: circuito, gelo, água, rastro e estantes */
 #include "desafio.h"
 #include <string.h>
 
@@ -27,7 +25,7 @@ int mascaraCircuito(const Desafio *d, int celula) {
 }
 
 unsigned int circuitoAlcancado(const Desafio *d) {
-    int fila[9], inicio = 0, fim = 0;
+    int fila[9], inicio = 0, fim = 0; /* fila do percurso no circuito */
     static const int passos[4] = {-3, 1, 3, -1};
     static const int oposto[4] = {4, 8, 1, 2};
     unsigned int vistos = 0;
@@ -72,7 +70,7 @@ static int moverEstante(Desafio *d, AcaoDesafio acao) {
     destino = proximo + passos[acao - ACAO_CIMA];
     if ((d->caixas & (1UL << proximo)) &&
         (paredeEstantes(destino) || (d->caixas & (1UL << destino)))) return 0;
-    /* Guarda um estado para desfazer; a máscara move a caixa sem duplicá-la. */
+    /* Guarda o estado para desfazer */
     d->operador_anterior = d->operador;
     d->caixas_anteriores = d->caixas;
     d->pode_desfazer = 1;

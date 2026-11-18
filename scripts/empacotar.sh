@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Compila, testa e empacota o jogo no sistema de destino.
+# Compila, testa e gera o pacote
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -69,13 +69,13 @@ elif [[ "${MSYSTEM:-}" == UCRT64 ]]; then
         cd "$trabalho"
         windres -i Pokebattle.rc -o icone.o
     )
-    # O binário da distribuição abre apenas a janela do jogo.
+    # No Windows a janela abre sem console
     make -j2 OBJ_DIR="$trabalho/obj" BIN_DIR="$trabalho/bin" \
         RECURSOS_JOGO="$trabalho/icone.o" LDFLAGS_JOGO=-mwindows teste
     cp "$trabalho/bin/pokebattle.exe" "$executavel"
     cp -R assets "$app/"
 
-    # Inclui as dependências transitivas do UCRT64. As DLLs do sistema vêm do Windows.
+    # Copia as DLLs do MSYS que o exe precisa
     copiar_dlls() {
         local binario="$1" nome dll
         local importacoes

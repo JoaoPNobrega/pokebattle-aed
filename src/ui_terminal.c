@@ -1,10 +1,4 @@
-/*
- * ui_terminal.c
- * -------------
- * Menu, montagem do time e a tela da batalha. Toda leitura de teclado
- * passa por lerLinha, para o fim de arquivo (Ctrl+D ou o fim de um
- * script) encerrar o programa sem entrar em laço.
- */
+/* Menu no terminal */
 
 #include "ui_terminal.h"
 
@@ -247,9 +241,7 @@ static int adicionarAoTime(Jogo *jogo, const Pokemon *modelo) {
     return 1;
 }
 
-/*
- * Retorno: 1 pronto para lutar, 0 cancelou, -1 fim da entrada.
- */
+/* Monta o time */
 static int montarTime(Jogo *jogo) {
     printf("\n--- Montar o time (até %d Pokémon, nível %d) ---\n", MAX_TIME, NIVEL_DO_JOGADOR);
     mostrarAjudaTime();
@@ -329,7 +321,7 @@ static int montarTime(Jogo *jogo) {
             int numero = atoi(comando);
             adicionarAoTime(jogo, buscarPorNumero(&jogo->arvore, numero));
         } else {
-            /* O comando foi posto em maiúsculas; a busca ignora a caixa. */
+            /* Nome vai para a hash */
             adicionarAoTime(jogo, buscarPokemon(&jogo->pokedex, comando));
         }
     }
@@ -565,7 +557,7 @@ static void conduzirJornada(Jogo *jogo) {
 
     montado = montarTime(jogo);
     if (montado < 0) {
-        /* EOF: o menu principal também deve parar. Sinalizado pelo time vazio e um flag? */
+        /* Entrada acabou */
         return;
     }
     if (montado == 0) {
@@ -584,15 +576,7 @@ static void conduzirJornada(Jogo *jogo) {
     }
 }
 
-/*
- * O montarTime devolve -1 no EOF, mas conduzirJornada engole isso.
- * Para encerrar o menu quando o script acaba no meio da montagem,
- * a jornada avisa por um campo. Mais simples: se stdin já acabou,
- * a próxima leitura do menu falha e o laço sai. Se o EOF aconteceu
- * dentro da jornada, a próxima lerLinha do menu também falha. Bom.
- * Se o EOF aconteceu e ainda há um prompt, fgets devolve NULL. OK.
- */
-
+/* Consulta a Pokédex: hash, AVL ou percurso em ordem */
 static void consultarPokedex(Jogo *jogo) {
     for (;;) {
         char linha[LINHA_MAX];

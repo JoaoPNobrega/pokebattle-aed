@@ -1,10 +1,4 @@
-/*
- * simulacao.c
- * -----------
- * Partida sem janela: opera os desafios espaciais, religa refletores,
- * captura parceiros, enfrenta guardas e percorre as salas até Giovanni.
- * O programa `./bin/pokebattle --simular` usa isto. Ver simulacao.h.
- */
+/* Partida automática, sem janela */
 
 #include "simulacao.h"
 
@@ -123,7 +117,7 @@ int simularArenaAutomatica(void) {
             }
         }
 
-        /* A Jaula pede o parceiro capturado na própria sala antes da busca. */
+        /* A Jaula pede a captura antes da busca */
         if (!simularPuzzleAtual(&caso)) {
             fprintf(stderr, "Puzzle sem solução em %s.\n", sala->nome);
             codigo = -1;

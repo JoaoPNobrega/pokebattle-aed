@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Gera o detetive, o Giovanni e a Poké Bola em pixel art.
-
-Não são sprites da Nintendo. Os Pokémon vêm da PokéAPI
-(tools/baixar_assets.py). Estes três são desenhados para o projeto.
-"""
+"""Gera o detetive, o Giovanni e a Poké Bola."""
 
 import pathlib
 
@@ -481,8 +477,7 @@ GIO_ESQ = [
     "................",
 ]
 
-# Sprite de batalha desenhado em 32×48 e ampliado ×2 (filtro de ponto),
-# para ficar no tamanho de um treinador do GBA sem parecer bloco liso.
+# Sprite de batalha, 32x48, ampliado x2
 GIOVANNI_FRENTE = [
     ".........kkkkkkkkk..............",
     ".......kkhhhhhhhhhkk............",

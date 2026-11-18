@@ -1,9 +1,4 @@
-/*
- * fila_treinadores.c
- * ------------------
- * Fila encadeada com ponteiros de frente e de trás. Entrar e sair
- * são O(1). Ver fila_treinadores.h.
- */
+/* Fila de treinadores */
 
 #include "fila_treinadores.h"
 
@@ -35,7 +30,7 @@ void liberarFilaTreinadores(FilaTreinadores *fila) {
     }
 
     while (!filaVazia(fila)) {
-        /* destino NULL: desenfileirar libera o time de cada um. */
+        /* Sem destino, libera o time */
         desenfileirarTreinador(fila, NULL);
     }
 }

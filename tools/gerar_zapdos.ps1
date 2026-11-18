@@ -1,4 +1,4 @@
-# Sprite original de Zapdos em pixel art para cobrir o asset ausente offline.
+# Sprite do Zapdos em pixel art
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
 $raiz = Split-Path $PSScriptRoot -Parent

@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Baixa sprites e dados da PokéAPI para assets/pokemon/.
-
-O jogo em C só lê esses arquivos. Não há HTTP em tempo de execução.
-Uso acadêmico: créditos à PokéAPI e à Nintendo/Game Freak no README.
-"""
+"""Baixa sprites da PokéAPI para assets/pokemon/."""
 
 import json
 import pathlib
@@ -15,7 +11,7 @@ RAIZ = pathlib.Path(__file__).resolve().parents[1]
 DESTINO = RAIZ / "assets" / "pokemon"
 DESTINO.mkdir(parents=True, exist_ok=True)
 
-# Primeira geração completa (número, dados e sprites ficam locais ao jogo).
+# 1ª geração, salva local
 NUMEROS = list(range(1, 152))
 
 SPRITES = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon"

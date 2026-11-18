@@ -1,10 +1,4 @@
-/*
- * tipos.c
- * -------
- * Matriz de efetividade da 1ª geração (sem os tipos de gerações
- * posteriores e sem o bug antigo de Fantasma x Psíquico, que aqui
- * vale 2x como a tabela ensina). Ver tipos.h.
- */
+/* Matriz de efetividade da 1ª geração */
 
 #include "tipos.h"
 
@@ -147,7 +141,7 @@ static void preencherTabela(void) {
     definir(TIPO_PEDRA, TIPO_VOADOR, 200);
     definir(TIPO_PEDRA, TIPO_INSETO, 200);
 
-    /* Fantasma: o 2x contra Psíquico é o valor de tabela, não o bug da 1ª geração. */
+    /* Fantasma */
     definir(TIPO_FANTASMA, TIPO_NORMAL, 0);
     definir(TIPO_FANTASMA, TIPO_PSIQUICO, 200);
     definir(TIPO_FANTASMA, TIPO_FANTASMA, 200);

@@ -1,8 +1,4 @@
-/*
- * util.c
- * ------
- * Implementação das ajudas de texto. Ver util.h.
- */
+/* Texto: cópia, comparação e número */
 
 #include "util.h"
 

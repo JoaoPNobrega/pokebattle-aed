@@ -1,6 +1,5 @@
 #!/bin/sh
-# Baixa e compila a raylib 5.5 em third_party/ (não vai para o git).
-# Linux e macOS. No Windows (MSYS2) prefira: pacman -S mingw-w64-x86_64-raylib
+# Baixa a raylib 5.5 e compila em third_party/
 set -e
 
 RAIZ=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
@@ -20,7 +19,7 @@ if [ ! -f "$DESTINO/src/Makefile" ]; then
 fi
 
 echo "Compilando raylib..."
-# nproc existe no Linux; no macOS caímos em 2.
+# Linux usa nproc; no macOS cai em 2
 JOBS=$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)
 make -C "$DESTINO/src" PLATFORM=PLATFORM_DESKTOP -j"$JOBS"
 echo "Pronto: $DESTINO/src/libraylib.a"

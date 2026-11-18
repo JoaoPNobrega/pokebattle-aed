@@ -1,7 +1,5 @@
 #!/bin/sh
-# Baixa sprites e dados da PokéAPI para assets/pokemon/.
-# O jogo em C não faz HTTP: só lê o que este script gravou.
-# Uso acadêmico. Créditos à PokéAPI e à Nintendo/Game Freak no README.
+# Baixa sprites e dados para assets/pokemon/
 set -eu
 cd "$(dirname "$0")/.."
 python3 tools/baixar_assets.py

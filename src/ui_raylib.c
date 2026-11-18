@@ -1,16 +1,4 @@
-/*
- * ui_raylib.c
- * -----------
- * Só desenho e leitura de teclado. A regra continua em caso.c,
- * sala.c e batalha.c. Esta tela não abre rede: os sprites vêm de
- * assets/pokemon/ (PokéAPI, gravados por tools/baixar_assets.py)
- * e o chão vem do tileset CC0 do Kenney.
- *
- * A cena nasce em 240×160, o tamanho do GBA, e sobe para a janela
- * em escala inteira com filtro de ponto. Os sprites de batalha da
- * FireRed já nascem em 64×64, o tamanho nativo daquela tela, então
- * entram em 1:1 no buffer. A ampliação nítida é a da janela.
- */
+/* Janela do jogo */
 
 #include "ui_raylib.h"
 
@@ -140,7 +128,7 @@ typedef struct {
     int transicao;
     float captura_t;
     int caderno;
-    int lanterna_ligada; /* Estado visual; a energia vem do puzzle do laboratório. */
+    int lanterna_ligada; /* Só o desenho; a luz vem do puzzle */
     int documento_aberto;
     int documento_pagina;
     int puzzle_aberto;
@@ -433,7 +421,7 @@ static Mapa MAPA_CHEFE = {
     "####################"
 };
 
-/* Laboratório do Professor Carvalho, da FireRed. 13×14. */
+/* Mapa do laboratório */
 static const unsigned short LAB_META[14][13] = {
     {669, 109, 109, 110, 105, 105, 653, 653, 152, 107, 108, 107, 108},
     {685, 678, 117, 118, 133, 134, 661, 661, 160, 115, 116, 115, 116},
@@ -1379,7 +1367,7 @@ static void abrirDocumento(void) {
 
 static void tentarTreino(int explicar) {
     if (casoIniciarTreino(&caso_jogo)) {
-        /* O banco recupera os PP; cada novo encontro conserva o gasto atual. */
+        /* No banco o PP volta ao máximo */
         clique();
         comecarTransicao();
     } else if (explicar) {
@@ -2065,7 +2053,6 @@ static void blitFrlg(int id, int x, int y) {
     DrawTexturePro(frlg_tex, origem, destino, (Vector2){0.0f, 0.0f}, 0.0f, WHITE);
 }
 
-/* Móveis têm colisão no mesmo símbolo usado para desenhar; mato e entulho são pisáveis. */
 static void desenharTecla(int indice, int x, int y) {
     static const char *nomes[] = {"Z", "X", "E", "L", "U", "R", "^", ">", "v", "<", "T", "V"};
     if (indice < 0 || indice >= 12) return;
@@ -2300,7 +2287,7 @@ static void desenharMapa(const NoSala *sala, int camx, int camy) {
     }
 }
 
-/* Máscara em blocos nativos: acompanha a câmera e mantém o pixel sem borrar. */
+/* Escuridão do mapa */
 static void desenharEscuridao(float centro_x, float centro_y, int camx, int camy) {
     const NoSala *sala = caso_jogo.salas.atual;
     const char **mapa = mapaDa(sala == NULL ? "" : sala->nome);
@@ -2603,7 +2590,7 @@ static void desenharTimeExploracao(void) {
     caixa(4, 4, 232, 152, (Color){16, 24, 38, 255});
     DrawRectangleLines(4, 4, 232, 152, (Color){50, 90, 140, 255});
 
-    /* Painel Esquerdo: Ficha e Sprite do Pokémon Selecionado */
+    /* Ficha do Pokémon */
     caixa(8, 8, 98, 144, (Color){10, 18, 30, 255});
     DrawRectangleLines(8, 8, 98, 144, (Color){30, 80, 120, 255});
     DrawRectangle(11, 11, 92, 54, (Color){14, 24, 40, 255});
@@ -2653,7 +2640,7 @@ static void desenharTimeExploracao(void) {
         texto("Sem Pokemon", 14, 50, FONTE_PX, (Color){100, 120, 140, 255});
     }
 
-    /* Painel Direito: Lista dos Slots da Equipe */
+    /* Lista da equipe */
     texto("EQUIPE POKEMON", 112, 10, FONTE_PX, (Color){80, 210, 255, 255});
 
     for (no = caso_jogo.nucleo.time.inicio; no != NULL && i < 6; no = no->prox, i++) {
@@ -2738,7 +2725,7 @@ static void atualizarPcEquipe(void) {
         }
     }
 
-    /* Definir como Líder Ativo da Equipe */
+    /* Escolhe o líder */
     if (IsKeyPressed(KEY_L)) {
         if (vis.pc_aba == 0 && n_time > 0) {
             casoDefinirLider(&caso_jogo, vis.pc_sel_time);
@@ -2751,7 +2738,7 @@ static void atualizarPcEquipe(void) {
         return;
     }
 
-    /* Ação Z: Mover, Trocar, Depositar ou Retirar */
+    /* Z troca, deposita ou retira */
     if (acaoPressionada()) {
         if (!vis.pc_modo_troca) {
             if (vis.pc_aba == 0 && n_time > 0) {
@@ -2838,7 +2825,7 @@ static void desenharPcEquipe(void) {
     snprintf(buf, sizeof buf, "T:%d/6 PC:%d", n_time, n_reserva);
     textoAte(buf, 134, 9, 96, (Color){248, 220, 120, 255});
 
-    /* Painel Esquerdo: Ficha do Pokémon Selecionado */
+    /* Ficha do Pokémon */
     caixa(8, 21, 98, 120, (Color){10, 18, 30, 255});
     DrawRectangleLines(8, 21, 98, 120, (Color){30, 80, 120, 255});
     DrawRectangle(11, 24, 92, 54, (Color){14, 24, 40, 255});
@@ -2873,7 +2860,7 @@ static void desenharPcEquipe(void) {
         texto("selecionado.", 14, 62, FONTE_PX, (Color){100, 120, 140, 255});
     }
 
-    /* Painel Direito: Abas e Lista */
+    /* Abas do PC */
     {
         int aba_t = (vis.pc_aba == 0);
         int aba_r = (vis.pc_aba == 1);
@@ -2999,7 +2986,7 @@ static void desenharMinimapaModal(void) {
     texto("MAPA TATICO DA INSTALACAO", 14, 8, FONTE_PX, GOLD);
     DrawRectangle(14, 18, 212, 1, (Color){70, 90, 120, 200});
 
-    /* Diagrama superior com os 8 setores */
+    /* Mapa dos setores */
     cursor = caso_jogo.salas.inicio;
     while (cursor != NULL && idx < 8) {
         int linha = idx / 4;
@@ -3026,7 +3013,7 @@ static void desenharMinimapaModal(void) {
         idx++;
     }
 
-    /* Ramo lateral do Santuário Secreto */
+    /* Santuário secreto */
     {
         int sx = 44, sy = 64;
         int e_secreta = mundo.secreta;
@@ -3049,7 +3036,7 @@ static void desenharMinimapaModal(void) {
         }
     }
 
-    /* Mini Radar da Sala Atual (Lado Esquerdo Inferior) */
+    /* Sala atual */
     {
         int rx = 14, ry = 86;
         int mw = larguraMapa(mapa);
@@ -3077,7 +3064,7 @@ static void desenharMinimapaModal(void) {
         DrawRectangle(rx + mundo.tx * 3, ry + mundo.ty * 3, 3, 3, (Color){40, 220, 255, 255});
     }
 
-    /* Painel de Dados Táticos (Lado Direito Inferior) */
+    /* Dados da sala */
     {
         char buf[64];
         const char *nome_loc = mundo.secreta ? "Santuario Secreto" : (sala ? sala->nome : "Laboratorio");
@@ -3089,7 +3076,6 @@ static void desenharMinimapaModal(void) {
         textoAte(casoObjetivoAtual(&caso_jogo), 84, 122, 142, (Color){248, 216, 104, 255});
     }
 
-    /* Rodapé */
     texto("M/X: fechar  P: Pokedex", 14, 142, FONTE_PX, (Color){180, 200, 220, 255});
 }
 
@@ -3189,7 +3175,7 @@ static void desenharMundo(void) {
         }
     }
 
-    /* A máscara cobre apenas o mundo; falas, caderno e controles ficam legíveis. */
+    /* Escuridão só no mapa */
     desenharEscuridao(px + 8.0f, py + 20.0f, camx, camy);
     if (sala != NULL && !vis.fala_aberta) {
         const char *nome_setor = mundo.secreta ? "Santuario" : sala->nome;
@@ -3247,7 +3233,7 @@ static void desenharMundo(void) {
             prefixo(linhas[i], 21, curto, sizeof curto);
             texto(curto, 24.0f, 34.0f + (float)i * 10.0f, FONTE_PX, (Color){40, 32, 24, 255});
         }
-        /* A pista completa vem da pilha existente, sem inventário duplicado. */
+        /* A pista sai da pilha do log */
         pista = caso_jogo.nucleo.log.topo;
         while (pista != NULL && strncmp(pista->texto, "Documento:", 10) != 0) {
             pista = pista->prox;
@@ -3367,14 +3353,14 @@ static void desenharCaixaHp(const Pokemon *pokemon, float razao, int x, int y, i
 
         exp_w = w - (int)larguraTexto(pontos, FONTE_PX) - 46;
         if (exp_w < 0) exp_w = 0;
-        /* A experiência reserva a largura do HP numérico na mesma linha. */
+        /* EXP ao lado do HP */
         texto("EXP", (float)x + 6.0f, (float)y + 27.0f, FONTE_PX, (Color){40, 140, 200, 255});
         DrawRectangle(x + 34, y + 30, exp_w, 3, (Color){40, 48, 64, 255});
         if (exp_w > 2 && exp_razao > 0.0f) {
             DrawRectangle(x + 35, y + 31, (int)((float)(exp_w - 2) * exp_razao), 1, (Color){60, 180, 240, 255});
         }
 
-        /* Marcadores de Pokébolas dos Pokémon do jogador */
+        /* Pokébolas do time */
         for (i_slot = 0; i_slot < n_m && i_slot < 6; i_slot++) {
             const Pokemon *m = pokemonNaPosicao(&caso_jogo.nucleo.time, i_slot);
             int vivo = (m != NULL && m->hp_atual > 0);
@@ -3800,7 +3786,6 @@ static void desenharBatalha(void) {
         float breathe_eu = sinf(vis.tempo * 3.2f * low_hp_mult) * (0.02f * low_hp_mult);
         float breathe_opp = cosf(vis.tempo * 2.8f) * 0.02f;
 
-        /* Sombra oval realista sob as plataformas */
         DrawEllipse((int)x_poke + 32, 101, 24.0f, 6.0f, (Color){0, 0, 0, 75});
         DrawEllipse((int)x_inimigo + 32, 59, 21.0f, 5.0f, (Color){0, 0, 0, 75});
 
@@ -3962,7 +3947,6 @@ static void desenharBatalha(void) {
             int selecionado = vis.cursor == i;
             caixa(cx, cy, largura, 24, selecionado ? (Color){32, 32, 40, 255} : (Color){248, 248, 240, 255});
 
-            /* Mini ícone representativo */
             if (i == 0) {
                 DrawRectangle(cx + 4, cy + 9, 5, 5, (Color){220, 50, 40, 255});
                 DrawRectangle(cx + 7, cy + 7, 2, 8, (Color){250, 190, 60, 255});
@@ -4008,7 +3992,7 @@ static void desenharBatalha(void) {
         caixa(4, 4, 232, 152, (Color){16, 24, 38, 255});
         DrawRectangleLines(4, 4, 232, 152, (Color){50, 90, 140, 255});
 
-        /* Painel Esquerdo: Ficha e Sprite do Pokémon Selecionado */
+        /* Ficha do Pokémon */
         caixa(8, 8, 98, 144, (Color){10, 18, 30, 255});
         DrawRectangleLines(8, 8, 98, 144, (Color){30, 80, 120, 255});
         DrawRectangle(11, 11, 92, 54, (Color){14, 24, 40, 255});
@@ -4058,7 +4042,7 @@ static void desenharBatalha(void) {
             texto("Sem Pokemon", 14, 50, FONTE_PX, (Color){100, 120, 140, 255});
         }
 
-        /* Painel Direito: Lista de Seleção para Enviar */
+        /* Quem entra na luta */
         texto("ESCOLHA O TIME", 112, 10, FONTE_PX, (Color){80, 210, 255, 255});
 
         for (i = 0; i < n && i < 6; i++) {
@@ -4100,18 +4084,15 @@ static void desenharBatalha(void) {
             float scan_y = 38.0f + sinf(vis.tempo * 3.8f) * 26.0f + 26.0f;
             char linha[72];
 
-            /* Fundo escuro cibernético translúcido */
+            /* Scanner */
             DrawRectangle(0, 0, VIRT_L, VIRT_A, (Color){6, 14, 28, 240});
 
-            /* Cabeçalho do Scanner */
             texto("SCANNER POKEDEX", 14, 6, FONTE_PX, (Color){40, 220, 240, 255});
             texto("ATIVO", 184, 6, FONTE_PX, (Color){80, 240, 160, 255});
 
-            /* Visor Esquerdo: Mira Holográfica mirada no Pokémon */
             caixa(8, 17, 96, 124, (Color){10, 22, 34, 255});
             DrawRectangleLines(8, 17, 96, 124, (Color){30, 80, 110, 255});
 
-            /* Cantoneiras da Mira [ ] */
             DrawLine(12, 21, 20, 21, (Color){60, 240, 220, 255});
             DrawLine(12, 21, 12, 29, (Color){60, 240, 220, 255});
             DrawLine(100, 21, 92, 21, (Color){60, 240, 220, 255});
@@ -4121,32 +4102,25 @@ static void desenharBatalha(void) {
             DrawLine(100, 137, 92, 137, (Color){60, 240, 220, 255});
             DrawLine(100, 137, 100, 129, (Color){60, 240, 220, 255});
 
-            /* Retículo circular de mira */
             DrawCircleLines(56, 67, 32.0f, (Color){40, 180, 200, 120});
             DrawCircleLines(56, 67, 20.0f, (Color){40, 180, 200, 80});
             DrawLine(56, 26, 56, 108, (Color){40, 180, 200, 70});
             DrawLine(16, 67, 96, 67, (Color){40, 180, 200, 70});
 
-            /* Linha de Scanner Animada */
             DrawLine(14, (int)scan_y, 98, (int)scan_y, (Color){80, 255, 210, 200});
 
-            /* Sprite oficial do Pokémon adversário no centro da mira */
             desenharSpriteMon(alvo->numero, 0, (Rectangle){24, 35, 64, 64}, 0.0f);
 
-            /* Identificação na mira */
             snprintf(linha, sizeof linha, "ID: #%03d", alvo->numero);
             texto(linha, 14, 114, FONTE_PX, (Color){160, 210, 240, 255});
             texto("ALVO FIXO", 14, 126, FONTE_PX, (Color){80, 240, 160, 255});
 
-            /* Painel Direito: Análise de Dados Táticos */
             caixa(108, 17, 124, 124, (Color){14, 22, 36, 255});
             DrawRectangleLines(108, 17, 124, 124, (Color){40, 70, 100, 255});
 
-            /* Nome e Nível */
             snprintf(linha, sizeof linha, "%s %s", alvo->nome, alvo->brilhante ? "*SHINY*" : "");
             textoAte(linha, 114, 23, 112, alvo->brilhante ? GOLD : WHITE);
 
-            /* Badges de Tipo */
             DrawRectangle(114, 35, 38, 11, corDoTipo(alvo->tipo1));
             textoAte(nomeTipo(alvo->tipo1), 116, 37, 34, WHITE);
             if (alvo->tipo2 != TIPO_NENHUM) {
@@ -4154,24 +4128,20 @@ static void desenharBatalha(void) {
                 textoAte(nomeTipo(alvo->tipo2), 158, 37, 36, WHITE);
             }
 
-            /* Nível e HP com Barra */
             snprintf(linha, sizeof linha, "N%d HP%d/%d", alvo->nivel, alvo->hp_atual, alvo->hp_max);
             texto(linha, 114, 50, FONTE_PX, (Color){248, 220, 120, 255});
             desenharBarraHp(114, 60, 112, (float)alvo->hp_atual / (float)alvo->hp_max);
 
-            /* Atributos escalados de combate */
             snprintf(linha, sizeof linha, "A%d D%d V%d", ataqueEmBatalha(alvo),
                      defesaEmBatalha(alvo), velocidadeEmBatalha(alvo));
             textoAte(linha, 114, 70, 112, (Color){180, 210, 240, 255});
 
-            /* Golpes Identificados */
             texto("GOLPES:", 114, 83, FONTE_PX, (Color){130, 160, 190, 255});
             for (i = 0; i < alvo->qtd_golpes && i < 3; i++) {
                 snprintf(linha, sizeof linha, "- %s (%d)", alvo->golpes[i].nome, alvo->golpes[i].poder);
                 textoAte(linha, 114, 93 + i * 10, 112, WHITE);
             }
 
-            /* Rodapé com atalhos */
             texto("< >: alvo  Z: duelo", 14, 146, FONTE_PX, (Color){200, 220, 240, 255});
         }
     }
@@ -4466,11 +4436,10 @@ static void desenharPokedex(void) {
     percorrerEmOrdem(&caso_jogo.nucleo.arvore, visitarPk, &coleta);
 
     DrawRectangle(0, 0, VIRT_L, VIRT_A, (Color){10, 14, 24, 230});
-    /* Carcaça externa estilo Pokédex vermelha */
+    /* Pokédex */
     caixa(4, 4, 232, 152, (Color){192, 36, 44, 255});
     DrawRectangleLines(4, 4, 232, 152, (Color){120, 20, 26, 255});
 
-    /* LEDs e Lente da Pokédex */
     DrawCircle(18, 14, 7, (Color){60, 160, 240, 255});
     DrawCircle(16, 12, 2, (Color){230, 245, 255, 255});
     DrawCircleLines(18, 14, 7, WHITE);
@@ -4506,7 +4475,6 @@ static void desenharPokedex(void) {
     sel = coleta.itens[vis.pokedex_sel];
     descoberto = (sel != NULL && casoFoiVisto(&caso_jogo, sel->numero));
 
-    /* Painel Esquerdo: Tela LCD com Sprite e Dados Básicos */
     caixa(10, 23, 96, 120, (Color){216, 224, 216, 255});
     DrawRectangleLines(10, 23, 96, 120, (Color){150, 160, 150, 255});
     DrawRectangle(13, 26, 90, 66, (Color){188, 208, 188, 255});
@@ -4514,15 +4482,12 @@ static void desenharPokedex(void) {
 
     if (sel != NULL) {
         if (descoberto) {
-            /* Sprite frontal oficial (64x64) */
             desenharSpriteMon(sel->numero, 0, (Rectangle){26, 27, 64, 64}, 0.0f);
 
-            /* Número e Nome */
             snprintf(buf, sizeof buf, "#%03d", sel->numero);
             texto(buf, 14, 96, FONTE_PX, (Color){30, 48, 36, 255});
             nomeNaFicha(sel->nome, 14, 106, 88, (Color){12, 24, 16, 255});
 
-            /* Badges de Tipo */
             {
                 Color c1 = corDoTipo(sel->tipo1);
                 DrawRectangle(14, 122, 42, 13, c1);
@@ -4536,21 +4501,19 @@ static void desenharPokedex(void) {
                 }
             }
         } else {
-            /* Silhueta misteriosa para Pokémon não encontrado */
             desenharSpriteMonSilhueta(sel->numero, (Rectangle){26, 27, 64, 64});
 
             snprintf(buf, sizeof buf, "#%03d", sel->numero);
             texto(buf, 14, 96, FONTE_PX, (Color){50, 70, 60, 255});
             textoAte("NAO VISTO", 14, 106, 88, (Color){36, 56, 44, 255});
 
-            /* Badge desconhecido */
             DrawRectangle(14, 122, 42, 13, (Color){100, 115, 110, 255});
             DrawRectangleLines(14, 122, 42, 13, (Color){60, 75, 70, 255});
             texto("???", 26, 125, FONTE_PX, (Color){220, 235, 230, 255});
         }
     }
 
-    /* Painel Direito Superior: Lista de Espécies */
+    /* Lista de espécies */
     caixa(110, 23, 122, 64, (Color){244, 246, 248, 255});
     DrawRectangleLines(110, 23, 122, 64, (Color){160, 170, 180, 255});
 
@@ -4575,7 +4538,6 @@ static void desenharPokedex(void) {
                     snprintf(buf, sizeof buf, "%s#%03d %s", e_sel ? ">" : " ", p->numero, p->nome);
                     textoAte(buf, 130, (float)y + 3, 98, e_sel ? (Color){255, 230, 100, 255} : BLACK);
                 } else {
-                    /* Mini interrogação para não catalogados */
                     DrawCircle(121, y + 6, 4, (Color){180, 190, 195, 255});
                     texto("?", 119, y + 2, FONTE_PX, (Color){70, 80, 90, 255});
                     snprintf(buf, sizeof buf, "%s#%03d ????????", e_sel ? ">" : " ", p->numero);
@@ -4585,7 +4547,7 @@ static void desenharPokedex(void) {
         }
     }
 
-    /* Painel Direito Inferior: Atributos e Golpes */
+    /* Atributos e golpes */
     caixa(110, 90, 122, 53, (Color){20, 26, 40, 255});
     DrawRectangleLines(110, 90, 122, 53, (Color){70, 96, 140, 255});
 
@@ -4611,7 +4573,6 @@ static void desenharPokedex(void) {
         }
     }
 
-    /* Rodapé */
     texto("W/S: navegar  X: fechar", 18, 146, FONTE_PX, (Color){240, 240, 240, 255});
 }
 
@@ -4672,16 +4633,14 @@ static void desenharMewtwo(void) {
     float bob = sinf(tempo * 2.8f) * 3.5f;
     int i;
 
-    /* Fundo psíquico misterioso */
+    /* Mewtwo */
     DrawRectangle(0, 0, VIRT_L, VIRT_A, (Color){10, 8, 20, 255});
 
-    /* Efeito de ondas psíquicas ondulantes no espaço */
     for (i = 0; i < 3; i++) {
         float r = 24.0f + (float)i * 18.0f + sinf(tempo * 2.0f + (float)i) * 4.0f;
         DrawCircleLines(VIRT_L / 2, 40, r, (Color){160, 90, 230, 45});
     }
 
-    /* Partículas de energia flutuando */
     for (i = 0; i < 5; i++) {
         float ang = tempo * 2.5f + (float)i * 1.256f;
         int px = (int)((float)VIRT_L / 2.0f + cosf(ang) * (34.0f + (float)i * 5.0f));
@@ -4690,13 +4649,10 @@ static void desenharMewtwo(void) {
         DrawCircle(px, py, 0.8f, WHITE);
     }
 
-    /* Sombra elíptica no chão */
     DrawEllipse(VIRT_L / 2, 74, 22, 6, (Color){20, 10, 32, 200});
 
-    /* Sprite frontal oficial de Mewtwo #150 com levitação viva */
     desenharSpriteMon(150, 0, (Rectangle){(float)VIRT_L / 2.0f - 32.0f, 8.0f + bob, 64.0f, 64.0f}, 0.0f);
 
-    /* Se convencido e etapa final, brilhos cintilantes ao redor */
     if (vis.mewtwo_etapa >= 3 && vis.mewtwo_convencido) {
         for (i = 0; i < 4; i++) {
             float ang = tempo * 3.5f + (float)i * 1.57f;
@@ -4707,7 +4663,7 @@ static void desenharMewtwo(void) {
         }
     }
 
-    /* As três escolhas cabem na tela e preservam as respostas da história. */
+    /* Três respostas da história */
     painelCaso(6, 76, 228, 80);
     DrawRectangle(6, 76, 228, 1, psiquico_caso);
     texto("MEWTWO", 12, 82, FONTE_PX, psiquico_caso);
@@ -4791,7 +4747,7 @@ static void desenharTudo(void) {
     EndTextureMode();
 }
 
-/* Centraliza sem deformar: só amplia por fatores inteiros, salvo abaixo de 240x160. */
+/* Escala inteira, centralizada */
 static Rectangle calcularAreaJogo(int largura, int altura) {
     float escala = fminf((float)largura / VIRT_L, (float)altura / VIRT_A);
     Rectangle area;
@@ -4804,7 +4760,7 @@ static Rectangle calcularAreaJogo(int largura, int altura) {
     return area;
 }
 
-/* O mouse usa exatamente o mesmo deslocamento e a mesma escala do desenho. */
+/* Mouse na mesma escala da tela */
 static Vector2 pontoNoJogo(Vector2 ponto, Rectangle area) {
     return (Vector2){(ponto.x - area.x) * VIRT_L / area.width,
                      (ponto.y - area.y) * VIRT_A / area.height};
@@ -4819,7 +4775,7 @@ static void apresentar(const char *png) {
     DrawTexturePro(alvo.texture, origem, destino, (Vector2){0.0f, 0.0f}, 0.0f, WHITE);
     EndDrawing();
     if (png != NULL) {
-        /* Repete o quadro para a leitura após a troca dos buffers no Windows. */
+        /* Segundo quadro para o screenshot no Windows */
         apresentar(NULL);
         TakeScreenshot(png);
     }
@@ -4852,7 +4808,7 @@ static Vector2 mouseNoJogo(void) {
     return pontoNoJogo(GetMousePosition(), area);
 }
 
-/* Seleção por teclado e clique compartilham os retângulos do desenho. */
+/* Teclado e clique na mesma lista */
 static int selecionarOpcao(int *cursor, int total, Rectangle (*linha)(int)) {
     if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
         *cursor = (*cursor + 1) % total;
@@ -5138,7 +5094,7 @@ static int lutarAteVencer(void) {
     return 1;
 }
 
-/* A demonstração envia tentativas válidas à mesma regra usada pelo teclado. */
+/* Demo usa a mesma regra do puzzle */
 static int resolverDemonstracao(void) {
     return simularPuzzleAtual(&caso_jogo);
 }

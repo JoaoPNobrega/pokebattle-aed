@@ -1,10 +1,4 @@
-/*
- * pilha_log.c
- * -----------
- * Pilha encadeada do histórico. O topo é o lance mais novo.
- * mostrarHistorico inverte com uma segunda pilha e desinverte ao
- * imprimir, devolvendo a ordem original. Ver pilha_log.h.
- */
+/* Pilha do histórico */
 
 #include "pilha_log.h"
 
@@ -100,11 +94,7 @@ void mostrarHistorico(PilhaLog *pilha, FILE *saida) {
 
     criarPilhaLog(&auxiliar);
 
-    /*
-     * A pilha original tem o lance novo no topo. Ao desempilhar para
-     * a auxiliar, o lance antigo sobe ao topo da auxiliar. Desempilhar
-     * a auxiliar devolve a ordem em que as coisas aconteceram.
-     */
+    /* Duas pilhas: inverte e volta na ordem em que aconteceu */
     while (desempilharLog(pilha, linha, sizeof linha)) {
         empilharLog(&auxiliar, linha);
     }

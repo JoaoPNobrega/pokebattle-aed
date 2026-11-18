@@ -1,9 +1,4 @@
-/*
- * ordenacao.c
- * -----------
- * Insertion sort e merge sort, escritos no código (sem qsort).
- * Ver ordenacao.h para o papel de cada um na partida.
- */
+/* Insertion sort e merge sort */
 
 #include "ordenacao.h"
 
@@ -17,7 +12,7 @@ static int compararPokemon(const Pokemon *a, const Pokemon *b, CriterioOrdenacao
     case ORDENAR_POR_NOME:
         return strcmp(a->nome, b->nome);
     case ORDENAR_POR_VELOCIDADE:
-        /* Maior velocidade vem primeiro: por isso b é comparado com a. */
+        /* Maior velocidade primeiro */
         return (b->velocidade > a->velocidade) - (b->velocidade < a->velocidade);
     case ORDENAR_POR_NIVEL:
         return (b->nivel > a->nivel) - (b->nivel < a->nivel);
@@ -26,10 +21,7 @@ static int compararPokemon(const Pokemon *a, const Pokemon *b, CriterioOrdenacao
     }
 }
 
-/*
- * Verdadeiro quando `a` deve agir antes de `b`.
- * Empate devolve falso, e o insertion sort estável não troca os dois.
- */
+/* Insertion sort estável: empate não troca */
 static int atorVemAntes(const AtorTurno *a, const AtorTurno *b) {
     if (a->prioridade != b->prioridade) {
         return a->prioridade > b->prioridade;
@@ -83,7 +75,7 @@ static void mesclar(Pokemon *vetor, Pokemon *aux, int inicio, int meio, int fim,
     int t;
 
     while (i <= meio && j <= fim) {
-        /* Estritamente menor: empate fica com a metade esquerda (estável). */
+        /* Merge estável: empate fica com a esquerda */
         if (compararPokemon(&vetor[j], &vetor[i], criterio) < 0) {
             aux[k] = vetor[j];
             j++;

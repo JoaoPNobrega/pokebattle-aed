@@ -1,8 +1,4 @@
-/*
- * jogo.c
- * ------
- * Liga a Pokédex e a arena ao struct da partida. Ver jogo.h.
- */
+/* Partida: Pokédex, time, fila e log */
 
 #include "jogo.h"
 
