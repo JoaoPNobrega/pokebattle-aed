@@ -15,13 +15,13 @@
 const char *historiaIntro(int pagina) {
     switch (pagina) {
     case 0:
-        return "O caso chegou de madrugada. Você é o detetive. O Pikachu é o parceiro.";
+        return "Alerta. Contenção interrompida.";
     case 1:
-        return "Este laboratório criou o Mewtwo. As luzes morreram e as portas trancaram.";
+        return "Detetive, perdemos contato com o laboratório. Vá com Pikachu.";
     case 2:
-        return "Não é o filme. É um escape: cada pista pede choque, chama, jato ou mente.";
+        return "Última imagem do tanque antes do apagão.";
     case 3:
-        return "A Equipe Rocket ainda ronda o prédio. Vá até o fim do corredor.";
+        return "A porta fecha atrás de vocês. As luzes apagam.";
     default:
         return NULL;
     }
@@ -32,7 +32,7 @@ const char *historiaDesfecho(int pagina) {
     case 0:
         return "Giovanni recua. O laboratório deixa de ser da Equipe Rocket.";
     case 1:
-        return "O Mewtwo não está nos tanques. Alguém o tirou daqui antes de você.";
+        return "O tanque está vazio. Uma voz ecoa.";
     case 2:
         return "O Pikachu encosta na sua perna. O caso fecha. A história, não.";
     default:

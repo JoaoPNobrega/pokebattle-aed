@@ -118,4 +118,6 @@ Os guardas da Câmara fria e da Oficina saem da mesma fila obrigatória por `cas
 
 `ui_raylib.c` mantém o buffer lógico em 240×160 e calcula a área de apresentação a partir do tamanho atual da janela. A escala é inteira e a imagem é centralizada com margens pretas, sem deformar ou cortar o buffer. O mouse passa pela transformação inversa antes de testar os botões. A abertura usa tela cheia sem mudança de resolução; F11/Alt+Enter alterna o modo e `--janela` permite iniciar em janela. As capturas de demonstração continuam em janela.
 
-No HUD, setor e atalhos têm áreas independentes na primeira linha. Iluminação/lanterna e chave secreta ficam na segunda, e o objetivo ou a ação contextual ocupa a barra inferior. Textos de largura variável respeitam o limite de cada área. Esses ajustes ficam na apresentação e não alteram as regras do Caso.
+No HUD, setor e indicador de pausa têm áreas independentes na primeira linha. Os atalhos ficam disponíveis no painel de pausa. Iluminação/lanterna e chave secreta ficam na segunda, e o objetivo ou a ação contextual ocupa a barra inferior. Textos de largura variável respeitam o limite de cada área. Esses ajustes ficam na apresentação e não alteram as regras do Caso.
+
+A interface abre no título e apresenta uma pasta com as ações do menu. Um novo caso usa quatro cenas com textos de `historia.c`. A conclusão ou o salto da intro entrega o controle ao jogador no Laboratório. A tela de pausa preserva o estado do Caso e mantém o cronômetro de captura parado enquanto está aberta.

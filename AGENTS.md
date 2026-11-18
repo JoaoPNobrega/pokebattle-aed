@@ -21,7 +21,7 @@ Inspirado em *Pokémon: Mewtwo Contra-Ataca* e *Detetive Pikachu*, sem seguir ne
 ## Requisitos obrigatórios do roteiro
 
 1. C (C99/C11). `gcc -Wall -Wextra` sem warning relevante. O Makefile usa também `-Wpedantic`.
-2. Menu de opções interativo. O menu atual está na janela raylib: Novo jogo, Como jogar, Pokédex, Sair.
+2. Menu de opções interativo. O menu está na pasta de investigação em raylib: Iniciar caso, Como jogar, Pokédex, Ajustes, Créditos e Sair.
 3. Pelo menos uma estrutura de sala na **lógica central**, não só como depósito. Foco em listas e árvores.
 4. Pelo menos um algoritmo de ordenação feito à mão (insertion, bubble, quick, merge ou heap) que **não** seja só ranking. Aqui é o insertion sort da ordem do turno.
 5. Pelo menos 6 funções operando sobre a estrutura. A lista de salas e a lista do time passam disso.
@@ -161,4 +161,4 @@ Sprites de Equipe e Puzzle da Lupa de Investigação: As telas de visualização
 Encontro Cinemático e Diálogo com Mewtwo pós-Giovanni: Ao derrotar o chefe Giovanni, o encerramento transiciona para a cena especial `TELA_MEWTWO`. Mewtwo surge levitando em uma névoa psíquica com animação ondulante e interpela o detetive por telepatia sobre o significado dos Pokémon. O jogador escolhe entre três respostas de diálogo: opções baseadas em empatia ou justiça convencem Mewtwo a juntar-se à equipe (`casoConvidarMewtwo` adiciona o Pokémon lendário ao time ou reserva), concluindo o caso e zerando o jogo com vitória e créditos finais.
 
 
-HUD sem sobreposição: o setor ocupa x=3..156 no topo; quatro teclas P/M/N/T ficam em caixas independentes a partir de x=160. Luzes e lanterna ficam na segunda linha, separadas da chave secreta. A barra inferior reserva altura para texto e ícone sem cruzar as bordas. Não recolocar luzes por cima dos atalhos.
+HUD sem sobreposição: setor e pausa ficam no topo. Os atalhos P/M/N/T aparecem na pausa. Luzes e lanterna ficam na segunda linha, separadas da chave secreta. A barra inferior reserva altura para texto e ícone sem cruzar as bordas.

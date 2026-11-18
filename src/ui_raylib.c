@@ -47,7 +47,11 @@
 #define MAX_POKEMON 152
 
 typedef enum {
-    TELA_MENU = 0,
+    TELA_TITULO = 0,
+    TELA_MENU,
+    TELA_INTRO,
+    TELA_AJUSTES,
+    TELA_PAUSA,
     TELA_AJUDA,
     TELA_POKEDEX,
     TELA_SALA,
@@ -56,6 +60,34 @@ typedef enum {
     TELA_GAMEOVER,
     TELA_MEWTWO
 } Tela;
+
+typedef enum {
+    MENU_INICIAR,
+    MENU_AJUDA,
+    MENU_POKEDEX,
+    MENU_AJUSTES,
+    MENU_CREDITOS,
+    MENU_SAIR,
+    MENU_TOTAL
+} OpcaoMenu;
+
+typedef enum {
+    INTRO_ALERTA,
+    INTRO_RADIO,
+    INTRO_TANQUE,
+    INTRO_ENTRADA,
+    INTRO_TOTAL
+} CenaIntro;
+
+static const float duracao_intro[INTRO_TOTAL] = {5.0f, 6.0f, 4.5f, 5.0f};
+
+static const Color fundo_caso = {10, 17, 31, 255};
+static const Color painel_caso = {19, 32, 52, 255};
+static const Color borda_caso = {61, 82, 110, 255};
+static const Color texto_caso = {234, 239, 255, 255};
+static const Color texto_secundario = {159, 181, 207, 255};
+static const Color destaque_caso = {255, 215, 104, 255};
+static const Color psiquico_caso = {173, 121, 241, 255};
 
 typedef enum {
     BAT_ENTRADA = 0,
@@ -123,6 +155,15 @@ typedef struct {
     int pagina_n;
     int pagina_i;
     int intro_feita;
+    CenaIntro cena_intro;
+    float tempo_intro;
+    float tempo_menu;
+    float entrada_setor;
+    float abertura_caderno;
+    int dica_inicio;
+    int pausa_cursor;
+    int ajustes_cursor;
+    int confirmar_menu;
     int salas_vistas[8];
     int depois_fala;
     int cursor_bolsa;
@@ -210,7 +251,13 @@ static Caso caso_jogo;
 static int caso_ok = 0;
 static Visual vis;
 static Mundo mundo;
-static Tela tela = TELA_MENU;
+static Tela tela = TELA_TITULO;
+static Tela tela_pausada;
+static Tela retorno_ajustes;
+static int volume = 80;
+static int movimento_reduzido;
+static Sound som_radio;
+static Sound som_porta;
 
 static void desenharPokedex(void);
 static void desenharMinimapaModal(void);
@@ -589,6 +636,9 @@ static void carregarAssets(void) {
     if (IsAudioDeviceReady()) {
         vis.som_clique = criarTom(660.0f, 0.04f);
         vis.som_acerto = criarTom(180.0f, 0.08f);
+        som_radio = criarTom(290.0f, 0.15f);
+        som_porta = criarTom(87.0f, 0.26f);
+        SetMasterVolume(volume / 100.0f);
         vis.som_ok = 1;
     }
 }
@@ -629,6 +679,8 @@ static void liberarAssets(void) {
     if (vis.som_ok) {
         UnloadSound(vis.som_clique);
         UnloadSound(vis.som_acerto);
+        UnloadSound(som_radio);
+        UnloadSound(som_porta);
         vis.som_ok = 0;
     }
     if (IsAudioDeviceReady()) {
@@ -716,6 +768,16 @@ static void texto(const char *conteudo, float x, float y, float tamanho, Color c
         return;
     }
     DrawText(conteudo, (int)x, (int)y, (int)tamanho, cor);
+}
+
+static void nomeNaFicha(const char *nome, float x, float y, float maximo, Color cor) {
+    for (int tamanho = FONTE_PX; tamanho >= 6; tamanho--) {
+        if (larguraTexto(nome, (float)tamanho) <= maximo) {
+            texto(nome, x, y, (float)tamanho, cor);
+            return;
+        }
+    }
+    textoAte(nome, x, y, maximo, cor);
 }
 
 static void caixa(int x, int y, int w, int h, Color miolo) {
@@ -897,11 +959,11 @@ static void desenharMensagem(const char *conteudo, int x, int y, int w, int h) {
 
     caixa(x, y, w, h, (Color){248, 248, 240, 255});
     prefixo(conteudo == NULL ? "" : conteudo, vis.bytes, visivel, sizeof visivel);
-    quebrar(visivel, linhas, &n, 4, (float)w - 12.0f);
+    quebrar(visivel, linhas, &n, 4, (float)w - 20.0f);
     for (i = 0; i < n; i++) {
         texto(linhas[i], (float)x + 6.0f, (float)y + 6.0f + (float)i * 10.0f, FONTE_PX, BLACK);
     }
-    if (vis.texto_completo && ((int)(vis.tempo * 3.0f) % 2) == 0) {
+    if (vis.texto_completo && (movimento_reduzido || ((int)(vis.tempo * 3.0f) % 2) == 0)) {
         int ax = x + w - 14;
         int ay = y + h - 12;
         DrawRectangle(ax, ay, 6, 2, BLACK);
@@ -939,9 +1001,26 @@ static void mostrarFala(const char *mensagem) {
 }
 
 static void abrirFala(const char *mensagem) {
+    char linhas[24][48];
+    int quantidade;
+
     vis.pagina_n = 0;
     vis.pagina_i = 0;
-    mostrarFala(mensagem);
+    quebrar(mensagem, linhas, &quantidade, 24, VIRT_L - 20);
+    if (quantidade <= 4) {
+        mostrarFala(mensagem);
+        return;
+    }
+    for (int i = 0; i < quantidade; i += 4) {
+        char *pagina = vis.paginas[vis.pagina_n++];
+        int usadas = 0;
+        pagina[0] = '\0';
+        for (int j = i; j < quantidade && j < i + 4; j++) {
+            usadas += snprintf(pagina + usadas, TEXTO_SALA_MAX - usadas, "%s%s",
+                               j == i ? "" : " ", linhas[j]);
+        }
+    }
+    mostrarFala(vis.paginas[0]);
 }
 
 static void abrirPaginas(const char *(*obter)(int)) {
@@ -1218,8 +1297,10 @@ static void tentarPorta(void) {
         }
         return;
     }
-    clique();
+    if (vis.som_ok) PlaySound(som_porta);
     entrarNaSala();
+    vis.entrada_setor = movimento_reduzido ? 0.0f : 0.36f;
+    narrarSalaAtual();
 }
 
 static void comecarTransicao(void) {
@@ -1335,6 +1416,7 @@ static void tentarPuzzle(char simbolo) {
         abrirFala("Nenhum Pokémon do time resolve isto.");
         return;
     }
+    vis.dica_inicio = 0;
     vis.puzzle_aberto = 1;
     vis.cursor_puzzle = sala->desafio.tipo == DES_GELO ? 4 : 0;
     vis.retorno_puzzle = 0.0f;
@@ -1734,6 +1816,7 @@ static void atualizarMundo(float dt) {
     }
     if (IsKeyPressed(KEY_L)) {
         vis.lanterna_ligada = !vis.lanterna_ligada;
+        if (vis.dica_inicio == 1) vis.dica_inicio = 2;
         clique();
     }
     if (vis.minimapa_aberto) {
@@ -1804,7 +1887,7 @@ static void atualizarMundo(float dt) {
     }
     if (vis.caderno) {
         if (IsKeyPressed(KEY_R)) { abrirDocumento(); return; }
-        if (acaoPressionada() || IsKeyPressed(KEY_N) || IsKeyPressed(KEY_ESCAPE)) {
+        if (acaoPressionada() || voltarPressionado() || IsKeyPressed(KEY_N) || IsKeyPressed(KEY_ESCAPE)) {
             vis.caderno = 0;
         }
         return;
@@ -1822,6 +1905,7 @@ static void atualizarMundo(float dt) {
     }
     if (IsKeyPressed(KEY_N)) {
         vis.caderno = 1;
+        vis.abertura_caderno = movimento_reduzido ? 0.0f : 0.18f;
         return;
     }
     if (IsKeyPressed(KEY_R)) { abrirDocumento(); return; }
@@ -1830,7 +1914,12 @@ static void atualizarMundo(float dt) {
         vis.cursor_time = posicaoDoAtivo(&caso_jogo.nucleo.time);
         return;
     }
-    if (IsKeyPressed(KEY_V) && casoVoltar(&caso_jogo)) { entrarNaSala(); return; }
+    if (IsKeyPressed(KEY_V) && casoVoltar(&caso_jogo)) {
+        entrarNaSala();
+        vis.entrada_setor = movimento_reduzido ? 0.0f : 0.36f;
+        narrarSalaAtual();
+        return;
+    }
     if (acaoPressionada()) {
         interagir();
         return;
@@ -2300,7 +2389,10 @@ static void desenharContexto(int camx, int camy) {
         textoAte(rotulo, 28, 142, 200, WHITE);
     } else {
         caixa(4, 138, 232, 20, (Color){16, 22, 34, 210});
-        textoAte(casoObjetivoAtual(&caso_jogo), 8, 143, 224, (Color){248, 216, 104, 255});
+        const char *objetivo = casoObjetivoAtual(&caso_jogo);
+        if (vis.dica_inicio == 1) objetivo = "L: ligue a lanterna";
+        if (vis.dica_inicio == 2) objetivo = "Ache o painel do gerador";
+        textoAte(objetivo, 8, 143, 224, destaque_caso);
     }
 }
 
@@ -2529,8 +2621,7 @@ static void desenharTimeExploracao(void) {
             }
         }
 
-        copiarTexto(buf, sizeof buf, sel_pk->nome);
-        textoAte(buf, 12, 68, 90, WHITE);
+        nomeNaFicha(sel_pk->nome, 12, 68, 90, WHITE);
         snprintf(buf, sizeof buf, "Nv%d", sel_pk->nivel);
         texto(buf, 12, 78, FONTE_PX, (Color){248, 220, 120, 255});
 
@@ -2757,8 +2848,7 @@ static void desenharPcEquipe(void) {
         float bob = sinf(vis.tempo * 3.5f) * 1.5f;
         desenharSpriteMon(sel->numero, 0, (Rectangle){29, 20 + bob, 56, 56}, 0.0f);
 
-        copiarTexto(buf, sizeof buf, sel->nome);
-        textoAte(buf, 12, 80, 90, WHITE);
+        nomeNaFicha(sel->nome, 12, 80, 90, WHITE);
         snprintf(buf, sizeof buf, "Nv%d", sel->nivel);
         texto(buf, 12, 90, FONTE_PX, (Color){248, 220, 120, 255});
 
@@ -3105,22 +3195,11 @@ static void desenharMundo(void) {
         const char *nome_setor = mundo.secreta ? "Santuario" : sala->nome;
         int indice = indiceDaSala(sala);
         char tag[32];
-        int i;
-        static const char *atalhos[] = {"P", "M", "N", "T"};
-        static const Color cores[] = {
-            {240, 80, 80, 255}, {80, 160, 240, 255},
-            {220, 200, 120, 255}, {100, 220, 140, 255}
-        };
-
-        /* Cada informação tem uma área própria dentro do buffer de 240 px. */
         snprintf(tag, sizeof tag, "S%d %s", indice + 1, nome_setor);
-        caixa(3, 3, 153, 16, (Color){12, 16, 26, 220});
-        textoAte(tag, 7, 6, 144, (Color){248, 248, 236, 255});
-        for (i = 0; i < 4; i++) {
-            int bx = 160 + i * 20;
-            caixa(bx, 3, 16, 16, (Color){12, 16, 26, 220});
-            texto(atalhos[i], bx + 4, 6, FONTE_PX, cores[i]);
-        }
+        caixa(3, 3, 153, 16, fundo_caso);
+        textoAte(tag, 7, 6, 144, texto_caso);
+        caixa(184, 3, 52, 16, fundo_caso);
+        texto("ESC", 198, 6, FONTE_PX, texto_secundario);
 
         if (sala->luzes_necessarias) {
             char luzes[16];
@@ -3155,6 +3234,11 @@ static void desenharMundo(void) {
         const NoLog *pista;
 
         DrawRectangle(0, 0, VIRT_L, VIRT_A, (Color){0, 0, 0, 90});
+        if (vis.abertura_caderno > 0.0f) {
+            int largura = 24 + (int)(184.0f * (1.0f - vis.abertura_caderno / 0.18f));
+            caixa(120 - largura / 2, 12, largura, 136, (Color){236, 224, 184, 255});
+            return;
+        }
         caixa(16, 12, 208, 136, (Color){236, 224, 184, 255});
         texto("CADERNO", 24.0f, 18.0f, FONTE_PX, (Color){80, 48, 24, 255});
         n = copiarHistorico(linhas, 6);
@@ -3942,8 +4026,7 @@ static void desenharBatalha(void) {
                 }
             }
 
-            copiarTexto(buf, sizeof buf, sel_pk->nome);
-            textoAte(buf, 12, 68, 90, WHITE);
+            nomeNaFicha(sel_pk->nome, 12, 68, 90, WHITE);
             snprintf(buf, sizeof buf, "Nv%d", sel_pk->nivel);
             texto(buf, 12, 78, FONTE_PX, (Color){248, 220, 120, 255});
 
@@ -4094,56 +4177,253 @@ static void desenharBatalha(void) {
     }
 }
 
+static void textoCentral(const char *rotulo, int y, float tamanho, Color tinta) {
+    float x = floorf((VIRT_L - larguraTexto(rotulo, tamanho)) / 2.0f);
+    texto(rotulo, x, y, tamanho, tinta);
+}
+
+static void painelCaso(int x, int y, int largura, int altura) {
+    DrawRectangle(x, y, largura, altura, painel_caso);
+    DrawRectangleLines(x, y, largura, altura, borda_caso);
+}
+
+static void desenharFachada(int deslocamento, float tempo) {
+    int base = 112 + deslocamento;
+    int quadro = (int)(tempo * 5.0f) % 3;
+    Color ceu = {9, 15, 32, 255};
+    Color parede = {29, 43, 65, 255};
+    Color metal = {53, 69, 95, 255};
+    Color janela = ((int)(tempo * 1.3f) % 5 == 4)
+                  ? psiquico_caso : (Color){102, 88, 150, 255};
+
+    DrawRectangle(0, 0, VIRT_L, VIRT_A, ceu);
+    DrawCircle(204, 40 + deslocamento, 21, (Color){31, 39, 66, 255});
+    DrawCircle(211, 34 + deslocamento, 17, ceu);
+    for (int i = 0; i < 12; i++) {
+        int x = i * 23 - 8;
+        DrawTriangle((Vector2){x, base + 8}, (Vector2){x + 11, base - 35 - (i % 3) * 5},
+                     (Vector2){x + 23, base + 8}, (Color){13, 24, 43, 255});
+    }
+    DrawRectangle(0, base, VIRT_L, VIRT_A - base, (Color){14, 25, 42, 255});
+    DrawRectangle(27, base - 44, 186, 47, parede);
+    DrawRectangle(22, base - 47, 196, 4, metal);
+    DrawRectangle(26, base - 43, 188, 2, fundo_caso);
+    DrawRectangle(62, base - 59, 116, 17, parede);
+    DrawRectangle(59, base - 61, 121, 3, metal);
+    DrawRectangle(115, base - 65, 3, 5, metal);
+    DrawRectangle(114, base - 66, 5, 2, destaque_caso);
+    for (int i = 0; i < 6; i++) {
+        int x = 37 + i * 29 + (i >= 3 ? 8 : 0);
+        if (i == 2 || i == 3) continue;
+        DrawRectangle(x, base - 33, 20, 15, fundo_caso);
+        DrawRectangle(x + 2, base - 31, 16, 10, i == 4 ? janela : metal);
+        DrawRectangle(x + 9, base - 31, 2, 10, parede);
+        DrawRectangle(x - 1, base - 19, 22, 2, metal);
+    }
+    DrawRectangle(96, base - 25, 48, 29, metal);
+    DrawRectangle(100, base - 22, 40, 25, fundo_caso);
+    DrawRectangle(103, base - 21, 33, 23, (Color){20, 30, 48, 255});
+    DrawRectangle(104, base - 27, 30, 2, destaque_caso);
+    DrawRectangle(118, base - 18, 2, 19, metal);
+    DrawRectangle(109, base + 4, 22, 2, metal);
+    DrawLine(108, base + 6, 90, base + 25, metal);
+    DrawLine(132, base + 6, 150, base + 25, metal);
+    for (int i = 0; i < 11; i++) {
+        int x = (i * 73 + 5) % VIRT_L;
+        DrawRectangle(x, base + 7 + (i * 7) % 20, 4 + i % 7, 1, (Color){39, 62, 87, 255});
+    }
+    int aproxima = deslocamento < 0 ? (int)fminf(14.0f, tempo * 4.0f) : 0;
+    desenharFolha(detetive_tex, detetive_ok, 3, aproxima > 0 && aproxima < 14 ? quadro : 0,
+                  113, base - 7 - aproxima);
+    desenharPikachuOw(3, quadro, 134, base - 4 - aproxima);
+    for (int i = 0; i < 55; i++) {
+        int x = (i * 53 + 11 + (int)(tempo * 18)) % VIRT_L;
+        int y = (i * 47 + (int)(tempo * 68)) % (base + 27);
+        DrawLine(x, y, x - 2, y + 3, (Color){113, 156, 208, 80});
+    }
+}
+
+static void desenharTitulo(void) {
+    float tempo = movimento_reduzido ? 0.0f : vis.tempo;
+    const char *titulo = "PokéBattle";
+
+    desenharFachada(0, tempo);
+    textoCentral(titulo, 14, 16, BLACK);
+    textoCentral(titulo, 12, 16, destaque_caso);
+    textoCentral("O Caso do Laboratório", 33, FONTE_PX, texto_caso);
+    DrawRectangle(54, 141, 132, 15, fundo_caso);
+    DrawRectangleLines(54, 141, 132, 15, borda_caso);
+    textoCentral("Z: abrir menu", 145, FONTE_PX, destaque_caso);
+}
+
 static Rectangle botaoMenu(int indice) {
-    return (Rectangle){118.0f, 46.0f + (float)indice * 22.0f, 110.0f, 18.0f};
+    return (Rectangle){105, 29 + indice * 18, 121, 16};
 }
 
 static void desenharMenu(void) {
-    const char *rotulos[] = {"NOVO JOGO", "COMO JOGAR", "POKEDEX", "SAIR"};
-    int i;
+    static const char *rotulos[MENU_TOTAL] = {
+        "Iniciar caso", "Como jogar", "Pokédex", "Ajustes", "Créditos", "Sair"
+    };
+    Color papel = {225, 213, 180, 255};
+    Color tinta = {28, 36, 52, 255};
 
-    DrawRectangle(0, 0, VIRT_L, VIRT_A, (Color){16, 28, 72, 255});
-    DrawRectangle(0, 96, VIRT_L, 64, (Color){12, 48, 36, 255});
-    desenharPlataforma(48, 108, 36.0f, 10.0f, (Color){72, 140, 64, 255}, (Color){24, 64, 32, 255});
-    desenharSpriteMon(25, 0, (Rectangle){16, 40, 64, 64}, 0.0f);
-    {
-        const char *titulo = "PokéBattle";
-        const char *subtitulo = "O Caso do Laboratório";
-        float lt = larguraTexto(titulo, 16.0f);
-        float ls = larguraTexto(subtitulo, FONTE_PX);
-        if (lt > 224.0f) lt = 224.0f;
-        if (ls > 224.0f) ls = 224.0f;
-        texto(titulo, (240.0f - lt) * 0.5f, 6.0f, 16.0f, (Color){255, 214, 64, 255});
-        texto(subtitulo, (240.0f - ls) * 0.5f, 26.0f, FONTE_PX, (Color){220, 220, 210, 255});
-    }
-    for (i = 0; i < 4; i++) {
+    desenharFachada(0, movimento_reduzido ? 0.0f : vis.tempo);
+    DrawRectangle(0, 0, VIRT_L, VIRT_A, (Color){5, 10, 21, 207});
+    DrawRectangle(10, 12, 82, 17, papel);
+    DrawRectangle(10, 23, 222, 116, papel);
+    DrawRectangle(98, 23, 1, 116, (Color){162, 148, 120, 255});
+    texto("ARQUIVO", 18, 16, FONTE_PX, tinta);
+    DrawRectangle(19, 32, 70, 77, (Color){244, 234, 207, 255});
+    DrawRectangle(22, 35, 64, 62, (Color){38, 54, 76, 255});
+    desenharSpriteMon(25, 0, (Rectangle){23, 32, 62, 62}, 0.0f);
+    DrawRectangle(27, 101, 54, 2, (Color){177, 161, 129, 255});
+    texto("CASO 01", 26, 120, FONTE_PX, tinta);
+
+    for (int i = 0; i < MENU_TOTAL; i++) {
         Rectangle b = botaoMenu(i);
-        int selecionado = vis.menu_cursor == i;
-        caixa((int)b.x, (int)b.y, (int)b.width, (int)b.height,
-              selecionado ? (Color){255, 214, 64, 255} : (Color){248, 248, 240, 255});
-        texto(rotulos[i], b.x + 6.0f, b.y + 5.0f, FONTE_PX, BLACK);
+        Color fundo = i == vis.menu_cursor ? destaque_caso : (Color){238, 227, 195, 255};
+        DrawRectangleRec(b, fundo);
+        if (i == vis.menu_cursor) DrawRectangle((int)b.x, (int)b.y, 3, (int)b.height, tinta);
+        texto(rotulos[i], b.x + 10, b.y + 4, FONTE_PX, tinta);
     }
+    textoCentral("Z: abrir   X: voltar", 147, FONTE_PX, texto_caso);
+    if (vis.tempo_menu < 0.2f && !movimento_reduzido) {
+        int largura = (int)(232.0f * (1.0f - vis.tempo_menu / 0.2f));
+        DrawRectangle(232 - largura, 23, largura, 116, papel);
+    }
+}
+
+static void desenharIntro(void) {
+    static const char *locais[INTRO_TOTAL] = {
+        "CONTENÇÃO", "RÁDIO", "CÂMERA INTERNA", "ENTRADA"
+    };
+    const char *fala = historiaIntro(vis.cena_intro);
+    float tempo = movimento_reduzido ? 0.0f : vis.tempo_intro;
+    char linhas[3][48];
+    int quantidade;
+
+    DrawRectangle(0, 0, VIRT_L, VIRT_A, fundo_caso);
+    if (vis.cena_intro == INTRO_ALERTA || vis.cena_intro == INTRO_RADIO) {
+        Color sinal = vis.cena_intro == INTRO_ALERTA ? (Color){252, 130, 115, 255}
+                                                     : destaque_caso;
+        painelCaso(18, 25, 204, 80);
+        DrawRectangle(26, 33, 188, 64, fundo_caso);
+        for (int y = 38; y < 96; y += 5) {
+            DrawLine(27, y, 212, y, (Color){30, 46, 70, 255});
+        }
+        if (vis.cena_intro == INTRO_ALERTA) {
+            DrawRectangleLines(112, 42, 16, 16, sinal);
+            texto("!", 116, 46, FONTE_PX, sinal);
+            textoCentral("SINAL PERDIDO", 75, FONTE_PX, sinal);
+        } else {
+            for (int i = 0; i < 25; i++) {
+                int altura = 3 + (int)(fabsf(sinf(i * 0.49f + tempo * 4.0f)) * (5 + i % 9));
+                DrawRectangle(46 + i * 6, 63 - altura, 2, altura * 2, sinal);
+            }
+        }
+    } else if (vis.cena_intro == INTRO_TANQUE) {
+        DrawRectangle(0, 18, VIRT_L, 90, (Color){18, 14, 37, 255});
+        DrawRectangle(75, 28, 90, 70, (Color){45, 30, 73, 255});
+        DrawRectangle(80, 34, 80, 58, (Color){73, 48, 112, 255});
+        DrawEllipse(120, 86, 38.0f, 6.0f, (Color){94, 61, 143, 255});
+        desenharSpriteMonSilhueta(150, (Rectangle){89, 31 + floorf(sinf(tempo * 1.5f) * 2), 62, 62});
+        DrawRectangle(80, 34, 2, 58, psiquico_caso);
+        DrawRectangle(158, 34, 2, 58, psiquico_caso);
+        DrawRectangle(73, 96, 94, 5, borda_caso);
+    } else {
+        desenharFachada(-28, tempo);
+        if (!movimento_reduzido && tempo > 3.4f) {
+            float escuro = fminf(0.85f, (tempo - 3.4f) / 1.6f);
+            DrawRectangle(0, 0, VIRT_L, 108, Fade(BLACK, escuro));
+        }
+    }
+
+    DrawRectangle(0, 0, VIRT_L, 18, fundo_caso);
+    texto(locais[vis.cena_intro], 9, 5, FONTE_PX, texto_secundario);
+    for (int i = 0; i < INTRO_TOTAL; i++) {
+        DrawRectangle(188 + i * 11, 8, 7, 2, i <= (int)vis.cena_intro ? destaque_caso : borda_caso);
+    }
+    DrawRectangle(0, 109, VIRT_L, 51, fundo_caso);
+    painelCaso(5, 110, 230, 32);
+    quebrar(fala, linhas, &quantidade, 3, 210.0f);
+    for (int i = 0; i < quantidade; i++) {
+        texto(linhas[i], 12, 114 + i * 9, FONTE_PX, texto_caso);
+    }
+    textoCentral("Z: avançar  X: pular", 148, FONTE_PX, texto_secundario);
+}
+
+static Rectangle linhaPainel(int indice) {
+    return (Rectangle){17, 39 + indice * 19, 206, 17};
+}
+
+static void desenharLinhaPainel(int indice, int cursor, const char *rotulo, const char *valor) {
+    Rectangle caixa = linhaPainel(indice);
+    Color tinta = indice == cursor ? fundo_caso : texto_caso;
+
+    DrawRectangleRec(caixa, indice == cursor ? destaque_caso : fundo_caso);
+    texto(rotulo, caixa.x + 6, caixa.y + 4, FONTE_PX, tinta);
+    if (valor != NULL) {
+        texto(valor, caixa.x + caixa.width - 6 - larguraTexto(valor, FONTE_PX),
+              caixa.y + 4, FONTE_PX, tinta);
+    }
+}
+
+static void desenharAjustes(void) {
+    char porcentagem[8];
+
+    DrawRectangle(0, 0, VIRT_L, VIRT_A, fundo_caso);
+    painelCaso(8, 8, 224, 144);
+    texto("AJUSTES", 17, 17, FONTE_PX, destaque_caso);
+    snprintf(porcentagem, sizeof porcentagem, "%d%%", volume);
+    desenharLinhaPainel(0, vis.ajustes_cursor, "Volume", porcentagem);
+    desenharLinhaPainel(1, vis.ajustes_cursor, "Menos movimento", movimento_reduzido ? "Sim" : "Não");
+    desenharLinhaPainel(2, vis.ajustes_cursor, "Tela cheia",
+                        IsWindowState(FLAG_BORDERLESS_WINDOWED_MODE) ? "Sim" : "Não");
+    desenharLinhaPainel(3, vis.ajustes_cursor, "Voltar", NULL);
+    texto("< >: mudar   X: voltar", 17, 128, FONTE_PX, texto_secundario);
+}
+
+static void desenharPausa(void) {
+    DrawRectangle(0, 0, VIRT_L, VIRT_A, (Color){5, 10, 21, 216});
+    painelCaso(8, 8, 224, 144);
+    texto(vis.confirmar_menu ? "VOLTAR AO MENU?" : "PAUSA", 17, 17, FONTE_PX, destaque_caso);
+    if (vis.confirmar_menu) {
+        desenharLinhaPainel(0, vis.pausa_cursor, "Ficar no caso", NULL);
+        desenharLinhaPainel(1, vis.pausa_cursor, "Encerrar caso", NULL);
+        texto("Progresso será perdido.", 17, 95, FONTE_PX, texto_secundario);
+    } else {
+        desenharLinhaPainel(0, vis.pausa_cursor, "Continuar", NULL);
+        desenharLinhaPainel(1, vis.pausa_cursor, "Ajustes", NULL);
+        desenharLinhaPainel(2, vis.pausa_cursor, "Menu principal", NULL);
+        if (tela_pausada == TELA_SALA) {
+            texto("P Pokédex   M Mapa", 17, 107, FONTE_PX, texto_secundario);
+            texto("N Caderno   T Equipe", 17, 119, FONTE_PX, texto_secundario);
+        }
+    }
+    texto("Z: confirmar   X: voltar", 17, 138, FONTE_PX, texto_secundario);
 }
 
 static void desenharAjuda(void) {
-    caixa(8, 6, 224, 148, (Color){248, 248, 240, 255});
-    texto("COMO JOGAR", 16.0f, 12.0f, FONTE_PX, BLACK);
-    texto("Setas/WASD: andar", 16.0f, 26.0f, FONTE_PX, BLACK);
-    texto("Z: agir  X: cancelar", 16.0f, 37.0f, FONTE_PX, BLACK);
-    texto("P: Pokédex com sprites", 16.0f, 48.0f, FONTE_PX, (Color){180, 24, 32, 255});
-    texto("M: Minimapa tático", 16.0f, 59.0f, FONTE_PX, (Color){24, 64, 160, 255});
-    texto("L: lanterna  N: caderno", 16.0f, 70.0f, FONTE_PX, BLACK);
-    texto("R: documento  T: time", 16.0f, 81.0f, FONTE_PX, BLACK);
-    texto("V: sala anterior", 16.0f, 92.0f, FONTE_PX, BLACK);
-    texto("Matos/escombros: treino", 16.0f, 103.0f, FONTE_PX, BLACK);
-    texto("Bancos: recuperar time", 16.0f, 114.0f, FONTE_PX, BLACK);
-    texto("Puzzles: R reinicia/U desfaz", 16.0f, 125.0f, FONTE_PX, BLACK);
-    texto("Z para fechar", 16.0f, 138.0f, FONTE_PX, (Color){80, 80, 80, 255});
+    DrawRectangle(0, 0, VIRT_L, VIRT_A, fundo_caso);
+    painelCaso(8, 6, 224, 148);
+    texto("COMO JOGAR", 16.0f, 12.0f, FONTE_PX, destaque_caso);
+    texto("Setas/WASD: andar", 16.0f, 26.0f, FONTE_PX, texto_caso);
+    texto("Z: agir  X: cancelar", 16.0f, 37.0f, FONTE_PX, texto_caso);
+    texto("P: Pokédex com sprites", 16.0f, 48.0f, FONTE_PX, texto_caso);
+    texto("M: Minimapa tático", 16.0f, 59.0f, FONTE_PX, texto_caso);
+    texto("L: lanterna  N: caderno", 16.0f, 70.0f, FONTE_PX, texto_caso);
+    texto("R: documento  T: time", 16.0f, 81.0f, FONTE_PX, texto_caso);
+    texto("V: sala anterior", 16.0f, 92.0f, FONTE_PX, texto_caso);
+    texto("Matos/escombros: treino", 16.0f, 103.0f, FONTE_PX, texto_caso);
+    texto("Bancos: recuperar time", 16.0f, 114.0f, FONTE_PX, texto_caso);
+    texto("Puzzles: R reinicia/U desfaz", 16.0f, 125.0f, FONTE_PX, texto_caso);
+    texto("X: voltar", 16.0f, 138.0f, FONTE_PX, texto_secundario);
 }
 
 static void desenharCreditos(void) {
-    DrawRectangle(0, 0, VIRT_L, VIRT_A, (Color){12, 16, 36, 255});
-    texto("PokéBattle", 16.0f, 8.0f, FONTE_PX, (Color){255, 214, 64, 255});
+    DrawRectangle(0, 0, VIRT_L, VIRT_A, fundo_caso);
+    painelCaso(8, 6, 224, 148);
+    texto("PokéBattle", 16.0f, 12.0f, FONTE_PX, (Color){255, 214, 64, 255});
     texto("O Caso do Laboratório", 16.0f, 22.0f, FONTE_PX, (Color){248, 248, 236, 255});
     texto("João Pedro", 16.0f, 42.0f, FONTE_PX, (Color){248, 248, 236, 255});
     texto("Leo", 16.0f, 54.0f, FONTE_PX, (Color){248, 248, 236, 255});
@@ -4240,7 +4520,7 @@ static void desenharPokedex(void) {
             /* Número e Nome */
             snprintf(buf, sizeof buf, "#%03d", sel->numero);
             texto(buf, 14, 96, FONTE_PX, (Color){30, 48, 36, 255});
-            textoAte(sel->nome, 14, 106, 88, (Color){12, 24, 16, 255});
+            nomeNaFicha(sel->nome, 14, 106, 88, (Color){12, 24, 16, 255});
 
             /* Badges de Tipo */
             {
@@ -4388,7 +4668,8 @@ static void atualizarMewtwo(float dt) {
 }
 
 static void desenharMewtwo(void) {
-    float bob = sinf(vis.mewtwo_t * 2.8f) * 3.5f;
+    float tempo = movimento_reduzido ? 0.0f : vis.mewtwo_t;
+    float bob = sinf(tempo * 2.8f) * 3.5f;
     int i;
 
     /* Fundo psíquico misterioso */
@@ -4396,13 +4677,13 @@ static void desenharMewtwo(void) {
 
     /* Efeito de ondas psíquicas ondulantes no espaço */
     for (i = 0; i < 3; i++) {
-        float r = 24.0f + (float)i * 18.0f + sinf(vis.mewtwo_t * 2.0f + (float)i) * 4.0f;
+        float r = 24.0f + (float)i * 18.0f + sinf(tempo * 2.0f + (float)i) * 4.0f;
         DrawCircleLines(VIRT_L / 2, 40, r, (Color){160, 90, 230, 45});
     }
 
     /* Partículas de energia flutuando */
     for (i = 0; i < 5; i++) {
-        float ang = vis.mewtwo_t * 2.5f + (float)i * 1.256f;
+        float ang = tempo * 2.5f + (float)i * 1.256f;
         int px = (int)((float)VIRT_L / 2.0f + cosf(ang) * (34.0f + (float)i * 5.0f));
         int py = (int)(40.0f + sinf(ang) * (20.0f + (float)i * 3.0f));
         DrawCircle(px, py, 1.5f, (Color){190, 140, 255, 200});
@@ -4418,7 +4699,7 @@ static void desenharMewtwo(void) {
     /* Se convencido e etapa final, brilhos cintilantes ao redor */
     if (vis.mewtwo_etapa >= 3 && vis.mewtwo_convencido) {
         for (i = 0; i < 4; i++) {
-            float ang = vis.mewtwo_t * 3.5f + (float)i * 1.57f;
+            float ang = tempo * 3.5f + (float)i * 1.57f;
             int sx = (int)((float)VIRT_L / 2.0f + cosf(ang) * 26.0f);
             int sy = (int)(38.0f + sinf(ang) * 22.0f);
             DrawCircle(sx, sy, 2.0f, GOLD);
@@ -4426,68 +4707,68 @@ static void desenharMewtwo(void) {
         }
     }
 
-    /* Caixa de Diálogo Telepático */
-    caixa(6, 76, 228, 80, (Color){16, 12, 30, 248});
-    DrawRectangleLines(6, 76, 228, 80, (Color){180, 100, 240, 255});
-    DrawRectangle(10, 74, 130, 10, (Color){36, 20, 60, 255});
-    texto("[ TELEPATIA: MEWTWO ]", 12, 75, FONTE_PX, (Color){230, 190, 255, 255});
+    /* As três escolhas cabem na tela e preservam as respostas da história. */
+    painelCaso(6, 76, 228, 80);
+    DrawRectangle(6, 76, 228, 1, psiquico_caso);
+    texto("MEWTWO", 12, 82, FONTE_PX, psiquico_caso);
 
-    if (vis.mewtwo_etapa == 0) {
-        texto("Giovanni recua... Os cientistas", 12, 90, FONTE_PX, WHITE);
-        texto("deste laboratorio queriam apenas", 12, 102, FONTE_PX, WHITE);
-        texto("me usar como arma de combate.", 12, 114, FONTE_PX, WHITE);
-        texto("[Z] Ouvir Mewtwo", 136, 144, FONTE_PX, GOLD);
-    } else if (vis.mewtwo_etapa == 1) {
-        texto("Eu observei a sua coragem ao lado", 12, 90, FONTE_PX, WHITE);
-        texto("de seus parceiros durante o caso.", 12, 102, FONTE_PX, WHITE);
-        texto("O que eles representam para voce?", 12, 114, FONTE_PX, (Color){200, 230, 255, 255});
-        texto("[Z] Responder", 144, 144, FONTE_PX, GOLD);
-    } else if (vis.mewtwo_etapa == 2) {
-        static const char *opcoes[3] = {
-            "Amigos iguais! Venha conosco ao mundo.",
-            "Uma arma suprema. Preciso do seu poder!",
-            "Sua vida e sua. Construa seu caminho."
+    if (vis.mewtwo_etapa == 2) {
+        static const char *opcoes[] = {
+            "Amigos. Venha conosco.",
+            "Preciso do seu poder.",
+            "Siga seu próprio caminho."
         };
-        int op;
-        for (op = 0; op < 3; op++) {
-            int sel = (vis.mewtwo_opcao == op);
-            Color cor = sel ? GOLD : (Color){200, 210, 230, 255};
-            char linha_op[64];
-            snprintf(linha_op, sizeof linha_op, "%s%s", sel ? "> " : "  ", opcoes[op]);
-            textoAte(linha_op, 10, 89 + op * 14, 220, cor);
+        for (int op = 0; op < 3; op++) {
+            int selecionado = vis.mewtwo_opcao == op;
+            int y = 95 + op * 14;
+            if (selecionado) DrawRectangle(11, y - 1, 218, 12, fundo_caso);
+            texto(selecionado ? ">" : " ", 14, y, FONTE_PX, destaque_caso);
+            texto(opcoes[op], 25, y, FONTE_PX, selecionado ? destaque_caso : texto_caso);
         }
-        texto("[W/S] Escolher   [Z] Responder", 12, 144, FONTE_PX, (Color){160, 200, 240, 255});
-    } else if (vis.mewtwo_etapa == 3) {
-        if (vis.mewtwo_convencido) {
-            texto("Amigos? Um novo caminho?", 12, 90, FONTE_PX, (Color){120, 240, 180, 255});
-            texto("Nem todos os humanos sao crueis...", 12, 102, FONTE_PX, WHITE);
-            texto("Aceito seu convite. Vamos juntos!", 12, 114, FONTE_PX, (Color){248, 220, 120, 255});
-            texto("[Z] Convidar ao time", 116, 144, FONTE_PX, GOLD);
+        texto("W/S: escolher  Z: enviar", 12, 143, FONTE_PX, texto_secundario);
+    } else {
+        const char *fala;
+        const char *acao;
+        char linhas[4][48];
+        int quantidade;
+
+        if (vis.mewtwo_etapa == 0) {
+            fala = "Giovanni recuou. Os cientistas tentaram me transformar numa arma.";
+            acao = "Z: ouvir";
+        } else if (vis.mewtwo_etapa == 1) {
+            fala = "Vi você lutar ao lado dos seus parceiros. O que eles significam para você?";
+            acao = "Z: responder";
+        } else if (vis.mewtwo_etapa == 3) {
+            fala = vis.mewtwo_convencido
+                   ? "Nem todos os humanos são cruéis. Aceito o seu convite."
+                   : "Você pensa como Giovanni. Não vou pertencer a nenhum humano.";
+            acao = vis.mewtwo_convencido ? "Z: convidar" : "Z: continuar";
         } else {
-            texto("Voce pensa exatamente como Giovanni.", 12, 90, FONTE_PX, (Color){240, 100, 100, 255});
-            texto("Apenas quer se apossar do meu poder.", 12, 102, FONTE_PX, WHITE);
-            texto("Nao pertencerei a nenhum humano!", 12, 114, FONTE_PX, (Color){220, 140, 140, 255});
-            texto("[Z] Teleportar", 148, 144, FONTE_PX, (Color){240, 100, 100, 255});
+            fala = vis.mewtwo_convencido
+                   ? "Mewtwo entrou para a equipe. O caso está encerrado."
+                   : "Mewtwo desapareceu. Seu paradeiro é um mistério.";
+            acao = "Z: créditos";
         }
-    } else if (vis.mewtwo_etapa == 4) {
-        if (vis.mewtwo_convencido) {
-            texto("MEWTWO ENTROU PARA SUA EQUIPE!", 12, 90, FONTE_PX, (Color){60, 240, 150, 255});
-            texto("O lendario confiou na sua amizade.", 12, 102, FONTE_PX, WHITE);
-            texto("O caso do laboratorio foi fechado!", 12, 114, FONTE_PX, GOLD);
-            texto("[Z] Zerar o Jogo", 136, 144, FONTE_PX, GOLD);
-        } else {
-            texto("Mewtwo desapareceu na escuridao...", 12, 90, FONTE_PX, (Color){180, 190, 210, 255});
-            texto("Seu paradeiro permanece um misterio.", 12, 102, FONTE_PX, WHITE);
-            texto("O caso do laboratorio foi encerrado.", 12, 114, FONTE_PX, (Color){200, 200, 200, 255});
-            texto("[Z] Zerar o Jogo", 136, 144, FONTE_PX, (Color){200, 200, 200, 255});
+        quebrar(fala, linhas, &quantidade, 4, 216);
+        for (int linha = 0; linha < quantidade; linha++) {
+            texto(linhas[linha], 12, 95 + linha * 10, FONTE_PX, texto_caso);
         }
+        texto(acao, 12, 143, FONTE_PX, destaque_caso);
     }
 }
 
 static void desenharTudo(void) {
     BeginTextureMode(alvo);
     ClearBackground(BLACK);
-    if (tela == TELA_MENU) desenharMenu();
+    if (tela == TELA_TITULO) desenharTitulo();
+    else if (tela == TELA_MENU) desenharMenu();
+    else if (tela == TELA_INTRO) desenharIntro();
+    else if (tela == TELA_AJUSTES) desenharAjustes();
+    else if (tela == TELA_PAUSA) {
+        if (tela_pausada == TELA_SALA) desenharMundo();
+        else desenharBatalha();
+        desenharPausa();
+    }
     else if (tela == TELA_AJUDA) desenharAjuda();
     else if (tela == TELA_POKEDEX) desenharPokedex();
     else if (tela == TELA_SALA) desenharMundo();
@@ -4495,7 +4776,10 @@ static void desenharTudo(void) {
     else if (tela == TELA_GAMEOVER) desenharGameOver();
     else if (tela == TELA_MEWTWO) desenharMewtwo();
     else desenharBatalha();
-    if (vis.transicao != 0) {
+    if (tela == TELA_SALA && vis.entrada_setor > 0.0f) {
+        DrawRectangle(0, 0, VIRT_L, VIRT_A, Fade(BLACK, vis.entrada_setor / 0.36f));
+    }
+    if (vis.transicao != 0 && !movimento_reduzido && tela != TELA_AJUSTES && tela != TELA_PAUSA) {
         int altura = (int)(vis.trans_t * (float)(VIRT_A / 2));
         if (vis.transicao == 1 && vis.trans_t < 0.18f) {
             unsigned char alfa = (unsigned char)(255.0f * (1.0f - vis.trans_t / 0.18f));
@@ -4563,42 +4847,157 @@ static int pontoNoRetangulo(Rectangle r, Vector2 p) {
     return p.x >= r.x && p.y >= r.y && p.x < r.x + r.width && p.y < r.y + r.height;
 }
 
-static void atualizarMenu(void) {
-    Vector2 mouse = pontoNoJogo(GetMousePosition(), calcularAreaJogo(GetScreenWidth(), GetScreenHeight()));
-    int i;
+static Vector2 mouseNoJogo(void) {
+    Rectangle area = calcularAreaJogo(GetScreenWidth(), GetScreenHeight());
+    return pontoNoJogo(GetMousePosition(), area);
+}
 
-    if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) vis.menu_cursor = (vis.menu_cursor + 1) % 4;
-    if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) vis.menu_cursor = (vis.menu_cursor + 3) % 4;
-    for (i = 0; i < 4; i++) {
-        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && pontoNoRetangulo(botaoMenu(i), mouse)) {
-            vis.menu_cursor = i;
-            break;
+/* Seleção por teclado e clique compartilham os retângulos do desenho. */
+static int selecionarOpcao(int *cursor, int total, Rectangle (*linha)(int)) {
+    if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
+        *cursor = (*cursor + 1) % total;
+        clique();
+    } else if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
+        *cursor = (*cursor + total - 1) % total;
+        clique();
+    }
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        Vector2 mouse = mouseNoJogo();
+        for (int i = 0; i < total; i++) {
+            if (pontoNoRetangulo(linha(i), mouse)) {
+                *cursor = i;
+                return 1;
+            }
         }
     }
-    if (IsKeyPressed(KEY_ONE)) vis.menu_cursor = 0;
-    if (IsKeyPressed(KEY_TWO)) vis.menu_cursor = 1;
-    if (IsKeyPressed(KEY_THREE)) vis.menu_cursor = 2;
-    if (IsKeyPressed(KEY_FOUR)) vis.menu_cursor = 3;
+    return acaoPressionada();
+}
 
-    if (acaoPressionada() || (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && i < 4 && pontoNoRetangulo(botaoMenu(vis.menu_cursor), mouse))) {
+static void mudarCenaIntro(CenaIntro cena) {
+    vis.cena_intro = cena;
+    vis.tempo_intro = 0.0f;
+    if (vis.som_ok) {
+        if (cena == INTRO_ALERTA || cena == INTRO_RADIO) PlaySound(som_radio);
+        if (cena == INTRO_TANQUE || cena == INTRO_ENTRADA) PlaySound(som_porta);
+    }
+}
+
+static void iniciarPartida(int com_intro) {
+    if (!comecarCaso(&caso_jogo)) return;
+    zerarVisual();
+    entrarNaSala();
+    vis.intro_feita = 1;
+    vis.salas_vistas[0] = 1;
+    vis.dica_inicio = 1;
+    tela = com_intro ? TELA_INTRO : TELA_SALA;
+    if (com_intro) mudarCenaIntro(INTRO_ALERTA);
+}
+
+static void atualizarIntro(float dt) {
+    vis.tempo_intro += dt;
+    if (voltarPressionado() || IsKeyPressed(KEY_ESCAPE) ||
+        (vis.cena_intro == INTRO_ENTRADA &&
+         (acaoPressionada() || vis.tempo_intro >= duracao_intro[INTRO_ENTRADA]))) {
+        tela = TELA_SALA;
+        vis.entrada_setor = movimento_reduzido ? 0.0f : 0.36f;
+    } else if (acaoPressionada() || vis.tempo_intro >= duracao_intro[vis.cena_intro]) {
+        mudarCenaIntro(vis.cena_intro + 1);
+    }
+}
+
+static void abrirAjustes(Tela retorno) {
+    retorno_ajustes = retorno;
+    vis.ajustes_cursor = 0;
+    tela = TELA_AJUSTES;
+}
+
+static void atualizarAjustes(void) {
+    int esquerda = IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A);
+    int direita = IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D);
+    int selecionou = selecionarOpcao(&vis.ajustes_cursor, 4, linhaPainel);
+
+    if (voltarPressionado() || IsKeyPressed(KEY_ESCAPE) || (selecionou && vis.ajustes_cursor == 3)) {
+        tela = retorno_ajustes;
         clique();
-        if (vis.menu_cursor == 0) {
-            if (comecarCaso(&caso_jogo)) {
-                zerarVisual();
-                entrarNaSala();
-                tela = TELA_SALA;
-                vis.intro_feita = 1;
-                abrirPaginas(historiaIntro);
-            }
-        } else if (vis.menu_cursor == 1) {
-            tela = TELA_AJUDA;
-        } else if (vis.menu_cursor == 2) {
-            tela = TELA_POKEDEX;
+        return;
+    }
+    if (!esquerda && !direita && !selecionou) return;
+    switch (vis.ajustes_cursor) {
+    case 0:
+        volume += esquerda ? -10 : 10;
+        if (volume < 0) volume = 0;
+        if (volume > 100) volume = 100;
+        if (vis.som_ok) SetMasterVolume(volume / 100.0f);
+        break;
+    case 1:
+        movimento_reduzido = !movimento_reduzido;
+        break;
+    case 2:
+        ToggleBorderlessWindowed();
+        break;
+    }
+    clique();
+}
+
+static void abrirPausa(void) {
+    tela_pausada = tela;
+    vis.pausa_cursor = 0;
+    vis.confirmar_menu = 0;
+    tela = TELA_PAUSA;
+    clique();
+}
+
+static void atualizarPausa(void) {
+    if (IsKeyPressed(KEY_ESCAPE) || voltarPressionado()) {
+        if (vis.confirmar_menu) {
+            vis.confirmar_menu = 0;
+            vis.pausa_cursor = 0;
         } else {
-            tela = TELA_MENU;
-            /* Sair é tratado no laço, olhando o cursor. */
-            vis.vitoria = -1;
+            tela = tela_pausada;
         }
+        clique();
+        return;
+    }
+    if (!selecionarOpcao(&vis.pausa_cursor, vis.confirmar_menu ? 2 : 3, linhaPainel)) return;
+    clique();
+    if (vis.confirmar_menu) {
+        if (vis.pausa_cursor == 1) {
+            vis.menu_cursor = 0;
+            tela = TELA_MENU;
+        }
+        vis.confirmar_menu = 0;
+        vis.pausa_cursor = 0;
+    } else if (vis.pausa_cursor == 0) {
+        tela = tela_pausada;
+    } else if (vis.pausa_cursor == 1) {
+        abrirAjustes(TELA_PAUSA);
+    } else {
+        vis.confirmar_menu = 1;
+        vis.pausa_cursor = 0;
+    }
+}
+
+static void atualizarMenu(void) {
+    static const int teclas[MENU_TOTAL] = {KEY_ONE, KEY_TWO, KEY_THREE, KEY_FOUR, KEY_FIVE, KEY_SIX};
+
+    if (voltarPressionado() || IsKeyPressed(KEY_ESCAPE)) {
+        tela = TELA_TITULO;
+        clique();
+        return;
+    }
+    for (int i = 0; i < MENU_TOTAL; i++) {
+        if (IsKeyPressed(teclas[i])) vis.menu_cursor = i;
+    }
+    if (!selecionarOpcao(&vis.menu_cursor, MENU_TOTAL, botaoMenu)) return;
+
+    clique();
+    switch (vis.menu_cursor) {
+    case MENU_INICIAR: iniciarPartida(1); break;
+    case MENU_AJUDA: tela = TELA_AJUDA; break;
+    case MENU_POKEDEX: tela = TELA_POKEDEX; break;
+    case MENU_AJUSTES: abrirAjustes(TELA_MENU); break;
+    case MENU_CREDITOS: tela = TELA_CREDITOS; break;
+    case MENU_SAIR: vis.vitoria = -1; break;
     }
 }
 
@@ -4606,15 +5005,39 @@ static void atualizar(float dt) {
     if (IsKeyPressed(KEY_F11) || (IsKeyPressed(KEY_ENTER) &&
         (IsKeyDown(KEY_LEFT_ALT) || IsKeyDown(KEY_RIGHT_ALT)))) {
         ToggleBorderlessWindowed();
+        return;
     }
     if (dt > 0.05f) dt = 0.05f;
+    if (tela == TELA_PAUSA) {
+        atualizarPausa();
+        return;
+    }
+    if (tela == TELA_AJUSTES) {
+        atualizarAjustes();
+        return;
+    }
     vis.tempo += dt;
+    if (tela == TELA_SALA) {
+        vis.entrada_setor = fmaxf(0.0f, vis.entrada_setor - dt);
+        vis.abertura_caderno = fmaxf(0.0f, vis.abertura_caderno - dt);
+    }
     atualizarTransicao(dt);
     if (vis.transicao == 1) {
         return;
     }
-    if (tela == TELA_MENU) {
+    if (tela == TELA_TITULO) {
+        if (acaoPressionada() || (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
+            pontoNoRetangulo((Rectangle){54, 141, 132, 15}, mouseNoJogo()))) {
+            vis.menu_cursor = 0;
+            vis.tempo_menu = 0.0f;
+            tela = TELA_MENU;
+            clique();
+        }
+    } else if (tela == TELA_MENU) {
+        vis.tempo_menu += dt;
         atualizarMenu();
+    } else if (tela == TELA_INTRO) {
+        atualizarIntro(dt);
     } else if (tela == TELA_AJUDA || tela == TELA_POKEDEX) {
         if (tela == TELA_POKEDEX) {
             ColetaPk coleta;
@@ -4638,16 +5061,17 @@ static void atualizar(float dt) {
         if (IsKeyPressed(KEY_ESCAPE) && !vis.fala_aberta && !vis.caderno &&
             !vis.documento_aberto && !vis.puzzle_aberto && !vis.time_aberto &&
             !vis.minimapa_aberto && !vis.pokedex_aberta && !vis.pc_aberto) {
-            tela = TELA_MENU;
+            abrirPausa();
             return;
         }
         atualizarMundo(dt);
     } else if (tela == TELA_BATALHA) {
-        atualizarBatalha(dt);
+        if (IsKeyPressed(KEY_ESCAPE)) abrirPausa();
+        else atualizarBatalha(dt);
     } else if (tela == TELA_MEWTWO) {
         atualizarMewtwo(dt);
     } else if (tela == TELA_CREDITOS) {
-        if (acaoPressionada() || IsKeyPressed(KEY_ESCAPE)) {
+        if (acaoPressionada() || voltarPressionado() || IsKeyPressed(KEY_ESCAPE)) {
             tela = TELA_MENU;
         }
     } else if (tela == TELA_GAMEOVER) {
@@ -4655,13 +5079,9 @@ static void atualizar(float dt) {
             vis.menu_cursor = 1 - vis.menu_cursor;
         }
         if (acaoPressionada()) {
-            if (vis.menu_cursor == 0 && comecarCaso(&caso_jogo)) {
-                zerarVisual();
-                entrarNaSala();
-                tela = TELA_SALA;
-                vis.intro_feita = 1;
-                abrirPaginas(historiaIntro);
-            } else if (vis.menu_cursor != 0) {
+            if (vis.menu_cursor == 0) {
+                iniciarPartida(0);
+            } else {
                 tela = TELA_MENU;
             }
         }
@@ -4679,7 +5099,7 @@ int executarInterfaceRaylib(int tela_cheia) {
     }
     caso_ok = 1;
     zerarVisual();
-    tela = TELA_MENU;
+    tela = TELA_TITULO;
 
     while (!WindowShouldClose() && vis.vitoria != -1) {
         atualizar(GetFrameTime());
@@ -4806,9 +5226,21 @@ int capturarTelasDemonstracao(void) {
     }
     caso_ok = 1;
     zerarVisual();
+    tela = TELA_TITULO;
+    desenharTudo();
+    apresentar("captura_titulo.png");
     tela = TELA_MENU;
+    vis.tempo_menu = 0.2f;
     desenharTudo();
     apresentar("captura_menu.png");
+    tela = TELA_INTRO;
+    for (int i = 0; i < INTRO_TOTAL; i++) {
+        char captura[48];
+        vis.cena_intro = i;
+        desenharTudo();
+        snprintf(captura, sizeof captura, "captura_abertura_%d.png", i + 1);
+        apresentar(captura);
+    }
 
     if (!comecarCaso(&caso_jogo)) {
         encerrarCaso(&caso_jogo);
@@ -4834,7 +5266,7 @@ int capturarTelasDemonstracao(void) {
     mundo.pika_anda = 0.4f;
     mundo.pika_dir = 0;
     vis.intro_feita = 1;
-    abrirPaginas(historiaIntro);
+    abrirFala(historiaAoEntrar("Laboratório"));
     vis.texto_completo = 1;
     vis.bytes = 800;
     desenharTudo();
@@ -4847,6 +5279,14 @@ int capturarTelasDemonstracao(void) {
     vis.lanterna_ligada = 1;
     desenharTudo();
     apresentar("captura_lanterna.png");
+    tela_pausada = TELA_SALA;
+    tela = TELA_PAUSA;
+    desenharTudo();
+    apresentar("captura_pausa.png");
+    tela = TELA_AJUSTES;
+    desenharTudo();
+    apresentar("captura_ajustes.png");
+    tela = TELA_SALA;
     mundo.movendo = 0;
     mundo.anda = 1.0f;
     mundo.pika_anda = 1.0f;
@@ -5041,6 +5481,10 @@ int capturarTelasDemonstracao(void) {
     vis.fase = BAT_FIM;
     desenharTudo();
     apresentar("captura_desfecho.png");
+    tela = TELA_MEWTWO;
+    vis.mewtwo_etapa = 2;
+    desenharTudo();
+    apresentar("captura_dialogo_mewtwo.png");
     tela = TELA_CREDITOS;
     desenharTudo();
     apresentar("captura_creditos.png");

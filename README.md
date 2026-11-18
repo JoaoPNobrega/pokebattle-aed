@@ -75,11 +75,13 @@ make assets   # opcional: refaz assets/pokemon/ pela PokéAPI
 
 O jogo abre em tela cheia, sem mudar a resolução do monitor. A cena é desenhada em 240×160 (o tamanho do GBA), ampliada na maior escala inteira que cabe e centralizada com margens pretas, mantendo a proporção e o filtro de ponto. **F11** ou **Alt+Enter** alterna entre tela cheia e janela redimensionável. Para iniciar em janela, use `./bin/pokebattle --janela`. O mouse acompanha a escala e as margens.
 
-O HUD separa setor, atalhos P/M/N/T, iluminação e chave secreta em áreas próprias. O objetivo e a interação ficam na barra inferior, com espaço reservado para a tecla.
+O HUD separa setor, iluminação e chave secreta em áreas próprias. Os atalhos de exploração aparecem na pausa. O objetivo e a interação ficam na barra inferior, com espaço reservado para a tecla.
 
 | Onde | Teclado |
 | --- | --- |
-| Menu | Setas e Z, ou 1, 2, 3, 4. Mouse também serve |
+| Título e menu | Z ou Enter abre a pasta. Setas/WASD selecionam, Z confirma e X volta. O mouse também funciona |
+| Intro | Z avança a cena. X ou Esc pula e entrega o controle no laboratório |
+| Ajustes | Setas escolhem a opção. Esquerda/direita muda volume, animações ou tela cheia. As preferências valem até fechar o jogo |
 | Mapa | Setas ou WASD, uma célula por vez. Z interage (painel, porta, itens, Pokémon). HUD minimalista com ícones rápidos [P], [M], [N], [T] e chave secreta. N abre o caderno. L liga/desliga a lanterna |
 | Itens no Mapa | Cápsulas com Pokébolas flutuantes ('*') espalhadas pelos setores guardam Rare Candies (que aumentam o nível instantaneamente até 60 e curam o parceiro) e suprimentos (Super Poções, Poké Bolas) |
 | Pokédex Dinâmica | Tecla P abre a Pokédex LCD. Pokémon não encontrados aparecem como silhuetas misteriosas com dados ocultos (???). Conforme você explora e batalha, novos registros são desbloqueados |
@@ -93,7 +95,7 @@ O HUD separa setor, atalhos P/M/N/T, iluminação e chave secreta em áreas pró
 | Terminais de PC | Z diante de computadores ('C') presentes nos setores (Laboratório, Pátio, Tanque, Oficina, Arquivo, Santuário e Chefe) abre o Terminal de Equipe: alterne abas [EQUIPE] e [RESERVA] com TAB/setas, mova monstrinhos e transfira com Z, e eleja o novo líder ativo com L |
 | Batalha | Comandos com ícones dedicados (LUTAR, BOLSA, POKÉMON, FUGIR). Aliados possuem barra de EXP estilo GBA/FireRed, indicadores de Pokébolas em tempo real, ofego em HP crítico (<20%), estrelas de impacto e sprites autênticos das aves lendárias (Articuno, Zapdos, Moltres). POKÉMON (BAT_TIME) gerencia os 6 slots com badges e HP numérico |
 | Texto | Z avança a digitação e a próxima página |
-| Qualquer tela | Esc volta ao menu. No caderno, minimapa ou Pokédex, Esc, P, M ou X fecha o modal |
+| Pausa | Esc pausa a exploração ou batalha. Permite continuar, abrir ajustes ou voltar ao menu depois de confirmar |
 
 A bolsa começa com 2 Poções (20 de HP), 1 Super Poção (50) e 3 Poké Bolas. Encontrar cápsulas com Rare Candy no mapa permite subir de nível de forma instantânea. Usar um item gasta o turno e o oponente age. Na batalha, a Poké Bola exige no máximo metade do HP. Depois, a captura exige cinco comandos de lançamento/contenção, também após vencer um selvagem. Siga o PNG destacado; erro de tecla ou prazo reinicia a contenção, sem perder o parceiro obrigatório. A Master Ball do santuário secreto captura Mew/Mewtwo selvagens sem falha. Fugir do selvagem depende da velocidade vezes o número da tentativa. Do chefe, a frase é "Não dá pra fugir de um chefe!". Terminais de PC espalhados pelo laboratório e santuário garantem o gerenciamento da reserva caso o time esteja lotado.
 
