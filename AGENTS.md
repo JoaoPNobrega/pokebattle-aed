@@ -114,7 +114,7 @@ Declaração de IA assinada por quem vai defender, zip sem executável e o víde
 
 ## Convenção visual (não quebrar)
 
-A janela desenha em 240×160 e amplia com escala inteira (4) e `TEXTURE_FILTER_POINT`. A fonte é Press Start 2P, 8 px, também com filtro point. Sem isso o pixel borra.
+A janela desenha em 240×160 e amplia com a maior escala inteira que cabe no monitor, centralizada com margens pretas e `TEXTURE_FILTER_POINT`. Abre em tela cheia sem alterar a resolução do monitor; F11 ou Alt+Enter alterna janela/tela cheia e `--janela` inicia em janela redimensionável. O mouse desconta as margens e a escala do desenho. A fonte é Press Start 2P, 8 px, também com filtro point. Sem isso o pixel borra.
 
 - `make assets` roda `tools/baixar_assets.sh`, que chama `baixar_assets.py` (PokéAPI) e `baixar_personagens.py` (overworld, costas do Red, Giovanni e o tileset do laboratório). Os arquivos já estão no git. O binário só lê disco.
 - Mapa: tiles de 16×16 do Kenney (`assets/tiles/kenney_indoor.png`, CC0). O detetive anda célula a célula (setas ou WASD), com folha de 4 direções. O Pikachu segue atrás. Z age em painel, gelo, fogo, porta e encontro. A porta chama `casoAvancar`. O puzzle abre um desafio próprio: `casoComandarPuzzle` aplica ações à grade e só depois da conclusão chama `casoUsarHabilidade`.
@@ -160,3 +160,5 @@ Sprites de Equipe e Puzzle da Lupa de Investigação: As telas de visualização
 
 Encontro Cinemático e Diálogo com Mewtwo pós-Giovanni: Ao derrotar o chefe Giovanni, o encerramento transiciona para a cena especial `TELA_MEWTWO`. Mewtwo surge levitando em uma névoa psíquica com animação ondulante e interpela o detetive por telepatia sobre o significado dos Pokémon. O jogador escolhe entre três respostas de diálogo: opções baseadas em empatia ou justiça convencem Mewtwo a juntar-se à equipe (`casoConvidarMewtwo` adiciona o Pokémon lendário ao time ou reserva), concluindo o caso e zerando o jogo com vitória e créditos finais.
 
+
+HUD sem sobreposição: o setor ocupa x=3..156 no topo; quatro teclas P/M/N/T ficam em caixas independentes a partir de x=160. Luzes e lanterna ficam na segunda linha, separadas da chave secreta. A barra inferior reserva altura para texto e ícone sem cruzar as bordas. Não recolocar luzes por cima dos atalhos.

@@ -12,11 +12,13 @@
 
 /*
  * executarInterfaceRaylib
- * Abre a janela, mostra o menu e devolve quando o jogador sai.
+ * Abre o jogo, mostra o menu e devolve quando o jogador sai.
+ * Parâmetro: tela_cheia diferente de zero abre em tela cheia sem mudar o monitor.
+ * Complexidade: O(quadros), com custo de desenho por quadro limitado pela tela.
  *
  * Retorno: 0 em saída normal, 1 se a Pokédex não carregou.
  */
-int executarInterfaceRaylib(void);
+int executarInterfaceRaylib(int tela_cheia);
 
 /*
  * capturarTelasDemonstracao

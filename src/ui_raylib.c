@@ -432,7 +432,7 @@ static void tentarBatalha(void);
 static void prepararBatalha(void);
 static void desenharTudo(void);
 static void apresentar(const char *png);
-static int abrirGrafico(void);
+static int abrirGrafico(int tela_cheia);
 static void fecharGrafico(void);
 
 static void zerarVisual(void) {
@@ -636,15 +636,20 @@ static void liberarAssets(void) {
     }
 }
 
-static int abrirGrafico(void) {
+static int abrirGrafico(int tela_cheia) {
     if (grafico_ok) {
         return 1;
     }
+    SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_VSYNC_HINT);
     InitWindow(JANELA_L, JANELA_A, "PokéBattle: O Caso do Laboratório");
     if (!IsWindowReady()) {
         return 0;
     }
     SetExitKey(KEY_NULL);
+    SetWindowMinSize(VIRT_L, VIRT_A);
+    if (tela_cheia) {
+        ToggleBorderlessWindowed();
+    }
     SetTargetFPS(60);
     alvo = LoadRenderTexture(VIRT_L, VIRT_A);
     SetTextureFilter(alvo.texture, TEXTURE_FILTER_POINT);
@@ -684,10 +689,9 @@ static float larguraTexto(const char *texto, float tamanho) {
 
 static void textoAte(const char *origem, float x, float y, float maximo, Color cor) {
     char buf[64];
-    int cortes = 0;
-
+    if (maximo <= 0.0f) return;
     copiarTexto(buf, sizeof buf, origem == NULL ? "" : origem);
-    while (buf[0] != '\0' && larguraTexto(buf, FONTE_PX) > maximo && cortes < 40) {
+    while (buf[0] != '\0' && larguraTexto(buf, FONTE_PX) > maximo) {
         int fim = 0;
         int anterior = 0;
         while (buf[fim] != '\0') {
@@ -695,7 +699,6 @@ static void textoAte(const char *origem, float x, float y, float maximo, Color c
             fim = avancarPonto(buf, fim);
         }
         buf[anterior] = '\0';
-        cortes++;
     }
     texto(buf, x, y, FONTE_PX, cor);
 }
@@ -719,7 +722,7 @@ static void caixa(int x, int y, int w, int h, Color miolo) {
     DrawRectangle(x, y, w, h, BLACK);
     if (w > 4 && h > 4) {
         DrawRectangle(x + 2, y + 2, w - 4, h - 4, miolo);
-        DrawRectangle(x + 2, y + h - 4, w - 4, 2, (Color){180, 180, 170, 255});
+        if (h >= 20) DrawRectangle(x + 2, y + h - 4, w - 4, 2, (Color){180, 180, 170, 255});
     }
 }
 
@@ -2292,20 +2295,12 @@ static void desenharContexto(int camx, int camy) {
     }
     if (rotulo != NULL) {
         DrawRectangleLines(x * TILE - camx - 1, y * TILE - camy - 1, 18, 18, GOLD);
-        caixa(4, 138, 232, 18, (Color){16, 22, 34, 235});
-        DrawRectangleLines(8, 140, 14, 14, GOLD);
-        desenharTecla(0, 9, 141);
-        textoAte(rotulo, 26, 143, 206, WHITE);
+        caixa(4, 134, 232, 24, (Color){16, 22, 34, 235});
+        desenharTecla(0, 8, 138);
+        textoAte(rotulo, 28, 142, 200, WHITE);
     } else {
-        caixa(4, 142, 232, 14, (Color){16, 22, 34, 210});
-        textoAte(casoObjetivoAtual(&caso_jogo), 8, 145, 224, (Color){248, 216, 104, 255});
-    }
-    if (sala != NULL && sala->luzes_necessarias) {
-        char luzes[32];
-        int n = !!(sala->luzes & 1U) + !!(sala->luzes & 2U);
-        snprintf(luzes, sizeof luzes, "Luz %d/2", n);
-        desenharTecla(3, 154, 3);
-        texto(luzes, 174, 7, FONTE_PX, WHITE);
+        caixa(4, 138, 232, 20, (Color){16, 22, 34, 210});
+        textoAte(casoObjetivoAtual(&caso_jogo), 8, 143, 224, (Color){248, 216, 104, 255});
     }
 }
 
@@ -2395,7 +2390,6 @@ static void desenharPuzzle(void) {
         texto("Mangueira: A=4 e B=3.", 12, 121, FONTE_PX, WHITE);
     } else if (d->tipo == DES_RASTRO) {
         int distancia = distanciaRastro(d, vis.cursor_puzzle);
-        texto("LUPA DE DETETIVE: SEGUIR RASTRO", 12, 16, FONTE_PX, GOLD);
 
         for (i = 0; i < 20; i++) {
             int exam = (d->examinados & (1U << i));
@@ -2447,26 +2441,26 @@ static void desenharPuzzle(void) {
         DrawRectangleLines(120, 28, 112, 84, (Color){50, 90, 140, 255});
         texto("LUPA DETETIVE", 126, 33, FONTE_PX, GOLD);
 
-        texto("SINAL DO RASTRO:", 126, 46, FONTE_PX, (Color){180, 200, 220, 255});
+        texto("SINAL:", 126, 46, FONTE_PX, (Color){180, 200, 220, 255});
         if (distancia == 0) {
             caixa(126, 57, 100, 14, (Color){20, 80, 50, 255});
             DrawRectangleLines(126, 57, 100, 14, (Color){80, 240, 160, 255});
-            texto("[PEGADA AQUI!]", 130, 60, FONTE_PX, (Color){100, 255, 180, 255});
+            texto("PEGADA AQUI!", 130, 60, FONTE_PX, (Color){100, 255, 180, 255});
         } else if (distancia == 1) {
             caixa(126, 57, 100, 14, (Color){80, 48, 16, 255});
             DrawRectangleLines(126, 57, 100, 14, (Color){255, 160, 60, 255});
-            texto("[MUITO QUENTE]", 128, 60, FONTE_PX, (Color){255, 180, 80, 255});
+            texto("MUITO QUENTE", 128, 60, FONTE_PX, (Color){255, 180, 80, 255});
         } else if (distancia <= 3) {
             caixa(126, 57, 100, 14, (Color){60, 60, 20, 255});
             DrawRectangleLines(126, 57, 100, 14, (Color){230, 210, 60, 255});
-            texto("[RASTRO MORNO]", 128, 60, FONTE_PX, (Color){240, 220, 80, 255});
+            texto("RASTRO MORNO", 128, 60, FONTE_PX, (Color){240, 220, 80, 255});
         } else {
             caixa(126, 57, 100, 14, (Color){20, 40, 60, 255});
             DrawRectangleLines(126, 57, 100, 14, (Color){60, 140, 200, 255});
-            texto("[RASTRO FRIO]", 130, 60, FONTE_PX, (Color){140, 200, 240, 255});
+            texto("RASTRO FRIO", 130, 60, FONTE_PX, (Color){140, 200, 240, 255});
         }
 
-        snprintf(linha, sizeof linha, "PEGADAS: %d/3", d->rastros);
+        snprintf(linha, sizeof linha, "Ecos %d/3", d->rastros);
         texto(linha, 126, 78, FONTE_PX, WHITE);
         for (i = 0; i < 3; i++) {
             int achada = (i < d->rastros);
@@ -2474,7 +2468,7 @@ static void desenharPuzzle(void) {
             DrawCircle(196 + i * 11, 81, 1.5f, achada ? WHITE : (Color){60, 70, 90, 255});
         }
 
-        texto("Aproxime e use Z", 126, 96, FONTE_PX, (Color){180, 190, 210, 255});
+        texto("Z: examinar", 126, 96, FONTE_PX, (Color){180, 190, 210, 255});
         texto("Mova a lupa com as setas.", 12, 121, FONTE_PX, WHITE);
     } else {
         int marcas = !!(d->caixas & (1UL << 10)) + !!(d->caixas & (1UL << 28));
@@ -2525,7 +2519,7 @@ static void desenharTimeExploracao(void) {
 
     if (sel_pk != NULL) {
         float bob = sinf(vis.tempo * 3.5f) * 1.5f;
-        desenharSpriteMon(sel_pk->numero, 0, (Rectangle){25, 7 + bob, 64, 64}, 0.0f);
+        desenharSpriteMon(sel_pk->numero, 0, (Rectangle){29, 7 + bob, 56, 56}, 0.0f);
 
         if (sel_pk->brilhante) {
             int s;
@@ -2535,9 +2529,9 @@ static void desenharTimeExploracao(void) {
             }
         }
 
-        snprintf(buf, sizeof buf, "#%03d %s", sel_pk->numero, sel_pk->nome);
+        copiarTexto(buf, sizeof buf, sel_pk->nome);
         textoAte(buf, 12, 68, 90, WHITE);
-        snprintf(buf, sizeof buf, "Nv.%d", sel_pk->nivel);
+        snprintf(buf, sizeof buf, "Nv%d", sel_pk->nivel);
         texto(buf, 12, 78, FONTE_PX, (Color){248, 220, 120, 255});
 
         DrawRectangle(46, 77, 28, 9, corDoTipo(sel_pk->tipo1));
@@ -2551,19 +2545,21 @@ static void desenharTimeExploracao(void) {
         texto(buf, 12, 89, FONTE_PX, (Color){200, 220, 240, 255});
         desenharBarraHp(12, 98, 90, sel_pk->hp_max > 0 ? (float)sel_pk->hp_atual / (float)sel_pk->hp_max : 0.0f);
 
-        snprintf(buf, sizeof buf, "ATQ:%d DEF:%d VEL:%d", sel_pk->ataque, sel_pk->defesa, sel_pk->velocidade);
+        snprintf(buf, sizeof buf, "A%d D%d", sel_pk->ataque, sel_pk->defesa);
         textoAte(buf, 12, 107, 92, (Color){170, 200, 230, 255});
+        snprintf(buf, sizeof buf, "VEL %d", sel_pk->velocidade);
+        textoAte(buf, 12, 117, 92, (Color){170, 200, 230, 255});
 
         if (sel_pk->qtd_golpes > 0) {
             snprintf(buf, sizeof buf, "1:%s", sel_pk->golpes[0].nome);
-            textoAte(buf, 12, 118, 92, (Color){220, 230, 240, 255});
+            textoAte(buf, 12, 128, 92, (Color){220, 230, 240, 255});
         }
         if (sel_pk->qtd_golpes > 1) {
             snprintf(buf, sizeof buf, "2:%s", sel_pk->golpes[1].nome);
-            textoAte(buf, 12, 128, 92, (Color){220, 230, 240, 255});
+            textoAte(buf, 12, 138, 92, (Color){220, 230, 240, 255});
         }
     } else {
-        texto("Nenhum Pokemon", 14, 50, FONTE_PX, (Color){100, 120, 140, 255});
+        texto("Sem Pokemon", 14, 50, FONTE_PX, (Color){100, 120, 140, 255});
     }
 
     /* Painel Direito: Lista dos Slots da Equipe */
@@ -2594,7 +2590,7 @@ static void desenharTimeExploracao(void) {
         texto(nv, 192, (float)y + 2, FONTE_PX, (Color){248, 220, 120, 255});
 
         if (e_ativo) {
-            texto("[LIDER]", 128, (float)y + 10, FONTE_PX, (Color){60, 220, 140, 255});
+            texto("LIDER", 128, (float)y + 10, FONTE_PX, (Color){60, 220, 140, 255});
         } else if (no->pokemon.hp_atual <= 0) {
             texto("[FNT]", 128, (float)y + 10, FONTE_PX, (Color){240, 80, 80, 255});
         }
@@ -2602,7 +2598,7 @@ static void desenharTimeExploracao(void) {
         desenharBarraHp(176, y + 11, 48, razao);
     }
 
-    textoAte("[Z] Definir Ativo  [X/T] Voltar", 112, 140, 120, (Color){180, 200, 220, 255});
+    textoAte("Z:ativo X:volta", 112, 140, 120, (Color){180, 200, 220, 255});
 }
 
 static void atualizarPcEquipe(void) {
@@ -2747,9 +2743,9 @@ static void desenharPcEquipe(void) {
 
     DrawCircle(14, 12, 3, (Color){40, 220, 120, 255});
     DrawCircle(22, 12, 3, (Color){40, 180, 240, 255});
-    texto("TERMINAL DE EQUIPE: PC DO MEW", 32, 9, FONTE_PX, (Color){60, 230, 255, 255});
-    snprintf(buf, sizeof buf, "TIME:%d/6  PC:%d", n_time, n_reserva);
-    texto(buf, 158, 9, FONTE_PX, (Color){248, 220, 120, 255});
+    texto("TERMINAL PC", 32, 9, FONTE_PX, (Color){60, 230, 255, 255});
+    snprintf(buf, sizeof buf, "T:%d/6 PC:%d", n_time, n_reserva);
+    textoAte(buf, 134, 9, 96, (Color){248, 220, 120, 255});
 
     /* Painel Esquerdo: Ficha do Pokémon Selecionado */
     caixa(8, 21, 98, 120, (Color){10, 18, 30, 255});
@@ -2759,11 +2755,11 @@ static void desenharPcEquipe(void) {
 
     if (sel != NULL) {
         float bob = sinf(vis.tempo * 3.5f) * 1.5f;
-        desenharSpriteMon(sel->numero, 0, (Rectangle){25, 20 + bob, 64, 64}, 0.0f);
+        desenharSpriteMon(sel->numero, 0, (Rectangle){29, 20 + bob, 56, 56}, 0.0f);
 
-        snprintf(buf, sizeof buf, "#%03d %s", sel->numero, sel->nome);
+        copiarTexto(buf, sizeof buf, sel->nome);
         textoAte(buf, 12, 80, 90, WHITE);
-        snprintf(buf, sizeof buf, "Nv.%d", sel->nivel);
+        snprintf(buf, sizeof buf, "Nv%d", sel->nivel);
         texto(buf, 12, 90, FONTE_PX, (Color){248, 220, 120, 255});
 
         DrawRectangle(46, 89, 28, 9, corDoTipo(sel->tipo1));
@@ -2777,15 +2773,13 @@ static void desenharPcEquipe(void) {
         texto(buf, 12, 101, FONTE_PX, (Color){200, 220, 240, 255});
         desenharBarraHp(12, 110, 90, sel->hp_max > 0 ? (float)sel->hp_atual / (float)sel->hp_max : 0.0f);
 
-        snprintf(buf, sizeof buf, "ATQ:%d DEF:%d VEL:%d", sel->ataque, sel->defesa, sel->velocidade);
+        snprintf(buf, sizeof buf, "A%d D%d", sel->ataque, sel->defesa);
         textoAte(buf, 12, 119, 92, (Color){170, 200, 230, 255});
 
-        if (sel->qtd_golpes > 0) {
-            snprintf(buf, sizeof buf, "- %s (%d)", sel->golpes[0].nome, sel->golpes[0].poder);
-            textoAte(buf, 12, 130, 92, (Color){220, 230, 240, 255});
-        }
+        snprintf(buf, sizeof buf, "VEL %d", sel->velocidade);
+        textoAte(buf, 12, 130, 92, (Color){220, 230, 240, 255});
     } else {
-        texto("Nenhum Pokemon", 14, 50, FONTE_PX, (Color){100, 120, 140, 255});
+        texto("Sem Pokemon", 14, 50, FONTE_PX, (Color){100, 120, 140, 255});
         texto("selecionado.", 14, 62, FONTE_PX, (Color){100, 120, 140, 255});
     }
 
@@ -2831,15 +2825,15 @@ static void desenharPcEquipe(void) {
                 texto(buf, 192, (float)y + 3, FONTE_PX, (Color){248, 220, 120, 255});
             } else {
                 DrawRectangleLines(112, y, 118, 15, (Color){24, 36, 54, 255});
-                texto("- VAZIO -", 146, (float)y + 4, FONTE_PX, (Color){60, 80, 100, 255});
+                texto("VAZIO", 146, (float)y + 4, FONTE_PX, (Color){60, 80, 100, 255});
             }
         }
     } else {
         int topo = vis.pc_sel_reserva - 2;
         if (topo < 0) topo = 0;
         if (n_reserva <= 0) {
-            texto("Nenhum Pokemon", 120, 70, FONTE_PX, (Color){100, 120, 140, 255});
-            texto("no armazenamento.", 116, 82, FONTE_PX, (Color){100, 120, 140, 255});
+            texto("Sem Pokemon", 120, 70, FONTE_PX, (Color){100, 120, 140, 255});
+            texto("na reserva.", 116, 82, FONTE_PX, (Color){100, 120, 140, 255});
         }
         for (j = 0; j < 6; j++) {
             int idx = topo + j;
@@ -2871,9 +2865,9 @@ static void desenharPcEquipe(void) {
     }
 
     if (vis.pc_modo_troca) {
-        textoAte("MODO TROCA: Escolha o destino e tecle [Z]", 12, 144, 216, (Color){255, 220, 80, 255});
+        textoAte("TROCA: escolha destino e Z", 12, 144, 216, (Color){255, 220, 80, 255});
     } else {
-        textoAte(vis.pc_aviso[0] ? vis.pc_aviso : "[Z] Mover/Trocar  [L] Lider  [TAB] Aba  [X] Sair", 12, 144, 216, (Color){180, 210, 240, 255});
+        textoAte(vis.pc_aviso[0] ? vis.pc_aviso : "Z:move L:lider TAB:aba X:sai", 12, 144, 216, (Color){180, 210, 240, 255});
     }
 }
 
@@ -2905,8 +2899,8 @@ static void desenharMinimapaModal(void) {
     int x, y;
     int sala_atual_idx = indiceDaSala(sala);
     static const char *nomes_curtos[8] = {
-        "1.LAB", "2.PATIO", "3.CAM.F", "4.TANQ",
-        "5.OFIC", "6.JAULA", "7.ARQ", "8.CHEFE"
+        "LAB", "PATIO", "FRIA", "TANQ",
+        "OFIC", "JAULA", "ARQ", "CHEFE"
     };
 
     DrawRectangle(0, 0, VIRT_L, VIRT_A, (Color){4, 6, 14, 220});
@@ -2932,11 +2926,11 @@ static void desenharMinimapaModal(void) {
 
         caixa(bx, by, 50, 17, fundo);
         DrawRectangleLines(bx, by, 50, 17, borda);
-        texto(nomes_curtos[idx], (float)bx + 3, (float)by + 3, FONTE_PX, WHITE);
+        textoAte(nomes_curtos[idx], bx + 3, by + 3, 40, WHITE);
         if (e_atual) {
-            texto("@", (float)bx + 40, (float)by + 3, FONTE_PX, GOLD);
+            DrawRectangle(bx + 44, by + 5, 3, 5, GOLD);
         } else if (resolvido) {
-            texto("v", (float)bx + 40, (float)by + 3, FONTE_PX, (Color){120, 240, 140, 255});
+            DrawRectangle(bx + 44, by + 5, 3, 5, (Color){120, 240, 140, 255});
         }
         cursor = cursor->prox;
         idx++;
@@ -2956,12 +2950,12 @@ static void desenharMinimapaModal(void) {
         DrawRectangleLines(sx, sy, 182, 17, borda_sec);
         if (tem_chave) {
             char status_sec[64];
-            snprintf(status_sec, sizeof status_sec, "SANTUARIO F:%c M:%c T:%c %s",
+            snprintf(status_sec, sizeof status_sec, "SANT. F:%c M:%c T:%c %s",
                      (alt & 1) ? '*' : '-', (alt & 2) ? '*' : '-', (alt & 4) ? '*' : '-',
                      (alt == 7) ? "[MB]" : "");
             texto(status_sec, (float)sx + 4, (float)sy + 4, FONTE_PX, e_secreta ? GOLD : (Color){230, 200, 255, 255});
         } else {
-            texto("SANTUARIO [TRANCADO: CHAVE NO ARQ]", (float)sx + 4, (float)sy + 4, FONTE_PX, (Color){140, 120, 160, 255});
+            texto("SANTUARIO: TRANCADO", (float)sx + 4, (float)sy + 4, FONTE_PX, (Color){140, 120, 160, 255});
         }
     }
 
@@ -2997,16 +2991,16 @@ static void desenharMinimapaModal(void) {
     {
         char buf[64];
         const char *nome_loc = mundo.secreta ? "Santuario Secreto" : (sala ? sala->nome : "Laboratorio");
-        texto(nome_loc, 84, 86, FONTE_PX, WHITE);
+        textoAte(nome_loc, 84, 86, 142, WHITE);
         snprintf(buf, sizeof buf, "Pos: X%02d Y%02d", mundo.tx, mundo.ty);
         texto(buf, 84, 98, FONTE_PX, (Color){180, 200, 220, 255});
-        snprintf(buf, sizeof buf, "Chave Secreta: %s", casoTemChaveSecreta(&caso_jogo) ? "ENCONTRADA" : "PENDENTE");
+        snprintf(buf, sizeof buf, "CHAVE: %s", casoTemChaveSecreta(&caso_jogo) ? "ENCONTRADA" : "PENDENTE");
         texto(buf, 84, 110, FONTE_PX, casoTemChaveSecreta(&caso_jogo) ? GOLD : (Color){150, 160, 180, 255});
         textoAte(casoObjetivoAtual(&caso_jogo), 84, 122, 142, (Color){248, 216, 104, 255});
     }
 
     /* Rodapé */
-    texto("[M/X/ESC] Fechar Mapa  [P] Pokedex", 14, 142, FONTE_PX, (Color){180, 200, 220, 255});
+    texto("M/X: fechar  P: Pokedex", 14, 142, FONTE_PX, (Color){180, 200, 220, 255});
 }
 
 static void desenharMundo(void) {
@@ -3111,25 +3105,36 @@ static void desenharMundo(void) {
         const char *nome_setor = mundo.secreta ? "Santuario" : sala->nome;
         int indice = indiceDaSala(sala);
         char tag[32];
-        float lw;
+        int i;
+        static const char *atalhos[] = {"P", "M", "N", "T"};
+        static const Color cores[] = {
+            {240, 80, 80, 255}, {80, 160, 240, 255},
+            {220, 200, 120, 255}, {100, 220, 140, 255}
+        };
 
-        /* Pílula compacta do setor */
+        /* Cada informação tem uma área própria dentro do buffer de 240 px. */
         snprintf(tag, sizeof tag, "S%d %s", indice + 1, nome_setor);
-        lw = larguraTexto(tag, FONTE_PX);
-        caixa(3, 3, (int)lw + 10, 13, (Color){12, 16, 26, 220});
-        texto(tag, 7.0f, 6.0f, FONTE_PX, (Color){248, 248, 236, 255});
+        caixa(3, 3, 153, 16, (Color){12, 16, 26, 220});
+        textoAte(tag, 7, 6, 144, (Color){248, 248, 236, 255});
+        for (i = 0; i < 4; i++) {
+            int bx = 160 + i * 20;
+            caixa(bx, 3, 16, 16, (Color){12, 16, 26, 220});
+            texto(atalhos[i], bx + 4, 6, FONTE_PX, cores[i]);
+        }
 
-        /* Atalhos rápidos com ícones no canto superior direito */
-        caixa(142, 3, 95, 13, (Color){12, 16, 26, 220});
-        texto("[P]", 145, 6, FONTE_PX, (Color){240, 80, 80, 255});
-        texto("[M]", 167, 6, FONTE_PX, (Color){80, 160, 240, 255});
-        texto("[N]", 189, 6, FONTE_PX, (Color){220, 200, 120, 255});
-        texto("[T]", 211, 6, FONTE_PX, (Color){100, 220, 140, 255});
+        if (sala->luzes_necessarias) {
+            char luzes[16];
+            int n = !!(sala->luzes & 1U) + !!(sala->luzes & 2U);
+            snprintf(luzes, sizeof luzes, "Luz %d/2", n);
+            caixa(152, 22, 84, 23, (Color){12, 16, 26, 220});
+            desenharTecla(3, 154, 25);
+            textoAte(luzes, 174, 28, 58, WHITE);
+        }
 
         if (casoTemChaveSecreta(&caso_jogo)) {
-            caixa(216, 18, 21, 11, (Color){40, 24, 60, 230});
-            DrawRectangle(218, 22, 5, 3, GOLD);
-            DrawCircle(226, 23, 2.0f, GOLD);
+            caixa(126, 22, 23, 16, (Color){40, 24, 60, 230});
+            DrawRectangle(130, 28, 6, 3, GOLD);
+            DrawCircle(139, 29, 3.0f, GOLD);
         }
     }
     desenharContexto(camx, camy);
@@ -3265,7 +3270,7 @@ static void desenharCaixaHp(const Pokemon *pokemon, float razao, int x, int y, i
     desenharBarraHp(x + 24, y + 18, w - 32, razao);
     if (mostrar_numeros && pokemon->hp_max > 0) {
         float exp_razao = (float)(pokemon->experiencia % 60) / 60.0f;
-        int exp_w = w - 68;
+        int exp_w;
         int i_slot;
         int n_m = tamanhoTime(&caso_jogo.nucleo.time);
 
@@ -3276,11 +3281,13 @@ static void desenharCaixaHp(const Pokemon *pokemon, float razao, int x, int y, i
         texto(pontos, (float)x + (float)w - larguraTexto(pontos, FONTE_PX) - 6.0f,
               (float)y + 26.0f, FONTE_PX, BLACK);
 
-        /* Barra de EXP clássica estilo GBA/FireRed para o Pokémon aliado */
+        exp_w = w - (int)larguraTexto(pontos, FONTE_PX) - 46;
+        if (exp_w < 0) exp_w = 0;
+        /* A experiência reserva a largura do HP numérico na mesma linha. */
         texto("EXP", (float)x + 6.0f, (float)y + 27.0f, FONTE_PX, (Color){40, 140, 200, 255});
-        DrawRectangle(x + 28, y + 29, exp_w, 3, (Color){40, 48, 64, 255});
+        DrawRectangle(x + 34, y + 30, exp_w, 3, (Color){40, 48, 64, 255});
         if (exp_w > 2 && exp_razao > 0.0f) {
-            DrawRectangle(x + 29, y + 30, (int)((float)(exp_w - 2) * exp_razao), 1, (Color){60, 180, 240, 255});
+            DrawRectangle(x + 35, y + 31, (int)((float)(exp_w - 2) * exp_razao), 1, (Color){60, 180, 240, 255});
         }
 
         /* Marcadores de Pokébolas dos Pokémon do jogador */
@@ -3643,7 +3650,7 @@ static void desenharBatalha(void) {
     Color chao;
     Color plat_c;
     Color plat_e;
-    const char *comandos[] = {"LUTAR", "BOLSA", "POKéMON", "FUGIR"};
+    const char *comandos[] = {"LUTAR", "BOLSA", "TIME", "FUGIR"};
     int i;
 
     if (caso_jogo.oponente_carregado) {
@@ -3925,7 +3932,7 @@ static void desenharBatalha(void) {
 
         if (sel_pk != NULL) {
             float bob = sinf(vis.tempo * 3.5f) * 1.5f;
-            desenharSpriteMon(sel_pk->numero, 0, (Rectangle){25, 7 + bob, 64, 64}, 0.0f);
+            desenharSpriteMon(sel_pk->numero, 0, (Rectangle){29, 7 + bob, 56, 56}, 0.0f);
 
             if (sel_pk->brilhante) {
                 int s;
@@ -3935,9 +3942,9 @@ static void desenharBatalha(void) {
                 }
             }
 
-            snprintf(buf, sizeof buf, "#%03d %s", sel_pk->numero, sel_pk->nome);
+            copiarTexto(buf, sizeof buf, sel_pk->nome);
             textoAte(buf, 12, 68, 90, WHITE);
-            snprintf(buf, sizeof buf, "Nv.%d", sel_pk->nivel);
+            snprintf(buf, sizeof buf, "Nv%d", sel_pk->nivel);
             texto(buf, 12, 78, FONTE_PX, (Color){248, 220, 120, 255});
 
             DrawRectangle(46, 77, 28, 9, corDoTipo(sel_pk->tipo1));
@@ -3951,23 +3958,25 @@ static void desenharBatalha(void) {
             texto(buf, 12, 89, FONTE_PX, (Color){200, 220, 240, 255});
             desenharBarraHp(12, 98, 90, sel_pk->hp_max > 0 ? (float)sel_pk->hp_atual / (float)sel_pk->hp_max : 0.0f);
 
-            snprintf(buf, sizeof buf, "ATQ:%d DEF:%d VEL:%d", sel_pk->ataque, sel_pk->defesa, sel_pk->velocidade);
+            snprintf(buf, sizeof buf, "A%d D%d", sel_pk->ataque, sel_pk->defesa);
             textoAte(buf, 12, 107, 92, (Color){170, 200, 230, 255});
+            snprintf(buf, sizeof buf, "VEL %d", sel_pk->velocidade);
+            textoAte(buf, 12, 117, 92, (Color){170, 200, 230, 255});
 
             if (sel_pk->qtd_golpes > 0) {
                 snprintf(buf, sizeof buf, "1:%s", sel_pk->golpes[0].nome);
-                textoAte(buf, 12, 118, 92, (Color){220, 230, 240, 255});
+                textoAte(buf, 12, 128, 92, (Color){220, 230, 240, 255});
             }
             if (sel_pk->qtd_golpes > 1) {
                 snprintf(buf, sizeof buf, "2:%s", sel_pk->golpes[1].nome);
-                textoAte(buf, 12, 128, 92, (Color){220, 230, 240, 255});
+                textoAte(buf, 12, 138, 92, (Color){220, 230, 240, 255});
             }
         } else {
-            texto("Nenhum Pokemon", 14, 50, FONTE_PX, (Color){100, 120, 140, 255});
+            texto("Sem Pokemon", 14, 50, FONTE_PX, (Color){100, 120, 140, 255});
         }
 
         /* Painel Direito: Lista de Seleção para Enviar */
-        texto("ESCOLHA O POKEMON", 112, 10, FONTE_PX, (Color){80, 210, 255, 255});
+        texto("ESCOLHA O TIME", 112, 10, FONTE_PX, (Color){80, 210, 255, 255});
 
         for (i = 0; i < n && i < 6; i++) {
             const Pokemon *membro = pokemonNaPosicao(&caso_jogo.nucleo.time, i);
@@ -3992,7 +4001,7 @@ static void desenharBatalha(void) {
             texto(nv, 192, (float)y + 2, FONTE_PX, (Color){248, 220, 120, 255});
 
             if (e_ativo) {
-                texto("[ATIVO]", 128, (float)y + 10, FONTE_PX, (Color){60, 220, 140, 255});
+                texto("ATIVO", 128, (float)y + 10, FONTE_PX, (Color){60, 220, 140, 255});
             } else if (membro->hp_atual <= 0) {
                 texto("[FNT]", 128, (float)y + 10, FONTE_PX, (Color){240, 80, 80, 255});
             }
@@ -4000,7 +4009,7 @@ static void desenharBatalha(void) {
             desenharBarraHp(176, y + 11, 48, razao);
         }
 
-        textoAte("[Z] Enviar  [X] Voltar", 112, 140, 120, (Color){180, 200, 220, 255});
+        textoAte("Z:enviar X:sair", 112, 140, 120, (Color){180, 200, 220, 255});
     }
     if (vis.fase == BAT_ANALISE) {
         const Pokemon *alvo = pokemonNaPosicao(&caso_jogo.oponente_atual.time, vis.cursor_time);
@@ -4012,8 +4021,8 @@ static void desenharBatalha(void) {
             DrawRectangle(0, 0, VIRT_L, VIRT_A, (Color){6, 14, 28, 240});
 
             /* Cabeçalho do Scanner */
-            texto("SCANNER POKEDEX [LOCK-ON]", 14, 6, FONTE_PX, (Color){40, 220, 240, 255});
-            texto("[ANALISE ATIVA]", 146, 6, FONTE_PX, (Color){80, 240, 160, 255});
+            texto("SCANNER POKEDEX", 14, 6, FONTE_PX, (Color){40, 220, 240, 255});
+            texto("ATIVO", 184, 6, FONTE_PX, (Color){80, 240, 160, 255});
 
             /* Visor Esquerdo: Mira Holográfica mirada no Pokémon */
             caixa(8, 17, 96, 124, (Color){10, 22, 34, 255});
@@ -4044,7 +4053,7 @@ static void desenharBatalha(void) {
             /* Identificação na mira */
             snprintf(linha, sizeof linha, "ID: #%03d", alvo->numero);
             texto(linha, 14, 114, FONTE_PX, (Color){160, 210, 240, 255});
-            texto("[ALVO LOCALIZADO]", 14, 126, FONTE_PX, (Color){80, 240, 160, 255});
+            texto("ALVO FIXO", 14, 126, FONTE_PX, (Color){80, 240, 160, 255});
 
             /* Painel Direito: Análise de Dados Táticos */
             caixa(108, 17, 124, 124, (Color){14, 22, 36, 255});
@@ -4063,24 +4072,24 @@ static void desenharBatalha(void) {
             }
 
             /* Nível e HP com Barra */
-            snprintf(linha, sizeof linha, "Nv.%d  HP %d/%d", alvo->nivel, alvo->hp_atual, alvo->hp_max);
+            snprintf(linha, sizeof linha, "N%d HP%d/%d", alvo->nivel, alvo->hp_atual, alvo->hp_max);
             texto(linha, 114, 50, FONTE_PX, (Color){248, 220, 120, 255});
             desenharBarraHp(114, 60, 112, (float)alvo->hp_atual / (float)alvo->hp_max);
 
             /* Atributos escalados de combate */
-            snprintf(linha, sizeof linha, "ATQ:%d DEF:%d VEL:%d", ataqueEmBatalha(alvo),
+            snprintf(linha, sizeof linha, "A%d D%d V%d", ataqueEmBatalha(alvo),
                      defesaEmBatalha(alvo), velocidadeEmBatalha(alvo));
             textoAte(linha, 114, 70, 112, (Color){180, 210, 240, 255});
 
             /* Golpes Identificados */
-            texto("GOLPES ANALISADOS:", 114, 83, FONTE_PX, (Color){130, 160, 190, 255});
+            texto("GOLPES:", 114, 83, FONTE_PX, (Color){130, 160, 190, 255});
             for (i = 0; i < alvo->qtd_golpes && i < 3; i++) {
                 snprintf(linha, sizeof linha, "- %s (%d)", alvo->golpes[i].nome, alvo->golpes[i].poder);
                 textoAte(linha, 114, 93 + i * 10, 112, WHITE);
             }
 
             /* Rodapé com atalhos */
-            texto("< > Alvo  |  [Z] Iniciar Duelo", 14, 146, FONTE_PX, (Color){200, 220, 240, 255});
+            texto("< >: alvo  Z: duelo", 14, 146, FONTE_PX, (Color){200, 220, 240, 255});
         }
     }
 }
@@ -4189,7 +4198,7 @@ static void desenharPokedex(void) {
     DrawCircle(40, 12, 3, (Color){240, 220, 60, 255});
     DrawCircle(48, 12, 3, (Color){60, 220, 90, 255});
 
-    texto("POKEDEX REGIONAL", 58, 10, FONTE_PX, WHITE);
+    texto("POKEDEX", 58, 10, FONTE_PX, WHITE);
 
     if (coleta.n <= 0) {
         caixa(16, 30, 208, 100, (Color){248, 248, 240, 255});
@@ -4211,7 +4220,7 @@ static void desenharPokedex(void) {
     if (vis.pokedex_sel >= vis.pokedex_topo + 4) vis.pokedex_topo = vis.pokedex_sel - 3;
     if (vis.pokedex_topo < 0) vis.pokedex_topo = 0;
 
-    snprintf(buf, sizeof buf, "%02d/%02d VISTOS:%02d", vis.pokedex_sel + 1, coleta.n, total_vistos);
+    snprintf(buf, sizeof buf, "V:%d/%d", total_vistos, coleta.n);
     texto(buf, 144, 10, FONTE_PX, (Color){248, 220, 120, 255});
 
     sel = coleta.itens[vis.pokedex_sel];
@@ -4252,7 +4261,7 @@ static void desenharPokedex(void) {
 
             snprintf(buf, sizeof buf, "#%03d", sel->numero);
             texto(buf, 14, 96, FONTE_PX, (Color){50, 70, 60, 255});
-            textoAte("??? (NAO VISTO)", 14, 106, 88, (Color){36, 56, 44, 255});
+            textoAte("NAO VISTO", 14, 106, 88, (Color){36, 56, 44, 255});
 
             /* Badge desconhecido */
             DrawRectangle(14, 122, 42, 13, (Color){100, 115, 110, 255});
@@ -4302,9 +4311,9 @@ static void desenharPokedex(void) {
 
     if (sel != NULL) {
         if (descoberto) {
-            snprintf(buf, sizeof buf, "HP:%d ATQ:%d", sel->hp_base, sel->ataque);
+            snprintf(buf, sizeof buf, "HP:%d A:%d", sel->hp_base, sel->ataque);
             texto(buf, 114, 93, FONTE_PX, (Color){248, 224, 120, 255});
-            snprintf(buf, sizeof buf, "DEF:%d VEL:%d", sel->defesa, sel->velocidade);
+            snprintf(buf, sizeof buf, "D:%d V:%d", sel->defesa, sel->velocidade);
             texto(buf, 114, 103, FONTE_PX, (Color){248, 224, 120, 255});
             if (sel->qtd_golpes > 0) {
                 snprintf(buf, sizeof buf, "- %s (%d)", sel->golpes[0].nome, sel->golpes[0].poder);
@@ -4315,15 +4324,15 @@ static void desenharPokedex(void) {
                 textoAte(buf, 114, 126, 114, (Color){200, 220, 240, 255});
             }
         } else {
-            texto("HP: ???  ATQ: ???", 114, 93, FONTE_PX, (Color){150, 165, 180, 255});
-            texto("DEF: ??? VEL: ???", 114, 103, FONTE_PX, (Color){150, 165, 180, 255});
+            texto("HP:??? A:???", 114, 93, FONTE_PX, (Color){150, 165, 180, 255});
+            texto("D:??? V:???", 114, 103, FONTE_PX, (Color){150, 165, 180, 255});
             texto("DADOS OCULTOS", 114, 115, FONTE_PX, (Color){240, 130, 80, 255});
             texto("Aviste no mapa!", 114, 126, FONTE_PX, (Color){140, 160, 180, 255});
         }
     }
 
     /* Rodapé */
-    texto("[W/S] Navegar  [P/X/ESC] Fechar", 18, 146, FONTE_PX, (Color){240, 240, 240, 255});
+    texto("W/S: navegar  X: fechar", 18, 146, FONTE_PX, (Color){240, 240, 240, 255});
 }
 
 static void atualizarMewtwo(float dt) {
@@ -4498,9 +4507,28 @@ static void desenharTudo(void) {
     EndTextureMode();
 }
 
+/* Centraliza sem deformar: só amplia por fatores inteiros, salvo abaixo de 240x160. */
+static Rectangle calcularAreaJogo(int largura, int altura) {
+    float escala = fminf((float)largura / VIRT_L, (float)altura / VIRT_A);
+    Rectangle area;
+    if (escala >= 1.0f) escala = floorf(escala);
+    if (escala <= 0.0f) escala = 1.0f;
+    area.width = VIRT_L * escala;
+    area.height = VIRT_A * escala;
+    area.x = floorf(((float)largura - area.width) * 0.5f);
+    area.y = floorf(((float)altura - area.height) * 0.5f);
+    return area;
+}
+
+/* O mouse usa exatamente o mesmo deslocamento e a mesma escala do desenho. */
+static Vector2 pontoNoJogo(Vector2 ponto, Rectangle area) {
+    return (Vector2){(ponto.x - area.x) * VIRT_L / area.width,
+                     (ponto.y - area.y) * VIRT_A / area.height};
+}
+
 static void apresentar(const char *png) {
     Rectangle origem = {0.0f, 0.0f, (float)VIRT_L, -(float)VIRT_A};
-    Rectangle destino = {0.0f, 0.0f, (float)JANELA_L, (float)JANELA_A};
+    Rectangle destino = calcularAreaJogo(GetScreenWidth(), GetScreenHeight());
 
     BeginDrawing();
     ClearBackground(BLACK);
@@ -4536,7 +4564,7 @@ static int pontoNoRetangulo(Rectangle r, Vector2 p) {
 }
 
 static void atualizarMenu(void) {
-    Vector2 mouse = {(float)GetMouseX() / (float)ESCALA, (float)GetMouseY() / (float)ESCALA};
+    Vector2 mouse = pontoNoJogo(GetMousePosition(), calcularAreaJogo(GetScreenWidth(), GetScreenHeight()));
     int i;
 
     if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) vis.menu_cursor = (vis.menu_cursor + 1) % 4;
@@ -4575,6 +4603,10 @@ static void atualizarMenu(void) {
 }
 
 static void atualizar(float dt) {
+    if (IsKeyPressed(KEY_F11) || (IsKeyPressed(KEY_ENTER) &&
+        (IsKeyDown(KEY_LEFT_ALT) || IsKeyDown(KEY_RIGHT_ALT)))) {
+        ToggleBorderlessWindowed();
+    }
     if (dt > 0.05f) dt = 0.05f;
     vis.tempo += dt;
     atualizarTransicao(dt);
@@ -4636,8 +4668,8 @@ static void atualizar(float dt) {
     }
 }
 
-int executarInterfaceRaylib(void) {
-    if (!abrirGrafico()) {
+int executarInterfaceRaylib(int tela_cheia) {
+    if (!abrirGrafico(tela_cheia)) {
         fprintf(stderr, "Não foi possível abrir a janela.\n");
         return 1;
     }
@@ -4765,7 +4797,7 @@ static int irAteOChefe(void) {
 int capturarTelasDemonstracao(void) {
     NoSala *sala;
 
-    if (!abrirGrafico()) {
+    if (!abrirGrafico(0)) {
         return 1;
     }
     if (!iniciarCaso(&caso_jogo)) {

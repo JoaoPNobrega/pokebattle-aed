@@ -3,7 +3,7 @@
  * ------
  * PokéBattle: O Caso do Laboratório.
  *
- * Sem argumentos, abre a janela (raylib).
+ * Sem argumentos, abre em tela cheia (raylib); --janela abre em janela.
  * Com --simular, joga o caso sozinho, sem janela, e devolve
  * 0 se o detetive vence o capanga, 1 se perde, 2 se nem monta o caso.
  */
@@ -28,5 +28,5 @@ int main(int argc, char **argv) {
         return capturarTelasDemonstracao();
     }
 
-    return executarInterfaceRaylib();
+    return executarInterfaceRaylib(!(argc > 1 && strcmp(argv[1], "--janela") == 0));
 }

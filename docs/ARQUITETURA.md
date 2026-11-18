@@ -113,3 +113,9 @@ Há dez refletores (dois no Laboratório, Câmara fria, Oficina, Jaula e Arquivo
 Os guardas da Câmara fria e da Oficina saem da mesma fila obrigatória por `casoIniciarDuelo`. Eles exigem luzes e puzzle, recusam fuga/captura e bloqueiam a saída até a vitória. Oponentes de treino continuam fora da fila e não alteram esses objetivos. Não recriar salas, capturas ou Giovanni: estender o Caso existente.
 
 `assets/ui/teclas.png` e `guardas.png` são pixel art própria, gerada por `tools/gerar_interface.ps1` (ferramenta opcional de desenvolvimento; o jogo C só lê os PNGs). Sem assets de Ben 10. Referências de mecânica em `docs/REFERENCIAS_VISUAIS.md`.
+
+## Enquadramento da interface
+
+`ui_raylib.c` mantém o buffer lógico em 240×160 e calcula a área de apresentação a partir do tamanho atual da janela. A escala é inteira e a imagem é centralizada com margens pretas, sem deformar ou cortar o buffer. O mouse passa pela transformação inversa antes de testar os botões. A abertura usa tela cheia sem mudança de resolução; F11/Alt+Enter alterna o modo e `--janela` permite iniciar em janela. As capturas de demonstração continuam em janela.
+
+No HUD, setor e atalhos têm áreas independentes na primeira linha. Iluminação/lanterna e chave secreta ficam na segunda, e o objetivo ou a ação contextual ocupa a barra inferior. Textos de largura variável respeitam o limite de cada área. Esses ajustes ficam na apresentação e não alteram as regras do Caso.

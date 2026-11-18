@@ -73,7 +73,9 @@ make assets   # opcional: refaz assets/pokemon/ pela PokéAPI
 
 ## Controles
 
-A cena é desenhada em 240×160 (o tamanho do GBA) e ampliada em pixels inteiros, com filtro de ponto.
+O jogo abre em tela cheia, sem mudar a resolução do monitor. A cena é desenhada em 240×160 (o tamanho do GBA), ampliada na maior escala inteira que cabe e centralizada com margens pretas, mantendo a proporção e o filtro de ponto. **F11** ou **Alt+Enter** alterna entre tela cheia e janela redimensionável. Para iniciar em janela, use `./bin/pokebattle --janela`. O mouse acompanha a escala e as margens.
+
+O HUD separa setor, atalhos P/M/N/T, iluminação e chave secreta em áreas próprias. O objetivo e a interação ficam na barra inferior, com espaço reservado para a tecla.
 
 | Onde | Teclado |
 | --- | --- |
