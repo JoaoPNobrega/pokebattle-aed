@@ -259,4 +259,22 @@ int casoDefinirLider(Caso *caso, int pos);
 int casoTamanhoReserva(const Caso *caso);
 const Pokemon *casoPokemonReserva(const Caso *caso, int pos);
 
+/*
+ * casoConvidarMewtwo
+ * Prepara o Mewtwo (espécie #150, nível 50) e adiciona à equipe ou PC do detetive.
+ *
+ * Parâmetro: caso.
+ * Retorno: 1 se integrado com sucesso, 0 caso contrário.
+ * Complexidade: O(log n) na AVL da Pokédex + O(1) na inserção da lista duplamente encadeada.
+ */
+int casoConvidarMewtwo(Caso *caso);
+
+/*
+ * casoIniciarEncontroLendario
+ * Inicia confronto direto com lendário (#144 Articuno, #145 Zapdos, #146 Moltres, #150 Mewtwo, #151 Mew).
+ * Complexidade: O(log n) na busca da AVL + O(1) na inserção.
+ */
+int casoIniciarEncontroLendario(Caso *caso, int numero_lendario);
+
 #endif
+

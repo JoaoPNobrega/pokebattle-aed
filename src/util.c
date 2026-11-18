@@ -93,3 +93,31 @@ int textoEhNumero(const char *texto) {
     }
     return 1;
 }
+
+#if defined(_WIN32) && defined(__MINGW32__) && !defined(__MINGW64_VERSION_MAJOR)
+#include <stdio.h>
+#include <stdarg.h>
+#include <math.h>
+
+void sincosf(float x, float *s, float *c) {
+    if (s != NULL) *s = sinf(x);
+    if (c != NULL) *c = cosf(x);
+}
+
+void sincos(double x, double *s, double *c) {
+    if (s != NULL) *s = sin(x);
+    if (c != NULL) *c = cos(x);
+}
+
+int __mingw_vsscanf(const char *s, const char *fmt, va_list ap) {
+    return vsscanf(s, fmt, ap);
+}
+
+static FILE * __cdecl my_acrt_iob_func(unsigned index) {
+    return &(_iob[index]);
+}
+
+typedef FILE * (__cdecl *acrt_func_ptr)(unsigned);
+acrt_func_ptr __imp____acrt_iob_func __asm__("__imp____acrt_iob_func") = my_acrt_iob_func;
+#endif
+

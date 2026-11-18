@@ -53,7 +53,8 @@ typedef enum {
     TELA_SALA,
     TELA_BATALHA,
     TELA_CREDITOS,
-    TELA_GAMEOVER
+    TELA_GAMEOVER,
+    TELA_MEWTWO
 } Tela;
 
 typedef enum {
@@ -147,6 +148,11 @@ typedef struct {
     int pc_troca_origem_aba;
     int pc_troca_origem_pos;
     char pc_aviso[64];
+    int mewtwo_ativo;
+    int mewtwo_etapa;
+    int mewtwo_opcao;
+    int mewtwo_convencido;
+    float mewtwo_t;
 } Visual;
 
 typedef struct {
@@ -233,7 +239,7 @@ static Mapa MAPA_LAB = {
 
 static Mapa MAPA_PATIO = {
     "####################",
-    "#BB............*.BB#",
+    "#BB.........C..*.BB#",
     "#B.gggg......rrr..B#",
     "#..gggg......rrr...#",
     "#..gggg............#",
@@ -275,9 +281,9 @@ static Mapa MAPA_TANQUE = {
     "#........E.........#",
     "#..gggg.......ggg..#",
     "#..gggg.......ggg..#",
-    "#M................M#",
+    "#MC...............M#",
     "#...cc.......cc..*.#",
-    "#...bb.......bb....#",
+    "#...bb......bb.....#",
     "#........D.........#",
     "####################"
 };
@@ -342,7 +348,7 @@ static Mapa MAPA_SECRETA = {
     "#....gggg..gggg....#",
     "#....gggg..gggg....#",
     "#..###.......###...#",
-    "#..T............*..#",
+    "#..T...C........*..#",
     "#..................#",
     "#..MM..........MM..#",
     "#..................#",
@@ -1009,6 +1015,15 @@ static void aoFecharFala(void) {
         vis.menu_cursor = 0;
         return;
     }
+    if (depois == 4) {
+        tela = TELA_MEWTWO;
+        vis.mewtwo_ativo = 1;
+        vis.mewtwo_etapa = 0;
+        vis.mewtwo_opcao = 0;
+        vis.mewtwo_convencido = 0;
+        vis.mewtwo_t = 0.0f;
+        return;
+    }
     narrarSalaAtual();
 }
 
@@ -1288,6 +1303,13 @@ static void tentarTreino(int explicar) {
     }
 }
 
+static void tentarLendario(int numero_lendario) {
+    if (casoIniciarEncontroLendario(&caso_jogo, numero_lendario)) {
+        clique();
+        comecarTransicao();
+    }
+}
+
 static void tentarPuzzle(char simbolo) {
     NoSala *sala = salaAtual(&caso_jogo.salas);
 
@@ -1538,20 +1560,21 @@ static void interagir(void) {
         return;
     }
     if (a_frente == 'm' && mundo.secreta) {
-        abrirFala("MURAL ANCESTRAL: 'Chama purifica, Mente sintoniza, Trovão desperta. Traga Charmander, Alakazam e Pikachu diante dos altares.'");
+        abrirFala("MURAL ANCESTRAL: 'Traga Charmander, Alakazam e Pikachu aos altares. Quando acesos, toque-os com [Z] para invocar as Aves Lendárias, e o Pedestal Sagrado para invocar Mew e Mewtwo!'");
         return;
     }
     if (a_frente == 'F' && mundo.secreta) {
         if (caso_jogo.altares_secretos & 1) {
-            abrirFala("O Altar do Fogo já queima com chamas azuis sagradas!");
+            tentarLendario(146);
+            abrirFala("O Altar do Fogo queima em chamas azuis! O guardião lendário MOLTRES desperta do vulcão sagrado!");
         } else {
             int res = casoAtivarAltarElemental(&caso_jogo, 0);
             if (res == 2) {
                 if (vis.som_ok) PlaySound(vis.som_acerto);
-                abrirFala("Charmander acendeu o Altar do Fogo! Todos os 3 altares estão ativos! O pedestal central liberou a MASTER BALL!");
+                abrirFala("Charmander acendeu o Altar do Fogo! Todos os 3 altares estão ativos! O pedestal central liberou a MASTER BALL! Toque no altar novamente para invocar Moltres!");
             } else if (res == 1) {
                 if (vis.som_ok) PlaySound(vis.som_acerto);
-                abrirFala("Charmander canalizou suas chamas! O Altar do Fogo foi ativado!");
+                abrirFala("Charmander canalizou suas chamas! O Altar do Fogo foi ativado! Toque-o novamente para invocar Moltres!");
             } else {
                 abrirFala("O Altar do Fogo está frio. Exige o poder do tipo FOGO! Use 'T' para colocar Charmander como ativo.");
             }
@@ -1560,15 +1583,16 @@ static void interagir(void) {
     }
     if (a_frente == 'M' && mundo.secreta) {
         if (caso_jogo.altares_secretos & 2) {
-            abrirFala("O Altar Psíquico ressoa com vibrações cósmicas violetas!");
+            tentarLendario(144);
+            abrirFala("O Altar Psíquico sintoniza frequências cósmicas! O guardião lendário ARTICUNO desce dos céus gelados!");
         } else {
             int res = casoAtivarAltarElemental(&caso_jogo, 1);
             if (res == 2) {
                 if (vis.som_ok) PlaySound(vis.som_acerto);
-                abrirFala("Alakazam sintonizou o Altar Psíquico! Todos os 3 altares estão ativos! O pedestal central liberou a MASTER BALL!");
+                abrirFala("Alakazam sintonizou o Altar Psíquico! Todos os 3 altares estão ativos! O pedestal central liberou a MASTER BALL! Toque no altar novamente para invocar Articuno!");
             } else if (res == 1) {
                 if (vis.som_ok) PlaySound(vis.som_acerto);
-                abrirFala("Alakazam canalizou ondas mentais! O Altar Psíquico foi ativado!");
+                abrirFala("Alakazam canalizou ondas mentais! O Altar Psíquico foi ativado! Toque-o novamente para invocar Articuno!");
             } else {
                 abrirFala("O Altar Psíquico não reage. Exige o poder mental de um tipo PSÍQUICO! Use 'T' para colocar Alakazam como ativo.");
             }
@@ -1577,15 +1601,16 @@ static void interagir(void) {
     }
     if (a_frente == 'T' && mundo.secreta) {
         if (caso_jogo.altares_secretos & 4) {
-            abrirFala("O Altar do Trovão reluz com faíscas douradas contínuas!");
+            tentarLendario(145);
+            abrirFala("O Altar do Trovão reluz faíscas douradas! O guardião lendário ZAPDOS desce em meio a relâmpagos!");
         } else {
             int res = casoAtivarAltarElemental(&caso_jogo, 2);
             if (res == 2) {
                 if (vis.som_ok) PlaySound(vis.som_acerto);
-                abrirFala("Pikachu eletrificou o Altar do Trovão! Todos os 3 altares estão ativos! O pedestal central liberou a MASTER BALL!");
+                abrirFala("Pikachu eletrificou o Altar do Trovão! Todos os 3 altares estão ativos! O pedestal central liberou a MASTER BALL! Toque no altar novamente para invocar Zapdos!");
             } else if (res == 1) {
                 if (vis.som_ok) PlaySound(vis.som_acerto);
-                abrirFala("Pikachu disparou raios dourados! O Altar do Trovão foi ativado!");
+                abrirFala("Pikachu disparou raios dourados! O Altar do Trovão foi ativado! Toque-o novamente para invocar Zapdos!");
             } else {
                 abrirFala("O Altar do Trovão está descarregado. Exige eletricidade de um tipo ELÉTRICO! Use 'T' para colocar Pikachu como ativo.");
             }
@@ -1594,7 +1619,14 @@ static void interagir(void) {
     }
     if (a_frente == 'p' && mundo.secreta) {
         if (caso_jogo.altares_secretos == 7 || caso_jogo.master_bolas > 0) {
-            abrirFala("PEDESTAL SAGRADO: A Master Ball ancestral foi resgatada! A mata secreta agora ressoa com a presença de Pokémon lendários!");
+            static int alternar_mito = 0;
+            int num = (alternar_mito++ % 2 == 0) ? 151 : 150;
+            tentarLendario(num);
+            if (num == 151) {
+                abrirFala("PEDESTAL SAGRADO: Uma luz etérea resplandece... O mítico MEW surge diante de você!");
+            } else {
+                abrirFala("PEDESTAL SAGRADO: Ondas psíquicas colossais emergem do núcleo... MEWTWO materializou-se!");
+            }
         } else {
             abrirFala("O Pedestal Sagrado está protegido por um campo de força. Ative os 3 altares elementais (Fogo, Mente e Trovão)!");
         }
@@ -2363,15 +2395,87 @@ static void desenharPuzzle(void) {
         texto("Mangueira: A=4 e B=3.", 12, 121, FONTE_PX, WHITE);
     } else if (d->tipo == DES_RASTRO) {
         int distancia = distanciaRastro(d, vis.cursor_puzzle);
+        texto("LUPA DE DETETIVE: SEGUIR RASTRO", 12, 16, FONTE_PX, GOLD);
+
         for (i = 0; i < 20; i++) {
-            x = 12 + i % 5 * 21; y = 31 + i / 5 * 21;
-            caixa(x, y, 19, 19, d->examinados & (1U << i) ? (Color){104, 72, 144, 255} : (Color){40, 48, 72, 255});
-            if (i == vis.cursor_puzzle) { DrawRectangleLines(x, y, 19, 19, YELLOW); DrawCircle(x + 9, y + 9, 3, (Color){176, 144, 232, 255}); }
+            int exam = (d->examinados & (1U << i));
+            int dist_i = distanciaRastro(d, i);
+            x = 10 + (i % 5) * 21;
+            y = 28 + (i / 5) * 21;
+
+            caixa(x, y, 19, 19, exam ? (Color){28, 36, 52, 255} : (Color){44, 52, 70, 255});
+            DrawRectangleLines(x, y, 19, 19, (Color){32, 40, 56, 255});
+
+            if (exam) {
+                if (dist_i == 0) {
+                    DrawCircle(x + 7, y + 8, 2.0f, (Color){80, 240, 180, 255});
+                    DrawCircle(x + 5, y + 6, 1.0f, (Color){140, 255, 210, 255});
+                    DrawCircle(x + 7, y + 5, 1.0f, (Color){140, 255, 210, 255});
+                    DrawCircle(x + 9, y + 6, 1.0f, (Color){140, 255, 210, 255});
+
+                    DrawCircle(x + 12, y + 13, 2.0f, (Color){80, 240, 180, 255});
+                    DrawCircle(x + 10, y + 11, 1.0f, (Color){140, 255, 210, 255});
+                    DrawCircle(x + 12, y + 10, 1.0f, (Color){140, 255, 210, 255});
+                    DrawCircle(x + 14, y + 11, 1.0f, (Color){140, 255, 210, 255});
+                } else if (dist_i == 1) {
+                    DrawCircle(x + 9, y + 10, 1.8f, (Color){248, 216, 104, 200});
+                    DrawCircle(x + 8, y + 7, 0.8f, (Color){255, 235, 140, 200});
+                    DrawCircle(x + 10, y + 7, 0.8f, (Color){255, 235, 140, 200});
+                } else {
+                    DrawCircle(x + 9, y + 9, 1.5f, (Color){70, 80, 105, 255});
+                }
+            }
+
+            if (i == vis.cursor_puzzle) {
+                float flutua_lupa = sinf(vis.tempo * 4.0f) * 1.0f;
+                int lx = x + 9;
+                int ly = y + 9 + (int)flutua_lupa;
+
+                DrawCircleLines(lx, ly, 7.5f, GOLD);
+                DrawCircleLines(lx, ly, 6.5f, (Color){255, 235, 130, 255});
+                DrawCircle(lx, ly, 6.0f, (Color){140, 230, 255, 120});
+                DrawLine(lx - 3, ly - 3, lx, ly - 5, WHITE);
+                DrawLine(lx, ly - 3, lx, ly + 3, (Color){255, 255, 255, 180});
+                DrawLine(lx - 3, ly, lx + 3, ly, (Color){255, 255, 255, 180});
+                DrawLineEx((Vector2){(float)lx + 5, (float)ly + 5},
+                           (Vector2){(float)lx + 10, (float)ly + 10}, 2.5f, (Color){140, 70, 30, 255});
+                DrawCircle(lx + 10, ly + 10, 1.2f, GOLD);
+            }
         }
-        texto("ECO", 128, 36, FONTE_PX, (Color){200, 160, 248, 255});
-        texto(distancia == 0 ? "AQUI!" : distancia < 2 ? "FORTE" : distancia < 4 ? "MEDIO" : "FRACO", 128, 52, FONTE_PX, WHITE);
-        snprintf(linha, sizeof linha, "Pistas %d/3", d->rastros); texto(linha, 128, 76, FONTE_PX, WHITE);
-        texto("Siga o eco e examine.", 12, 121, FONTE_PX, WHITE);
+
+        caixa(120, 28, 112, 84, (Color){14, 22, 36, 255});
+        DrawRectangleLines(120, 28, 112, 84, (Color){50, 90, 140, 255});
+        texto("LUPA DETETIVE", 126, 33, FONTE_PX, GOLD);
+
+        texto("SINAL DO RASTRO:", 126, 46, FONTE_PX, (Color){180, 200, 220, 255});
+        if (distancia == 0) {
+            caixa(126, 57, 100, 14, (Color){20, 80, 50, 255});
+            DrawRectangleLines(126, 57, 100, 14, (Color){80, 240, 160, 255});
+            texto("[PEGADA AQUI!]", 130, 60, FONTE_PX, (Color){100, 255, 180, 255});
+        } else if (distancia == 1) {
+            caixa(126, 57, 100, 14, (Color){80, 48, 16, 255});
+            DrawRectangleLines(126, 57, 100, 14, (Color){255, 160, 60, 255});
+            texto("[MUITO QUENTE]", 128, 60, FONTE_PX, (Color){255, 180, 80, 255});
+        } else if (distancia <= 3) {
+            caixa(126, 57, 100, 14, (Color){60, 60, 20, 255});
+            DrawRectangleLines(126, 57, 100, 14, (Color){230, 210, 60, 255});
+            texto("[RASTRO MORNO]", 128, 60, FONTE_PX, (Color){240, 220, 80, 255});
+        } else {
+            caixa(126, 57, 100, 14, (Color){20, 40, 60, 255});
+            DrawRectangleLines(126, 57, 100, 14, (Color){60, 140, 200, 255});
+            texto("[RASTRO FRIO]", 130, 60, FONTE_PX, (Color){140, 200, 240, 255});
+        }
+
+        snprintf(linha, sizeof linha, "PEGADAS: %d/3", d->rastros);
+        texto(linha, 126, 78, FONTE_PX, WHITE);
+        for (i = 0; i < 3; i++) {
+            int achada = (i < d->rastros);
+            DrawCircle(196 + i * 11, 81, 3.5f, achada ? (Color){80, 240, 180, 255} : (Color){40, 50, 70, 255});
+            DrawCircle(196 + i * 11, 81, 1.5f, achada ? WHITE : (Color){60, 70, 90, 255});
+        }
+
+        texto("Aproxime e use Z", 126, 96, FONTE_PX, (Color){180, 190, 210, 255});
+        texto("Mova a lupa com as setas.", 12, 121, FONTE_PX, WHITE);
     } else {
         int marcas = !!(d->caixas & (1UL << 10)) + !!(d->caixas & (1UL << 28));
         for (i = 0; i < 36; i++) {
@@ -2403,22 +2507,102 @@ static void desenharPuzzle(void) {
 }
 
 static void desenharTimeExploracao(void) {
+    const Pokemon *sel_pk = pokemonNaPosicao(&caso_jogo.nucleo.time, vis.cursor_time);
     const NoTime *no;
     int i = 0;
-    DrawRectangle(0, 0, VIRT_L, VIRT_A, (Color){4, 6, 16, 190});
-    caixa(8, 4, 224, 152, (Color){248, 248, 232, 255});
-    texto("TIME / ESCOLHA O ATIVO", 16, 14, FONTE_PX, BLACK);
-    for (no = caso_jogo.nucleo.time.inicio; no != NULL; no = no->prox, i++) {
-        char nome[64], pontos[64];
-        int y = 30 + i * 17;
-        if (i == vis.cursor_time) DrawRectangle(12, y - 1, 216, 17, (Color){248, 224, 136, 255});
-        snprintf(nome, sizeof nome, "%s Nv%d", no->pokemon.nome, no->pokemon.nivel);
-        snprintf(pontos, sizeof pontos, "%d/%d HP  XP %d/60", no->pokemon.hp_atual,
-                 no->pokemon.hp_max, no->pokemon.experiencia);
-        texto(nome, 18, (float)y, FONTE_PX, BLACK);
-        texto(pontos, 18, y + 8.0f, FONTE_PX, (Color){64, 80, 96, 255});
+    int ativo_idx = posicaoDoAtivo(&caso_jogo.nucleo.time);
+    char buf[64];
+
+    DrawRectangle(0, 0, VIRT_L, VIRT_A, (Color){4, 6, 16, 220});
+    caixa(4, 4, 232, 152, (Color){16, 24, 38, 255});
+    DrawRectangleLines(4, 4, 232, 152, (Color){50, 90, 140, 255});
+
+    /* Painel Esquerdo: Ficha e Sprite do Pokémon Selecionado */
+    caixa(8, 8, 98, 144, (Color){10, 18, 30, 255});
+    DrawRectangleLines(8, 8, 98, 144, (Color){30, 80, 120, 255});
+    DrawRectangle(11, 11, 92, 54, (Color){14, 24, 40, 255});
+    DrawRectangleLines(11, 11, 92, 54, (Color){24, 60, 90, 255});
+
+    if (sel_pk != NULL) {
+        float bob = sinf(vis.tempo * 3.5f) * 1.5f;
+        desenharSpriteMon(sel_pk->numero, 0, (Rectangle){25, 7 + bob, 64, 64}, 0.0f);
+
+        if (sel_pk->brilhante) {
+            int s;
+            for (s = 0; s < 3; s++) {
+                float ang = vis.tempo * 4.0f + (float)s * 2.094f;
+                DrawCircle((int)(57.0f + cosf(ang) * 20.0f), (int)(38.0f + sinf(ang) * 14.0f), 1.5f, GOLD);
+            }
+        }
+
+        snprintf(buf, sizeof buf, "#%03d %s", sel_pk->numero, sel_pk->nome);
+        textoAte(buf, 12, 68, 90, WHITE);
+        snprintf(buf, sizeof buf, "Nv.%d", sel_pk->nivel);
+        texto(buf, 12, 78, FONTE_PX, (Color){248, 220, 120, 255});
+
+        DrawRectangle(46, 77, 28, 9, corDoTipo(sel_pk->tipo1));
+        textoAte(nomeTipo(sel_pk->tipo1), 48, 78, 24, WHITE);
+        if (sel_pk->tipo2 != TIPO_NENHUM) {
+            DrawRectangle(76, 77, 28, 9, corDoTipo(sel_pk->tipo2));
+            textoAte(nomeTipo(sel_pk->tipo2), 78, 78, 24, WHITE);
+        }
+
+        snprintf(buf, sizeof buf, "HP %d/%d", sel_pk->hp_atual, sel_pk->hp_max);
+        texto(buf, 12, 89, FONTE_PX, (Color){200, 220, 240, 255});
+        desenharBarraHp(12, 98, 90, sel_pk->hp_max > 0 ? (float)sel_pk->hp_atual / (float)sel_pk->hp_max : 0.0f);
+
+        snprintf(buf, sizeof buf, "ATQ:%d DEF:%d VEL:%d", sel_pk->ataque, sel_pk->defesa, sel_pk->velocidade);
+        textoAte(buf, 12, 107, 92, (Color){170, 200, 230, 255});
+
+        if (sel_pk->qtd_golpes > 0) {
+            snprintf(buf, sizeof buf, "1:%s", sel_pk->golpes[0].nome);
+            textoAte(buf, 12, 118, 92, (Color){220, 230, 240, 255});
+        }
+        if (sel_pk->qtd_golpes > 1) {
+            snprintf(buf, sizeof buf, "2:%s", sel_pk->golpes[1].nome);
+            textoAte(buf, 12, 128, 92, (Color){220, 230, 240, 255});
+        }
+    } else {
+        texto("Nenhum Pokemon", 14, 50, FONTE_PX, (Color){100, 120, 140, 255});
     }
-    texto("Z escolhe / X volta", 16, 140, FONTE_PX, BLACK);
+
+    /* Painel Direito: Lista dos Slots da Equipe */
+    texto("EQUIPE POKEMON", 112, 10, FONTE_PX, (Color){80, 210, 255, 255});
+
+    for (no = caso_jogo.nucleo.time.inicio; no != NULL && i < 6; no = no->prox, i++) {
+        char nome[64], nv[16];
+        int y = 22 + i * 19;
+        int sel = (i == vis.cursor_time);
+        int e_ativo = (i == ativo_idx);
+        float razao = 0.0f;
+        if (no->pokemon.hp_max > 0) {
+            razao = (float)no->pokemon.hp_atual / (float)no->pokemon.hp_max;
+        }
+
+        caixa(110, y, 122, 18, sel ? (Color){30, 60, 110, 255} : (Color){20, 30, 46, 255});
+        DrawRectangleLines(110, y, 122, 18, sel ? GOLD : (Color){36, 50, 72, 255});
+
+        if (sprites[no->pokemon.numero].tem_icone) {
+            DrawTexturePro(sprites[no->pokemon.numero].icone,
+                           (Rectangle){0, 0, (float)sprites[no->pokemon.numero].icone.width, (float)sprites[no->pokemon.numero].icone.height},
+                           (Rectangle){112, (float)y + 2, 14, 14}, (Vector2){0, 0}, 0.0f, WHITE);
+        }
+
+        snprintf(nome, sizeof nome, "%s", no->pokemon.nome);
+        textoAte(nome, 128, (float)y + 2, 60, sel ? (Color){255, 230, 100, 255} : WHITE);
+        snprintf(nv, sizeof nv, "N%d", no->pokemon.nivel);
+        texto(nv, 192, (float)y + 2, FONTE_PX, (Color){248, 220, 120, 255});
+
+        if (e_ativo) {
+            texto("[LIDER]", 128, (float)y + 10, FONTE_PX, (Color){60, 220, 140, 255});
+        } else if (no->pokemon.hp_atual <= 0) {
+            texto("[FNT]", 128, (float)y + 10, FONTE_PX, (Color){240, 80, 80, 255});
+        }
+
+        desenharBarraHp(176, y + 11, 48, razao);
+    }
+
+    textoAte("[Z] Definir Ativo  [X/T] Voltar", 112, 140, 120, (Color){180, 200, 220, 255});
 }
 
 static void atualizarPcEquipe(void) {
@@ -3145,7 +3329,7 @@ static void avancarFilaBatalha(void) {
     if (vis.resultado == 0 && caso_jogo.caso_encerrado) {
         vis.fase = BAT_FIM;
         vis.vitoria = 1;
-        vis.depois_fala = 2;
+        vis.depois_fala = 4;
         abrirPaginas(historiaDesfecho);
         return;
     }
@@ -3379,6 +3563,14 @@ static void atualizarBatalha(float dt) {
                 filaPor("Este Pokémon desmaiou.");
                 vis.fase = BAT_TEXTO;
                 vis.resultado = 1;
+            } else if (vis.cursor_time == posicaoDoAtivo(&caso_jogo.nucleo.time)) {
+                char msg[LOG_MAX];
+                snprintf(msg, sizeof msg, "%s já está em combate!", escolhido->nome);
+                filaLimpar();
+                filaPor(msg);
+                vis.fase = BAT_TEXTO;
+                vis.resultado = 1;
+                clique();
             } else if (definirAtivoPorPosicao(&caso_jogo.nucleo.time, vis.cursor_time)) {
                 char msg[LOG_MAX];
                 snprintf(msg, sizeof msg, "Você enviou %s!", escolhido->nome);
@@ -3511,9 +3703,10 @@ static void desenharBatalha(void) {
         }
     }
     {
-        float bob_eu = sinf(vis.tempo * 3.2f) * 1.5f;
+        float low_hp_mult = (vis.hp_eu <= 0.2f && vis.hp_eu > 0.0f) ? 2.0f : 1.0f;
+        float bob_eu = sinf(vis.tempo * 3.2f * low_hp_mult) * (1.5f * (low_hp_mult > 1.0f ? 0.7f : 1.0f));
         float bob_opp = cosf(vis.tempo * 2.8f) * 1.5f;
-        float breathe_eu = sinf(vis.tempo * 3.2f) * 0.02f;
+        float breathe_eu = sinf(vis.tempo * 3.2f * low_hp_mult) * (0.02f * low_hp_mult);
         float breathe_opp = cosf(vis.tempo * 2.8f) * 0.02f;
 
         /* Sombra oval realista sob as plataformas */
@@ -3563,6 +3756,38 @@ static void desenharBatalha(void) {
         }
         caixa(148, 67, 76, 16, (Color){248, 216, 104, 255});
         texto("SHINY!", 157, 71, FONTE_PX, (Color){120, 56, 16, 255});
+    }
+    if (eu != NULL && eu->brilhante && (!intro || sai > 0.02f)) {
+        int s_idx;
+        for (s_idx = 0; s_idx < 3; s_idx++) {
+            float ang = vis.tempo * 4.0f + (float)s_idx * 2.094f;
+            int px = (int)(jogador.x + 32.0f + cosf(ang) * 26.0f);
+            int py = (int)(jogador.y + 32.0f + sinf(ang) * 18.0f);
+            DrawCircle(px, py, 2.0f, GOLD);
+            DrawCircle(px, py, 1.0f, WHITE);
+        }
+    }
+    if (vis.flash_opp > 0.04f) {
+        int spark;
+        for (spark = 0; spark < 4; spark++) {
+            float sa = (float)spark * 1.57f + vis.tempo * 12.0f;
+            float dist = (1.0f - vis.flash_opp) * 22.0f;
+            int sx = (int)(inimigo.x + 32.0f + cosf(sa) * dist);
+            int sy = (int)(inimigo.y + 32.0f + sinf(sa) * dist);
+            DrawCircle(sx, sy, 2.5f, GOLD);
+            DrawCircle(sx, sy, 1.0f, WHITE);
+        }
+    }
+    if (vis.flash_eu > 0.04f) {
+        int spark;
+        for (spark = 0; spark < 4; spark++) {
+            float sa = (float)spark * 1.57f + vis.tempo * 12.0f;
+            float dist = (1.0f - vis.flash_eu) * 20.0f;
+            int sx = (int)(jogador.x + 32.0f + cosf(sa) * dist);
+            int sy = (int)(jogador.y + 32.0f + sinf(sa) * dist);
+            DrawCircle(sx, sy, 2.5f, (Color){255, 120, 80, 255});
+            DrawCircle(sx, sy, 1.0f, WHITE);
+        }
     }
 
     if (op != NULL) {
@@ -3684,17 +3909,98 @@ static void desenharBatalha(void) {
 
     if (vis.fase == BAT_TIME) {
         int n = tamanhoTime(&caso_jogo.nucleo.time);
-        caixa(28, 16, 184, 128, (Color){248, 248, 240, 255});
-        texto("POKéMON", 36.0f, 22.0f, FONTE_PX, BLACK);
-        for (i = 0; i < n && i < 4; i++) {
+        int ativo_idx = posicaoDoAtivo(&caso_jogo.nucleo.time);
+        const Pokemon *sel_pk = pokemonNaPosicao(&caso_jogo.nucleo.time, vis.cursor_time);
+        char buf[64];
+
+        DrawRectangle(0, 0, VIRT_L, VIRT_A, (Color){4, 6, 16, 220});
+        caixa(4, 4, 232, 152, (Color){16, 24, 38, 255});
+        DrawRectangleLines(4, 4, 232, 152, (Color){50, 90, 140, 255});
+
+        /* Painel Esquerdo: Ficha e Sprite do Pokémon Selecionado */
+        caixa(8, 8, 98, 144, (Color){10, 18, 30, 255});
+        DrawRectangleLines(8, 8, 98, 144, (Color){30, 80, 120, 255});
+        DrawRectangle(11, 11, 92, 54, (Color){14, 24, 40, 255});
+        DrawRectangleLines(11, 11, 92, 54, (Color){24, 60, 90, 255});
+
+        if (sel_pk != NULL) {
+            float bob = sinf(vis.tempo * 3.5f) * 1.5f;
+            desenharSpriteMon(sel_pk->numero, 0, (Rectangle){25, 7 + bob, 64, 64}, 0.0f);
+
+            if (sel_pk->brilhante) {
+                int s;
+                for (s = 0; s < 3; s++) {
+                    float ang = vis.tempo * 4.0f + (float)s * 2.094f;
+                    DrawCircle((int)(57.0f + cosf(ang) * 20.0f), (int)(38.0f + sinf(ang) * 14.0f), 1.5f, GOLD);
+                }
+            }
+
+            snprintf(buf, sizeof buf, "#%03d %s", sel_pk->numero, sel_pk->nome);
+            textoAte(buf, 12, 68, 90, WHITE);
+            snprintf(buf, sizeof buf, "Nv.%d", sel_pk->nivel);
+            texto(buf, 12, 78, FONTE_PX, (Color){248, 220, 120, 255});
+
+            DrawRectangle(46, 77, 28, 9, corDoTipo(sel_pk->tipo1));
+            textoAte(nomeTipo(sel_pk->tipo1), 48, 78, 24, WHITE);
+            if (sel_pk->tipo2 != TIPO_NENHUM) {
+                DrawRectangle(76, 77, 28, 9, corDoTipo(sel_pk->tipo2));
+                textoAte(nomeTipo(sel_pk->tipo2), 78, 78, 24, WHITE);
+            }
+
+            snprintf(buf, sizeof buf, "HP %d/%d", sel_pk->hp_atual, sel_pk->hp_max);
+            texto(buf, 12, 89, FONTE_PX, (Color){200, 220, 240, 255});
+            desenharBarraHp(12, 98, 90, sel_pk->hp_max > 0 ? (float)sel_pk->hp_atual / (float)sel_pk->hp_max : 0.0f);
+
+            snprintf(buf, sizeof buf, "ATQ:%d DEF:%d VEL:%d", sel_pk->ataque, sel_pk->defesa, sel_pk->velocidade);
+            textoAte(buf, 12, 107, 92, (Color){170, 200, 230, 255});
+
+            if (sel_pk->qtd_golpes > 0) {
+                snprintf(buf, sizeof buf, "1:%s", sel_pk->golpes[0].nome);
+                textoAte(buf, 12, 118, 92, (Color){220, 230, 240, 255});
+            }
+            if (sel_pk->qtd_golpes > 1) {
+                snprintf(buf, sizeof buf, "2:%s", sel_pk->golpes[1].nome);
+                textoAte(buf, 12, 128, 92, (Color){220, 230, 240, 255});
+            }
+        } else {
+            texto("Nenhum Pokemon", 14, 50, FONTE_PX, (Color){100, 120, 140, 255});
+        }
+
+        /* Painel Direito: Lista de Seleção para Enviar */
+        texto("ESCOLHA O POKEMON", 112, 10, FONTE_PX, (Color){80, 210, 255, 255});
+
+        for (i = 0; i < n && i < 6; i++) {
             const Pokemon *membro = pokemonNaPosicao(&caso_jogo.nucleo.time, i);
             float razao = 0.0f;
-            Color tinta = (vis.cursor_time == i) ? (Color){180, 32, 32, 255} : BLACK;
+            int y = 22 + i * 19;
+            int sel = (vis.cursor_time == i);
+            int e_ativo = (i == ativo_idx);
+            char nv[16];
             if (membro == NULL) continue;
             if (membro->hp_max > 0) razao = (float)membro->hp_atual / (float)membro->hp_max;
-            texto(membro->nome, 36.0f, 40.0f + (float)i * 24.0f, FONTE_PX, tinta);
-            desenharBarraHp(120, 42 + i * 24, 80, razao);
+
+            caixa(110, y, 122, 18, sel ? (Color){30, 60, 110, 255} : (Color){20, 30, 46, 255});
+            DrawRectangleLines(110, y, 122, 18, sel ? GOLD : (Color){36, 50, 72, 255});
+
+            if (sprites[membro->numero].tem_icone) {
+                DrawTexturePro(sprites[membro->numero].icone,
+                               (Rectangle){0, 0, (float)sprites[membro->numero].icone.width, (float)sprites[membro->numero].icone.height},
+                               (Rectangle){112, (float)y + 2, 14, 14}, (Vector2){0, 0}, 0.0f, WHITE);
+            }
+            textoAte(membro->nome, 128, (float)y + 2, 60, sel ? (Color){255, 230, 100, 255} : WHITE);
+            snprintf(nv, sizeof nv, "N%d", membro->nivel);
+            texto(nv, 192, (float)y + 2, FONTE_PX, (Color){248, 220, 120, 255});
+
+            if (e_ativo) {
+                texto("[ATIVO]", 128, (float)y + 10, FONTE_PX, (Color){60, 220, 140, 255});
+            } else if (membro->hp_atual <= 0) {
+                texto("[FNT]", 128, (float)y + 10, FONTE_PX, (Color){240, 80, 80, 255});
+            }
+
+            desenharBarraHp(176, y + 11, 48, razao);
         }
+
+        textoAte("[Z] Enviar  [X] Voltar", 112, 140, 120, (Color){180, 200, 220, 255});
     }
     if (vis.fase == BAT_ANALISE) {
         const Pokemon *alvo = pokemonNaPosicao(&caso_jogo.oponente_atual.time, vis.cursor_time);
@@ -4020,6 +4326,155 @@ static void desenharPokedex(void) {
     texto("[W/S] Navegar  [P/X/ESC] Fechar", 18, 146, FONTE_PX, (Color){240, 240, 240, 255});
 }
 
+static void atualizarMewtwo(float dt) {
+    vis.mewtwo_t += dt;
+
+    if (vis.mewtwo_etapa == 0) {
+        if (acaoPressionada()) {
+            vis.mewtwo_etapa = 1;
+            clique();
+        }
+    } else if (vis.mewtwo_etapa == 1) {
+        if (acaoPressionada()) {
+            vis.mewtwo_etapa = 2;
+            vis.mewtwo_opcao = 0;
+            clique();
+        }
+    } else if (vis.mewtwo_etapa == 2) {
+        if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
+            vis.mewtwo_opcao = (vis.mewtwo_opcao + 1) % 3;
+            clique();
+        }
+        if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
+            vis.mewtwo_opcao = (vis.mewtwo_opcao + 2) % 3;
+            clique();
+        }
+        if (acaoPressionada()) {
+            if (vis.mewtwo_opcao == 0 || vis.mewtwo_opcao == 2) {
+                vis.mewtwo_convencido = 1;
+            } else {
+                vis.mewtwo_convencido = 0;
+            }
+            vis.mewtwo_etapa = 3;
+            clique();
+        }
+    } else if (vis.mewtwo_etapa == 3) {
+        if (acaoPressionada()) {
+            if (vis.mewtwo_convencido) {
+                casoConvidarMewtwo(&caso_jogo);
+                if (vis.som_ok) PlaySound(vis.som_acerto);
+            } else {
+                clique();
+            }
+            vis.mewtwo_etapa = 4;
+        }
+    } else if (vis.mewtwo_etapa == 4) {
+        if (acaoPressionada()) {
+            tela = TELA_CREDITOS;
+            vis.vitoria = 1;
+            vis.menu_cursor = 0;
+            clique();
+        }
+    }
+}
+
+static void desenharMewtwo(void) {
+    float bob = sinf(vis.mewtwo_t * 2.8f) * 3.5f;
+    int i;
+
+    /* Fundo psíquico misterioso */
+    DrawRectangle(0, 0, VIRT_L, VIRT_A, (Color){10, 8, 20, 255});
+
+    /* Efeito de ondas psíquicas ondulantes no espaço */
+    for (i = 0; i < 3; i++) {
+        float r = 24.0f + (float)i * 18.0f + sinf(vis.mewtwo_t * 2.0f + (float)i) * 4.0f;
+        DrawCircleLines(VIRT_L / 2, 40, r, (Color){160, 90, 230, 45});
+    }
+
+    /* Partículas de energia flutuando */
+    for (i = 0; i < 5; i++) {
+        float ang = vis.mewtwo_t * 2.5f + (float)i * 1.256f;
+        int px = (int)((float)VIRT_L / 2.0f + cosf(ang) * (34.0f + (float)i * 5.0f));
+        int py = (int)(40.0f + sinf(ang) * (20.0f + (float)i * 3.0f));
+        DrawCircle(px, py, 1.5f, (Color){190, 140, 255, 200});
+        DrawCircle(px, py, 0.8f, WHITE);
+    }
+
+    /* Sombra elíptica no chão */
+    DrawEllipse(VIRT_L / 2, 74, 22, 6, (Color){20, 10, 32, 200});
+
+    /* Sprite frontal oficial de Mewtwo #150 com levitação viva */
+    desenharSpriteMon(150, 0, (Rectangle){(float)VIRT_L / 2.0f - 32.0f, 8.0f + bob, 64.0f, 64.0f}, 0.0f);
+
+    /* Se convencido e etapa final, brilhos cintilantes ao redor */
+    if (vis.mewtwo_etapa >= 3 && vis.mewtwo_convencido) {
+        for (i = 0; i < 4; i++) {
+            float ang = vis.mewtwo_t * 3.5f + (float)i * 1.57f;
+            int sx = (int)((float)VIRT_L / 2.0f + cosf(ang) * 26.0f);
+            int sy = (int)(38.0f + sinf(ang) * 22.0f);
+            DrawCircle(sx, sy, 2.0f, GOLD);
+            DrawCircle(sx, sy, 1.0f, WHITE);
+        }
+    }
+
+    /* Caixa de Diálogo Telepático */
+    caixa(6, 76, 228, 80, (Color){16, 12, 30, 248});
+    DrawRectangleLines(6, 76, 228, 80, (Color){180, 100, 240, 255});
+    DrawRectangle(10, 74, 130, 10, (Color){36, 20, 60, 255});
+    texto("[ TELEPATIA: MEWTWO ]", 12, 75, FONTE_PX, (Color){230, 190, 255, 255});
+
+    if (vis.mewtwo_etapa == 0) {
+        texto("Giovanni recua... Os cientistas", 12, 90, FONTE_PX, WHITE);
+        texto("deste laboratorio queriam apenas", 12, 102, FONTE_PX, WHITE);
+        texto("me usar como arma de combate.", 12, 114, FONTE_PX, WHITE);
+        texto("[Z] Ouvir Mewtwo", 136, 144, FONTE_PX, GOLD);
+    } else if (vis.mewtwo_etapa == 1) {
+        texto("Eu observei a sua coragem ao lado", 12, 90, FONTE_PX, WHITE);
+        texto("de seus parceiros durante o caso.", 12, 102, FONTE_PX, WHITE);
+        texto("O que eles representam para voce?", 12, 114, FONTE_PX, (Color){200, 230, 255, 255});
+        texto("[Z] Responder", 144, 144, FONTE_PX, GOLD);
+    } else if (vis.mewtwo_etapa == 2) {
+        static const char *opcoes[3] = {
+            "Amigos iguais! Venha conosco ao mundo.",
+            "Uma arma suprema. Preciso do seu poder!",
+            "Sua vida e sua. Construa seu caminho."
+        };
+        int op;
+        for (op = 0; op < 3; op++) {
+            int sel = (vis.mewtwo_opcao == op);
+            Color cor = sel ? GOLD : (Color){200, 210, 230, 255};
+            char linha_op[64];
+            snprintf(linha_op, sizeof linha_op, "%s%s", sel ? "> " : "  ", opcoes[op]);
+            textoAte(linha_op, 10, 89 + op * 14, 220, cor);
+        }
+        texto("[W/S] Escolher   [Z] Responder", 12, 144, FONTE_PX, (Color){160, 200, 240, 255});
+    } else if (vis.mewtwo_etapa == 3) {
+        if (vis.mewtwo_convencido) {
+            texto("Amigos? Um novo caminho?", 12, 90, FONTE_PX, (Color){120, 240, 180, 255});
+            texto("Nem todos os humanos sao crueis...", 12, 102, FONTE_PX, WHITE);
+            texto("Aceito seu convite. Vamos juntos!", 12, 114, FONTE_PX, (Color){248, 220, 120, 255});
+            texto("[Z] Convidar ao time", 116, 144, FONTE_PX, GOLD);
+        } else {
+            texto("Voce pensa exatamente como Giovanni.", 12, 90, FONTE_PX, (Color){240, 100, 100, 255});
+            texto("Apenas quer se apossar do meu poder.", 12, 102, FONTE_PX, WHITE);
+            texto("Nao pertencerei a nenhum humano!", 12, 114, FONTE_PX, (Color){220, 140, 140, 255});
+            texto("[Z] Teleportar", 148, 144, FONTE_PX, (Color){240, 100, 100, 255});
+        }
+    } else if (vis.mewtwo_etapa == 4) {
+        if (vis.mewtwo_convencido) {
+            texto("MEWTWO ENTROU PARA SUA EQUIPE!", 12, 90, FONTE_PX, (Color){60, 240, 150, 255});
+            texto("O lendario confiou na sua amizade.", 12, 102, FONTE_PX, WHITE);
+            texto("O caso do laboratorio foi fechado!", 12, 114, FONTE_PX, GOLD);
+            texto("[Z] Zerar o Jogo", 136, 144, FONTE_PX, GOLD);
+        } else {
+            texto("Mewtwo desapareceu na escuridao...", 12, 90, FONTE_PX, (Color){180, 190, 210, 255});
+            texto("Seu paradeiro permanece um misterio.", 12, 102, FONTE_PX, WHITE);
+            texto("O caso do laboratorio foi encerrado.", 12, 114, FONTE_PX, (Color){200, 200, 200, 255});
+            texto("[Z] Zerar o Jogo", 136, 144, FONTE_PX, (Color){200, 200, 200, 255});
+        }
+    }
+}
+
 static void desenharTudo(void) {
     BeginTextureMode(alvo);
     ClearBackground(BLACK);
@@ -4029,6 +4484,7 @@ static void desenharTudo(void) {
     else if (tela == TELA_SALA) desenharMundo();
     else if (tela == TELA_CREDITOS) desenharCreditos();
     else if (tela == TELA_GAMEOVER) desenharGameOver();
+    else if (tela == TELA_MEWTWO) desenharMewtwo();
     else desenharBatalha();
     if (vis.transicao != 0) {
         int altura = (int)(vis.trans_t * (float)(VIRT_A / 2));
@@ -4149,13 +4605,15 @@ static void atualizar(float dt) {
     } else if (tela == TELA_SALA) {
         if (IsKeyPressed(KEY_ESCAPE) && !vis.fala_aberta && !vis.caderno &&
             !vis.documento_aberto && !vis.puzzle_aberto && !vis.time_aberto &&
-            !vis.minimapa_aberto && !vis.pokedex_aberta) {
+            !vis.minimapa_aberto && !vis.pokedex_aberta && !vis.pc_aberto) {
             tela = TELA_MENU;
             return;
         }
         atualizarMundo(dt);
     } else if (tela == TELA_BATALHA) {
         atualizarBatalha(dt);
+    } else if (tela == TELA_MEWTWO) {
+        atualizarMewtwo(dt);
     } else if (tela == TELA_CREDITOS) {
         if (acaoPressionada() || IsKeyPressed(KEY_ESCAPE)) {
             tela = TELA_MENU;

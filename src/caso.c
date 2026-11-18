@@ -448,13 +448,13 @@ static int temEspecie(const ListaTime *time, const char *nome) {
     return 0;
 }
 
-/* Reserva espaço para os três parceiros que resolvem as salas obrigatórias. */
+/* Reserva espaço para os parceiros do caso ou envia para a reserva do PC. */
 static int podeCapturarTreino(const Caso *caso, const Pokemon *pokemon) {
-    int faltam = !temEspecie(&caso->nucleo.time, "Charmander") +
-                 !temEspecie(&caso->nucleo.time, "Squirtle") +
-                 !temEspecie(&caso->nucleo.time, "Alakazam");
-    return !temEspecie(&caso->nucleo.time, pokemon->nome) &&
-           tamanhoTime(&caso->nucleo.time) + faltam < MAX_TIME;
+    if (caso == NULL || pokemon == NULL) return 0;
+    if (temEspecie(&caso->nucleo.time, pokemon->nome) || temEspecie(&caso->reserva_pc, pokemon->nome)) {
+        return 0;
+    }
+    return 1;
 }
 
 int casoIniciarTreino(Caso *caso) {
@@ -472,7 +472,7 @@ int casoIniciarTreino(Caso *caso) {
     } else if (strcmp(sala->nome, "Oficina") == 0 || strcmp(sala->nome, "Jaula") == 0) {
         nivel = 8;
     } else if (strcmp(sala->nome, "Arquivo") == 0 && caso->area_secreta) {
-        nivel = 28;
+        nivel = 15;
     } else return 0;
     {
         unsigned int sorte;
@@ -492,16 +492,19 @@ int casoIniciarTreino(Caso *caso) {
         }
         if (quantidade == 0) return 0;
         numero = disponiveis[sorte % (unsigned int)quantidade];
-        /* Os lendários aparecem apenas no santuário, com chances independentes. */
-        if (caso->area_secreta && sorte % 192U >= 1U && sorte % 192U <= 3U) {
-            numero = 144 + (int)(sorte % 192U) - 1; /* Articuno, Zapdos ou Moltres. */
-            raro = 1;
-        } else if (caso->area_secreta && sorte % 256U == 0U) {
-            numero = 150; /* Mewtwo: aparição lendária de 1/256. */
-            raro = 1;
-        } else if (caso->area_secreta && sorte % 64U == 0U) {
-            numero = 151; /* Mew: 1/64 no santuário secreto. */
-            raro = 1;
+
+        /* No Santuário Secreto, lendários aparecem com alta frequência: 50% ou 75% com altares ativos! */
+        if (caso->area_secreta) {
+            unsigned int chance_lendario = (caso->altares_secretos == 7) ? 75U : 50U;
+            if ((sorte % 100U) < chance_lendario) {
+                unsigned int rola = (sorte / 100U) % 5U;
+                if (rola == 0) numero = 144;      /* Articuno */
+                else if (rola == 1) numero = 145; /* Zapdos */
+                else if (rola == 2) numero = 146; /* Moltres */
+                else if (rola == 3) numero = 151; /* Mew */
+                else numero = 150;                /* Mewtwo */
+                raro = 1;
+            }
         }
         criarTreinador(&caso->oponente_atual, "Pokémon dos arredores",
                        raro ? "Uma presença lendária surgiu!" :
@@ -511,7 +514,7 @@ int casoIniciarTreino(Caso *caso) {
             liberarListaTime(&caso->oponente_atual.time);
             return 0;
         }
-        preparado = pokemonPreparar(modelo, raro ? (numero == 150 ? 30 : numero == 151 ? 22 : 28) : nivel);
+        preparado = pokemonPreparar(modelo, raro ? (numero == 150 ? 18 : numero == 151 ? 15 : 16) : nivel);
         if (!adicionarPokemon(&caso->oponente_atual.time, &preparado)) {
             liberarListaTime(&caso->oponente_atual.time);
             return 0;
@@ -863,11 +866,16 @@ int casoUsarItem(Caso *caso, int item, SaidaBatalha *saida) {
         }
         oponente->hp_atual = oponente->hp_max;
         oponente->brilhante = obterAtivo(&caso->oponente_atual.time)->brilhante;
-        if (!adicionarPokemon(&caso->nucleo.time, oponente)) return -2;
+        if (!adicionarPokemon(&caso->nucleo.time, oponente)) {
+            if (!adicionarPokemon(&caso->reserva_pc, oponente)) return -2;
+            snprintf(mensagem, sizeof mensagem, "Master Ball! %s capturado e enviado ao PC!", oponente->nome);
+        } else {
+            snprintf(mensagem, sizeof mensagem, "Master Ball! %s foi capturado!", oponente->nome);
+        }
+        casoMarcarVisto(caso, oponente->numero);
         caso->master_bolas--;
         caso->em_batalha = 0;
         caso->treino_ativo = 0;
-        snprintf(mensagem, sizeof mensagem, "Master Ball! %s foi capturado!", oponente->nome);
         registrarMensagem(saida, mensagem);
         empilharLog(&caso->nucleo.log, "Master Ball: Pokémon lendário capturado sem falha.");
         soltarOponente(caso);
@@ -1107,3 +1115,63 @@ const Pokemon *casoPokemonReserva(const Caso *caso, int pos) {
     return pokemonNaPosicao(&caso->reserva_pc, pos);
 }
 
+int casoConvidarMewtwo(Caso *caso) {
+    const Pokemon *modelo;
+    Pokemon mewtwo;
+    char msg[LOG_MAX];
+
+    if (caso == NULL) return 0;
+    modelo = buscarPorNumero(&caso->nucleo.arvore, 150);
+    if (modelo == NULL) return 0;
+    mewtwo = pokemonPreparar(modelo, 50);
+    if (!adicionarPokemon(&caso->nucleo.time, &mewtwo)) {
+        if (!adicionarPokemon(&caso->reserva_pc, &mewtwo)) {
+            return 0;
+        }
+        snprintf(msg, sizeof msg, "Mewtwo foi enviado para a reserva do PC!");
+        empilharLog(&caso->nucleo.log, msg);
+    } else {
+        snprintf(msg, sizeof msg, "Mewtwo entrou na equipe do detetive!");
+        empilharLog(&caso->nucleo.log, msg);
+    }
+    casoMarcarVisto(caso, 150);
+    return 1;
+}
+
+int casoIniciarEncontroLendario(Caso *caso, int numero_lendario) {
+    const Pokemon *modelo;
+    Pokemon preparado;
+    int nivel;
+    char frase[LOG_MAX];
+
+    if (caso == NULL || caso->em_batalha || caso->oponente_carregado ||
+        caso->captura_disponivel || caso->caso_encerrado ||
+        timeFoiDerrotado(&caso->nucleo.time)) {
+        return 0;
+    }
+    modelo = buscarPorNumero(&caso->nucleo.arvore, numero_lendario);
+    if (modelo == NULL) return 0;
+
+    nivel = (numero_lendario == 150 ? 18 : numero_lendario == 151 ? 15 : 16);
+    snprintf(frase, sizeof frase, "O lendário %s despertou de seu repouso sagrado!", modelo->nome);
+    criarTreinador(&caso->oponente_atual, "Presença Ancestral", frase);
+    preparado = pokemonPreparar(modelo, nivel);
+    if (!adicionarPokemon(&caso->oponente_atual.time, &preparado)) {
+        liberarListaTime(&caso->oponente_atual.time);
+        return 0;
+    }
+
+    caso->semente_sorteio = caso->semente_sorteio * 1664525U + 1013904223U;
+    obterAtivo(&caso->oponente_atual.time)->brilhante = ((caso->semente_sorteio >> 16) % 128U == 1U);
+
+    caso->oponente_carregado = 1;
+    marcarOponentesVistos(caso);
+    caso->treino_ativo = 1;
+    caso->em_batalha = 1;
+    caso->tentativas_fuga = 0;
+    if (obterAtivo(&caso->nucleo.time)->hp_atual <= 0) {
+        avancarParaProximoVivo(&caso->nucleo.time);
+    }
+    empilharLog(&caso->nucleo.log, frase);
+    return 1;
+}
